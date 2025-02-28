@@ -88,12 +88,12 @@ namespace kagome::pvm {
     BitMask bins_with_free_space;
     BinArray first_unallocated_for_bin;
 
+    static BitMask::Index size_to_bin_round_down(Size size);
+    static BitMask::Index size_to_bin_round_up(Size size);
+
    public:
     GenericAllocator(Size total);
-
-    static BitMask::Index size_to_bin_round_down(
-        GenericAllocator<C>::Size size);
-    static BitMask::Index size_to_bin_round_up(GenericAllocator<C>::Size size);
+    Opt<uint32_t> insert_free_node(Size offset, Size size);
   };
 
   template <typename C>
@@ -139,6 +139,49 @@ namespace kagome::pvm {
       GenericAllocator<C>::Size size) {
     const auto sz = std::min(size, Config::MAX_ALLOCATION_SIZE);
     return BitMask::index(Config::to_bin_index<true>(sz));
+  }
+
+  template <typename C>
+    requires AllocatorCfg<C>
+  Opt<uint32_t> GenericAllocator<C>::insert_free_node(
+      GenericAllocator<C>::Size offset, GenericAllocator<C>::Size size) {
+    if (0 == size) {
+      return std::nullopt;
+    }
+
+    const auto bin = size_to_bin_round_down(size);
+    const auto first_node_in_bin = first_unallocated_for_bin[bin.index()];
+    const Node region{
+        .next_by_address = GenericAllocation::EMPTY,
+        .prev_by_address = GenericAllocation::EMPTY,
+        .next_in_bin = first_node_in_bin,
+        .prev_in_bin = GenericAllocation::EMPTY,
+        .offset = offset,
+        .size = size,
+        .is_allocated = false,
+    };
+
+    uint32_t new_node;
+    if (!unused_node_slots.empty()) {
+      const auto nn = unused_node_slots.back();
+      unused_node_slots.pop_back();
+      nodes[nn] = region;
+      new_node = nn;
+    } else {
+      const auto nn = uint32_t(nodes.size());
+      nodes.push_back(region);
+      new_node = nn;
+    }
+
+    if (first_node_in_bin < nodes.size()) {
+      auto &node = nodes[first_node_in_bin];
+      node.prev_in_bin = new_node;
+    } else {
+      bins_with_free_space.set(bin);
+    }
+
+    first_unallocated_for_bin[bin.index()] = new_node;
+    return {new_node};
   }
 
 }  // namespace kagome::pvm
