@@ -4,44 +4,32 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-name: Test Pipeline (WIP)
+name: Test Pipeline (WIP) (Kagome Runtime)
 
 on:
   #  schedule:
-  #    - cron: '0 2 * * 0' # Update zombie builder image each Sunday night
+  #    - cron: '0 2 * * 0' # Every Sunday at 2:00 AM
   workflow_dispatch:
     inputs:
-      zombie_tester_tag:
-        description: 'Custom Zombie Tester tag'
+      zombie_tester_latest_tag:
+        description: 'Zombie Tester tag'
         default: 'latest'
         required: false
         type: 'string'
-      zombienet_release:
-        description: 'Custom zombienet release'
-        default: '1.3.119'
-        required: false
-        type: 'string'
-      polkadot_package_version:
-        description: 'Custom Polkadot package version'
-        default: '20250211-24121'
+      kagome_for_runtime_gen_deb_package_version:
+        description: 'Custom Kagome for runtime gen deb package version'
+        default: '20250224-b7c20d9-Release'
         required: false
         type: 'string'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
-  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
-  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_tag || 'latest' }}
-  ZOMBIENET_RELEASE: ${{ github.event.inputs.zombienet_release || '1.3.119' }}
-  POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.polkadot_package_version || '20250211-24121' }}
-  SCCACHE_GCS_BUCKET: ${{ secrets.SCCACHE_GCS_BUCKET }}
-  DOCKER_BUILD_DIR_NAME: build_docker_ci
-#  CACHE_VERSION: v001
-#  CACHE_PATHS: ./zombienet/docker/build_docker/cargo
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
+  KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.kagome_for_runtime_gen_deb_package_version }}
 
 jobs:
-  build_zombie_tester:
+  build_kagome_runtime:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -55,15 +43,10 @@ jobs:
     env:
       PLATFORM: ${{ matrix.platform }}
     steps:
-      - name: Checkout repository
+      - name: "Checkout repository"
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: "Fetch master branch"
-        if: github.ref != 'refs/heads/master'
-        run: |
-          git fetch origin master:master || true
 
       - name : "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -78,72 +61,19 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Check if image tag exists using Makefile"
-        id: check-tag
-        working-directory: ./zombienet/docker
+      - name: "Build Runtime Cache"
+        working-directory: ./housekeeping/docker/kagome-dev
         run: |
           make configure
-          exists=$(make zombie_tester_check_tag)
-          echo "Image Exists: $exists"
-          echo "exists=$exists" >> $GITHUB_ENV
+          make runtime_cache
 
-      - name: "Build Zombie Tester"
-        working-directory: ./zombienet/docker
-        if: env.exists == 'false'
+      - name: "Push Runtime Cache"
+        working-directory: ./housekeeping/docker/kagome-dev
         run: |
-          make zombie_tester && make zombie_tester_push
+          make upload_apt_package_runtime
 
       - name: "Versions Info"
         if: always()
-        working-directory: ./zombienet/docker
+        working-directory: ./housekeeping/docker/kagome-dev
         run: |
-          make zombie_tester_image_info
-  
-  zombie_tester_manifest:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    needs: [build_zombie_tester]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: "Fetch master branch"
-        if: github.ref != 'refs/heads/master'
-        run: |
-          git fetch origin master:master || true
-
-      - name : "Authenticate with Google Cloud"
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-
-      - name: "Set up Cloud SDK"
-        uses: 'google-github-actions/setup-gcloud@v2'
-
-      - name: "Configure Docker for GCR"
-        run: |
-          gcloud auth configure-docker --quiet
-          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
-
-      - name: "Check if image tag exists using Makefile"
-        id: check-tag
-        working-directory: ./zombienet/docker
-        run: |
-          make configure
-          exists=$(make zombie_tester_check_latest_tag)
-          echo "Image Exists: $exists"
-          echo "exists=$exists" >> $GITHUB_ENV
-
-      - name: "Build Zombie Tester"
-        working-directory: ./zombienet/docker
-        if: env.exists == 'false'
-        run: |
-          make zombie_tester_push_manifest
-
-      - name: "Versions Info"
-        if: always()
-        working-directory: ./zombienet/docker
-        run: |
-          make zombie_tester_image_info
+          echo "Package name and version: kagome-dev-runtime $(python3 get_wasmedge_version.py)-$(date +'%y.%m.%d')"
