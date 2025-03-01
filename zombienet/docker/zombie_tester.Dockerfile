@@ -52,16 +52,16 @@ RUN install_packages  \
 
 RUN ARCHITECTURE=$(uname -m); \
     if [ "$ARCHITECTURE" = "x86_64" ]; then \
-        ARCHITECTURE="x64"; \
+        ARCH="x64"; \
     elif [ "$ARCHITECTURE" = "aarch64" ]; then \
-        ARCHITECTURE="arm64"; \
+        ARCH="arm64"; \
     else \
         echo "-- Unsupported architecture: $ARCHITECTURE"; exit 1; \
     fi && \
-    echo "-- Downloading zombienet v${ZOMBIENET_RELEASE} for ${ARCHITECTURE}" && \
-    wget -q https://github.com/paritytech/zombienet/releases/download/v$ZOMBIENET_RELEASE/zombienet-linux-${ARCHITECTURE} && \
-    mv zombienet-linux-${ARCHITECTURE} /usr/local/bin/zombienet && \
-    chmod +x /usr/local/bin/zombienet
+    echo "-- Downloading zombienet v${ZOMBIENET_RELEASE} for ${ARCH}" && \
+    wget -q "https://github.com/paritytech/zombienet/releases/download/v${ZOMBIENET_RELEASE}/zombienet-linux-${ARCH}" -O /usr/local/bin/zombienet && \
+    chmod +x /usr/local/bin/zombienet && \
+    ln -s /usr/local/bin/zombienet /usr/bin/zombienet
 
 # Install Polkadot SDK
 RUN curl -fsSL https://${REGION}-apt.pkg.dev/doc/repo-signing-key.gpg | \
