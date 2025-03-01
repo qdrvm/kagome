@@ -175,7 +175,15 @@ jobs:
 
 
   build_kagome_runtime:
-    runs-on: [ actions-runner-controller ]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            os: ubuntu-24.04
+          - platform: linux/arm64
+            os: ubuntu-24.04-arm
     timeout-minutes: 60
     steps:
       - name: "Check if build runtime is required"
@@ -210,15 +218,13 @@ jobs:
       - name: "Build Runtime Cache"
         working-directory: ./housekeeping/docker/kagome-dev
         if: env.skip != 'true'
-        run: make runtime_cache \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
-          TESTER_LATEST_TAG=${{ env.TESTER_LATEST_TAG }}
+        run: |
+          make runtime_cache
 
       - name: "Push Runtime Cache"
         working-directory: ./housekeeping/docker/kagome-dev
         if: env.skip != 'true'
-        run: make upload_apt_package_runtime \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
+        run: make upload_apt_package_runtime
   
       - name: "Versions Info"
         if: always() && env.skip != 'true'

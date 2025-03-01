@@ -22,7 +22,7 @@ define run_test
 			echo \"POLKADOT_VERSION=\$$(polkadot --version | awk '{print \$$2}')\" >> /tmp/versions.env && \
 			echo \"ZOMBIENET_VERSION=\$$(zombienet version)\" >> /tmp/versions.env && \
 			cat /tmp/versions.env && \
-			zombienet-linux-x64 test -p native /home/nonroot/bin/$$TEST_PATH " ; \
+			zombienet test -p native /home/nonroot/bin/$$TEST_PATH " ; \
 	TEST_EXIT_CODE=$$(docker inspect $$CONTAINER_NAME --format='{{.State.ExitCode}}'); \
 	if [ "$(COPY_LOGS_TO_HOST)" = "true" ]; then \
 		$(MAKE) copy_logs_to_host CONTAINER_NAME=$$CONTAINER_NAME; \

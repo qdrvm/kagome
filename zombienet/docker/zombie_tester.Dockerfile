@@ -114,7 +114,8 @@ RUN install_packages  \
       libatomic1 \
       ssh \
       libgcc-s1 \
-      zlib1g
+      zlib1g \
+      gosu
 
 # Create non-root user and switch to it
 ARG USER_ID=1000
