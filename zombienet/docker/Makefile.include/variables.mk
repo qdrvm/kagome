@@ -69,8 +69,6 @@ HOST_LOGS_PATH ?= /tmp/test_logs
 CONTAINER_NAME ?= zombienet-test-$(DIR_PATH_HASH)
 
 # tests Variables
-ZOMBIE_TESTER_IMAGE_TAG ?= latest
-ZOMBIE_TESTER_IMAGE ?= zombie_tester:$(ZOMBIE_TESTER_IMAGE_TAG)
 KAGOME_PACKAGE_VERSION ?=
 WORKING_DIR := $(shell pwd)/../../../kagome
 DELETE_IMAGE_AFTER_TEST ?= true
