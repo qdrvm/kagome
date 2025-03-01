@@ -48,20 +48,20 @@ RUN install_packages  \
         npm
 
 # Install Zombienet
-# RUN npm install -g @zombienet/cli@${ZOMBIENET_RELEASE}
+RUN npm install -g @zombienet/cli@${ZOMBIENET_RELEASE}
 
-RUN ARCHITECTURE=$(uname -m); \
-    if [ "$ARCHITECTURE" = "x86_64" ]; then \
-        ARCH="x64"; \
-    elif [ "$ARCHITECTURE" = "aarch64" ]; then \
-        ARCH="arm64"; \
-    else \
-        echo "-- Unsupported architecture: $ARCHITECTURE"; exit 1; \
-    fi && \
-    echo "-- Downloading zombienet v${ZOMBIENET_RELEASE} for ${ARCH}" && \
-    wget -q "https://github.com/paritytech/zombienet/releases/download/v${ZOMBIENET_RELEASE}/zombienet-linux-${ARCH}" -O /usr/local/bin/zombienet && \
-    chmod +x /usr/local/bin/zombienet && \
-    ln -s /usr/local/bin/zombienet /usr/bin/zombienet
+#RUN ARCHITECTURE=$(uname -m); \
+#    if [ "$ARCHITECTURE" = "x86_64" ]; then \
+#        ARCH="x64"; \
+#    elif [ "$ARCHITECTURE" = "aarch64" ]; then \
+#        ARCH="arm64"; \
+#    else \
+#        echo "-- Unsupported architecture: $ARCHITECTURE"; exit 1; \
+#    fi && \
+#    echo "-- Downloading zombienet v${ZOMBIENET_RELEASE} for ${ARCH}" && \
+#    wget -q "https://github.com/paritytech/zombienet/releases/download/v${ZOMBIENET_RELEASE}/zombienet-linux-${ARCH}" -O /usr/local/bin/zombienet && \
+#    chmod +x /usr/local/bin/zombienet && \
+#    ln -s /usr/local/bin/zombienet /usr/bin/zombienet
 
 # Install Polkadot SDK
 RUN curl -fsSL https://${REGION}-apt.pkg.dev/doc/repo-signing-key.gpg | \
