@@ -1,3 +1,7 @@
+define PACKAGE_VERSION
+$(if $(KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH),=$(KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH)-$(ARCHITECTURE))
+endef
+
 runtime_cache:
 	CONTAINER_NAME=kagome_dev_runtime_cache_$$(openssl rand -hex 6); \
 	DOCKER_EXEC_RESULT=0 ; \
@@ -7,7 +11,8 @@ runtime_cache:
 		-e USER_ID=$(USER_ID) \
 		-e GROUP_ID=$(GROUP_ID) \
 		-e RUNTIME_VERSION=$(RUNTIME_VERSION) \
-		-e PACKAGE_ARCHITECTURE=$(PACKAGE_ARCHITECTURE) \
+		-e ARCHITECTURE=$(ARCHITECTURE) \
+		-e PACKAGE_VERSION="$(PACKAGE_VERSION)" \
 		-e GOOGLE_APPLICATION_CREDENTIALS=/root/.gcp/google_creds.json \
 		-v $$(pwd)/../../../../kagome:/opt/kagome \
 		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
@@ -20,14 +25,14 @@ runtime_cache:
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
 		"cd /opt/kagome/zombienet && \
 		sed -i '1s/^#//' /etc/apt/sources.list.d/kagome.list && \
-		install_packages kagome-dev && \
+		install_packages kagome-dev$(PACKAGE_VERSION) && \
 		./precompile.sh && \
 		cd /opt/kagome/housekeeping/docker/kagome-dev && \
 		mkdir -p /tmp/kagome_runtime && \
 		cp -r /tmp/kagome/runtimes-cache/* /tmp/kagome_runtime && \
 		./build_apt_package.sh \
 			\"$(RUNTIME_VERSION)\" \
-			$(PACKAGE_ARCHITECTURE) \
+			$(ARCHITECTURE) \
 			kagome-dev-runtime \
 			/tmp/kagome_runtime \
 			'Kagome Runtime Dev Ubuntu Package' \
@@ -51,4 +56,4 @@ upload_apt_package_runtime:
 		echo "Package with version $(RUNTIME_VERSION) already exists"; \
 		gcloud artifacts versions delete $(RUNTIME_VERSION) --package=kagome-dev-runtime --quiet; \
 	fi; \
-	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev-runtime_$(RUNTIME_VERSION)_$(PACKAGE_ARCHITECTURE).deb
+	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev-runtime_$(RUNTIME_VERSION)_$(ARCHITECTURE).deb

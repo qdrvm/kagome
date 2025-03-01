@@ -71,6 +71,7 @@ SHORT_COMMIT_HASH=$(shell grep 'short_commit_hash:' commit_hash.txt | cut -d ' '
 KAGOME_PACKAGE_VERSION ?=
 #KAGOME_RUNTIME_PACKAGE_VERSION ?=
 RUNTIME_VERSION := $(shell echo "`date +'%y.%m.%d'`-`python3 get_wasmedge_version.py`")
+KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH ?=
 
 # upload_apt_package Variables
 ARTIFACTS_REPO ?= kagome-apt

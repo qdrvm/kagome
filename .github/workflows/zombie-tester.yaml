@@ -60,7 +60,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: "Get master branch"
+      - name: "Fetch master branch"
         if: github.ref != 'refs/heads/master'
         run: |
           git fetch origin master:master || true
@@ -109,7 +109,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: "Get master branch"
+      - name: "Fetch master branch"
         if: github.ref != 'refs/heads/master'
         run: |
           git fetch origin master:master || true

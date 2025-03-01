@@ -31,12 +31,18 @@ on:
         default: 'latest'
         required: false
         type: 'string'
+      kagome_for_runtime_gen_deb_package_version:
+        description: 'Custom Kagome for runtime gen deb package version'
+        default: ''
+        required: false
+        type: 'string'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || 'latest' }}
   TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
+  KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.kagome_for_runtime_gen_deb_package_version }}
 
 jobs:
   build_kagome_builder:
