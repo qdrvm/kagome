@@ -17,9 +17,9 @@ namespace kagome::network {
     /// Full node, does not participate in consensus.
     static constexpr uint8_t Full = 0b0000'0001;
     /// Light client node.
-    static constexpr uint8_t Authority = 0b0000'0010;
+    static constexpr uint8_t Light = 0b0000'0010;
     /// Act as an authority
-    static constexpr uint8_t Light = 0b0000'0100;
+    static constexpr uint8_t Authority = 0b0000'0100;
 
     Roles() = default;
     Roles(uint8_t value) : value_(value) {}
