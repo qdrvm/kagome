@@ -1,0 +1,79 @@
+﻿#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
+name: Kagome Runtime
+
+on:
+  #  schedule:
+  #    - cron: '0 2 * * 0' # Every Sunday at 2:00 AM
+  workflow_dispatch:
+    inputs:
+      zombie_tester_latest_tag:
+        description: 'Zombie Tester tag'
+        default: 'latest'
+        required: false
+        type: 'string'
+      kagome_for_runtime_gen_deb_package_version:
+        description: 'Custom Kagome for runtime gen deb package version'
+        default: '20250224-b7c20d9-Release'
+        required: false
+        type: 'string'
+
+env:
+  DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
+  KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.kagome_for_runtime_gen_deb_package_version }}
+
+jobs:
+  build_kagome_runtime:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            os: ubuntu-24.04
+          - platform: linux/arm64
+            os: ubuntu-24.04-arm
+    timeout-minutes: 60
+    env:
+      PLATFORM: ${{ matrix.platform }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name : "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+      - name: "Build Runtime Cache"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          make configure
+          make runtime_cache
+
+      - name: "Push Runtime Cache"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          make upload_apt_package_runtime
+
+      - name: "Versions Info"
+        if: always()
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          echo "Package name and version: kagome-dev-runtime $(python3 get_wasmedge_version.py)-$(date +'%y.%m.%d')"
