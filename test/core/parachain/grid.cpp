@@ -9,10 +9,13 @@
 #include <iostream>
 #include <ranges>
 
+#include <random>
 #include "parachain/backing/grid.hpp"
 
 using kagome::parachain::grid::Grid;
 using kagome::parachain::grid::makeViews;
+using kagome::parachain::grid::RandomRouting;
+using kagome::parachain::grid::RequiredRouting;
 using kagome::parachain::grid::shuffle;
 using kagome::parachain::grid::ValidatorIndex;
 using kagome::parachain::grid::Views;
@@ -1782,4 +1785,128 @@ TEST(GridTest, Views_CompareWithRef) {
       ASSERT_EQ(it->second, views[i]);
     }
   }
+}
+
+RequiredRouting combine(const RequiredRouting &a, const RequiredRouting &b) {
+  if (a.value == RequiredRouting::All || b.value == RequiredRouting::All) {
+    return {RequiredRouting::All};
+  }
+  if (a.value == RequiredRouting::GridXY
+      || b.value == RequiredRouting::GridXY) {
+    return {RequiredRouting::GridXY};
+  }
+  if ((a.value == RequiredRouting::GridX && b.value == RequiredRouting::GridY)
+      || (a.value == RequiredRouting::GridY
+          && b.value == RequiredRouting::GridX)) {
+    return {RequiredRouting::GridXY};
+  }
+  if (a.value == RequiredRouting::GridX && b.value == RequiredRouting::GridX) {
+    return {RequiredRouting::GridX};
+  }
+  if (a.value == RequiredRouting::GridY && b.value == RequiredRouting::GridY) {
+    return {RequiredRouting::GridY};
+  }
+  if (a.value == RequiredRouting::None
+      && b.value == RequiredRouting::PendingTopology) {
+    return {RequiredRouting::PendingTopology};
+  }
+  if (b.value == RequiredRouting::None
+      && a.value == RequiredRouting::PendingTopology) {
+    return {RequiredRouting::PendingTopology};
+  }
+  if (a.value == RequiredRouting::None
+      || a.value == RequiredRouting::PendingTopology) {
+    return {b};
+  }
+  if (b.value == RequiredRouting::None
+      || b.value == RequiredRouting::PendingTopology) {
+    return {a};
+  }
+  return {a};
+}
+
+// https://github.com/paritytech/polkadot-sdk/blob/be2404cccd9923c41e2f16bfe655f19574f1ae0e/polkadot/node/network/protocol/src/grid_topology.rs#L607
+TEST(GridTest, TestRequiredRoutingCombine) {
+  EXPECT_EQ(combine({RequiredRouting::All}, {RequiredRouting::None}),
+            (RequiredRouting{RequiredRouting::All}));
+  EXPECT_EQ(combine({RequiredRouting::GridXY}, {RequiredRouting::GridX}),
+            (RequiredRouting{RequiredRouting::GridXY}));
+  EXPECT_EQ(combine({RequiredRouting::GridX}, {RequiredRouting::GridY}),
+            (RequiredRouting{RequiredRouting::GridXY}));
+  EXPECT_EQ(combine({RequiredRouting::GridX}, {RequiredRouting::GridX}),
+            (RequiredRouting{RequiredRouting::GridX}));
+  EXPECT_EQ(
+      combine({RequiredRouting::None}, {RequiredRouting::PendingTopology}),
+      (RequiredRouting{RequiredRouting::PendingTopology}));
+  EXPECT_EQ(combine({RequiredRouting::GridY}, {RequiredRouting::None}),
+            (RequiredRouting{RequiredRouting::GridY}));
+  EXPECT_EQ(combine({RequiredRouting::GridX}, {RequiredRouting::None}),
+            (RequiredRouting{RequiredRouting::GridX}));
+  EXPECT_EQ(
+      combine({RequiredRouting::PendingTopology}, {RequiredRouting::None}),
+      (RequiredRouting{RequiredRouting::PendingTopology}));
+  EXPECT_EQ(combine({RequiredRouting::None}, {RequiredRouting::None}),
+            (RequiredRouting{RequiredRouting::None}));
+}
+
+// https://github.com/paritytech/polkadot-sdk/blob/be2404cccd9923c41e2f16bfe655f19574f1ae0e/polkadot/node/network/protocol/src/grid_topology.rs#L651
+TEST(GridTest, TestRandomRoutingSample) {
+  std::seed_seq seed{12345};
+  std::mt19937 rng(seed);
+
+  auto rng_ref = std::ref(rng);
+
+  RandomRouting random_routing(4, 0, 8);
+
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
+  random_routing.inc_sent();
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
+  EXPECT_TRUE(random_routing.sample(16, rng_ref));
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
+  random_routing.inc_sent();
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
+  random_routing.inc_sent();
+  EXPECT_TRUE(random_routing.sample(16, rng_ref));
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
+  EXPECT_FALSE(random_routing.sample(16, rng_ref));
+  random_routing.inc_sent();
+
+  for (int i = 0; i < 16; ++i) {
+    EXPECT_FALSE(random_routing.sample(16, rng_ref));
+  }
+}
+
+// https://github.com/paritytech/polkadot-sdk/blob/be2404cccd9923c41e2f16bfe655f19574f1ae0e/polkadot/node/network/protocol/src/grid_topology.rs#L695
+TEST(GridTest, TestRandomRoutingDistribution) {
+  std::random_device rd;
+  std::mt19937 rng(rd());  // Use stack allocation instead of shared_ptr
+
+  auto run_random_routing = [](RandomRouting &random_routing,
+                               std::mt19937 &rng,
+                               int iterations,
+                               int max_samples) {
+    int count = 0;
+    for (int i = 0; i < iterations; ++i) {
+      for (int j = 0; j < max_samples; ++j) {
+        if (random_routing.sample(max_samples, std::ref(rng))) {
+          random_routing.inc_sent();
+          ++count;
+        }
+      }
+    }
+    return count;
+  };
+
+  RandomRouting random_routing1(4, 0, 8);
+  EXPECT_EQ(run_random_routing(random_routing1, rng, 100, 10000), 4);
+
+  RandomRouting random_routing2(8, 0, 100);
+  EXPECT_EQ(run_random_routing(random_routing2, rng, 100, 10000), 8);
+
+  RandomRouting random_routing3(0, 0, 100);
+  EXPECT_EQ(run_random_routing(random_routing3, rng, 100, 10000), 0);
+
+  RandomRouting random_routing4(10, 0, 10);
+  EXPECT_EQ(run_random_routing(random_routing4, rng, 10, 100), 10);
 }
