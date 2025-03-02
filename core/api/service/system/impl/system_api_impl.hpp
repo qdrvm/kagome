@@ -41,7 +41,7 @@ namespace kagome::api {
 
     /**
      * The nonce which should be used for the next extrinsic from \arg
-     * account_adderss
+     * account_address
      */
     outcome::result<primitives::AccountNonce> getNonceFor(
         std::string_view account_address) const override;
