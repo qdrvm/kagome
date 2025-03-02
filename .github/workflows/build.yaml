@@ -1,4 +1,4 @@
-name: "Test Pipeline (WIP) (Kagome Build)"
+name: "(WIP) Test Pipeline (Kagome Build)"
 
 on:
   workflow_dispatch:
