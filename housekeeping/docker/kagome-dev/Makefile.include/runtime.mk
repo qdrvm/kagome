@@ -44,8 +44,8 @@ runtime_cache:
 		docker stop $$CONTAINER_NAME; \
 		exit $$DOCKER_EXEC_RESULT; \
 	fi; \
-	docker stop $$CONTAINER_NAME
-#	docker rm $$CONTAINER_NAME
+	docker stop $$CONTAINER_NAME ; \
+	docker rm $$CONTAINER_NAME
 
 upload_apt_package_runtime:
 	echo "Runtime version: $(RUNTIME_VERSION)"; \
