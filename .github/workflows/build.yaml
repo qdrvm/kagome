@@ -167,6 +167,10 @@ jobs:
     runs-on: ${{ matrix.runs_on }}
     timeout-minutes: 180
 
+    env:
+      PLATFORM: ${{ matrix.platform }}
+      BUILD_TYPE: ${{ matrix.build_type }}
+
     steps:
     - name: "Skip combination if run_when=false"
       if: ${{ matrix.run_when == false }}
