@@ -15,6 +15,7 @@
 #include "consensus/grandpa/voter_set.hpp"
 #include "core/consensus/grandpa/literals.hpp"
 #include "mock/core/consensus/grandpa/chain_mock.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
 using namespace consensus;
@@ -24,6 +25,11 @@ using testing::_;
 using testing::Return;
 
 struct VoteGraphFixture : public testing::Test {
+ public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   static const VoteType vt = VoteType::Prevote;
 
   const BlockHash GENESIS_HASH = "genesis"_H;

@@ -26,7 +26,13 @@
 namespace kagome::log {
 
   using Level = soralog::Level;
-  using Logger = std::shared_ptr<soralog::Logger>;
+  struct Logger : std::shared_ptr<soralog::Logger> {
+    Logger() = delete;
+    Logger(std::shared_ptr<soralog::Logger> sptr)
+        : std::shared_ptr<soralog::Logger>(std::move(sptr)) {
+      BOOST_ASSERT_MSG(get() != nullptr, "Logger does not exist");
+    };
+  };
   using WLogger = std::weak_ptr<soralog::Logger>;
 
   enum class Error : uint8_t { WRONG_LEVEL = 1, WRONG_GROUP, WRONG_LOGGER };

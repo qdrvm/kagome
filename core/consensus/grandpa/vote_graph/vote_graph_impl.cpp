@@ -36,7 +36,8 @@ namespace kagome::consensus::grandpa {
   VoteGraphImpl::VoteGraphImpl(const BlockInfo &base,
                                std::shared_ptr<VoterSet> voter_set,
                                std::shared_ptr<Chain> chain)
-      : base_(base),
+      : logger_(log::createLogger("VoteGrap", "grandpa")),
+        base_(base),
         voter_set_(std::move(voter_set)),
         chain_(std::move(chain)) {
     entries_[base.hash].number = base.number;
