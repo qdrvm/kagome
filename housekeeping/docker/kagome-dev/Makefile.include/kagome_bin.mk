@@ -110,9 +110,15 @@ upload_apt_package:
 	fi;
 
 kagome_deb_package_info:
-	@echo "Kagome version: 						$(KAGOME_SANITIZED_VERSION)"
-	@echo "Kagome deb package version: 			$(KAGOME_DEB_PACKAGE_VERSION)"
-	@echo "Kagome deb package name: 			$(KAGOME_DEB_PACKAGE_NAME)"
-	@echo "Kagome deb release package version: 	$(KAGOME_DEB_RELEASE_PACKAGE_VERSION)"
-	@echo "Kagome deb release package name: 	$(KAGOME_DEB_RELEASE_PACKAGE_NAME)"
+	@echo "Kagome version:                      $(KAGOME_SANITIZED_VERSION)"
+	@echo "Kagome deb package version:          $(KAGOME_DEB_PACKAGE_VERSION)"
+	@echo "Kagome deb package name:             $(KAGOME_DEB_PACKAGE_NAME)"
+	@echo "Kagome deb release package version:  $(KAGOME_DEB_RELEASE_PACKAGE_VERSION)"
+	@echo "Kagome deb release package name:     $(KAGOME_DEB_RELEASE_PACKAGE_NAME)"
 
+kagome_package_check_version:
+	@if gcloud artifacts versions list --package=kagome-dev --format=json 2>/dev/null | jq -e ".[] | select(.name | endswith(\"$(KAGOME_DEB_PACKAGE_VERSION)\"))" > /dev/null 2>&1; then \
+		echo "true"; \
+	else \
+		echo "false"; \
+	fi
