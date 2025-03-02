@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <list>
 
+#include "coro/coro.hpp"
 #include "metrics/metrics.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
@@ -70,9 +71,10 @@ namespace kagome::parachain {
       std::weak_ptr<PvfWorkers> weak_self;
     };
 
-    void findFree(Job &&job);
-    void writeCode(Job &&job, Worker &&worker, std::shared_ptr<Used> &&used);
-    void call(Job &&job, Worker &&worker, std::shared_ptr<Used> &&used);
+    Coro<void> tryExecute(Job &&job);
+    CoroOutcome<Buffer> execute(std::optional<Worker> &worker, const Job &job);
+    std::optional<Worker> findFree(const Job &job);
+    CoroOutcome<Worker> newWorker();
     void dequeue();
 
     std::shared_ptr<boost::asio::io_context> io_context_;
