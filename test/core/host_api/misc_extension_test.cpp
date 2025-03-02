@@ -12,6 +12,7 @@
 #include "mock/core/runtime/core_api_factory_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
+#include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "scale/kagome_scale.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -23,6 +24,7 @@ using kagome::host_api::MiscExtension;
 using kagome::runtime::CoreApiFactoryMock;
 using kagome::runtime::MemoryProviderMock;
 using kagome::runtime::TestMemory;
+using kagome::runtime::TrieStorageProviderMock;
 using kagome::scale::encode;
 using testing::_;
 using testing::Invoke;
@@ -58,11 +60,13 @@ TEST_F(MiscExtensionTest, CoreVersion) {
         return core;
       }));
 
+  auto storage_provider = std::make_shared<TrieStorageProviderMock>();
+
   kagome::host_api::MiscExtension m{
       42,
       std::make_shared<HasherMock>(),
       memory_provider,
-      nullptr,
+      storage_provider,
       core_factory,
   };
   ASSERT_EQ(memory[m.ext_misc_runtime_version_version_1(memory["test"_v])],
