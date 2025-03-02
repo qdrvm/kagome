@@ -122,3 +122,6 @@ kagome_package_check_version:
 	else \
 		echo "false"; \
 	fi
+
+kagome_get_package_version_no_arch:
+	@echo $(KAGOME_DEB_PACKAGE_VERSION_NO_ARCH)
