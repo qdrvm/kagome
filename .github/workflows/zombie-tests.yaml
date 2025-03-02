@@ -120,12 +120,16 @@ jobs:
       matrix:
         platform: ["linux/amd64", "linux/arm64"]
         options:
-          - name: "PVF preparation & execution time"
-            test: "test-polkadot-functional-0001-parachains-pvf"
-#          - name: "Disputes initiation, conclusion and lag"
-#            test: "test-polkadot-functional-0002-parachains-disputes"
+#          - name: "PVF preparation & execution time"
+#            test: "test-polkadot-functional-0001-parachains-pvf"
+##          - name: "Disputes initiation, conclusion and lag"
+##            test: "test-polkadot-functional-0002-parachains-disputes"
           - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
             test: "test-polkadot-functional-0003-beefy-and-mmr"
+          - name: "Approval voting coalescing does not lag finality"
+            test: "test-polkadot-functional-0009-approval-voting-coalescing"
+          - name: "Test we are producing blocks at 6 seconds clip"
+            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
         include:
           - platform: "linux/amd64"
             runs_on: [ "actions-runner-controller" ]
@@ -141,12 +145,8 @@ jobs:
 #            test: "test-polkadot-functional-0007-dispute-freshly-finalized"
 #          - name: "Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
 #            test: "test-polkadot-functional-0008-dispute-old-finalized"
-#          - name: "Approval voting coalescing does not lag finality"
-#            test: "test-polkadot-functional-0009-approval-voting-coalescing"
 ##          - name: "Test validator disabling effects"
 ##            test: "test-polkadot-functional-0010-validator-disabling"
-#          - name: "Test we are producing blocks at 6 seconds clip"
-#            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
 #          - name: "Systematic chunk recovery is used if the chunk mapping feature is enabled."
 #            test: "test-polkadot-functional-0013-systematic-chunk-recovery"
 #          - name: "Warp sync from polkadot node"
@@ -212,13 +212,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logs-${{ matrix.options.test }}
+          name: logs-${{ matrix.platform }}-${{ matrix.options.test }}
           path: /tmp/test_logs
 
       - name: "Versions Info"
         if: always()
         run: |
-          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
-          echo "Zombie Tester Image: ${{ env.zombie_tester_image }}"
-          echo "Zombie Tests Versions: "
-          cat /tmp/versions.env || true
+          make get_versions_zombietests || true

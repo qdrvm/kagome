@@ -27,4 +27,9 @@ get_versions:
 	@echo "short_commit_hash: `git rev-parse HEAD | head -c 7`" | tee -a commit_hash.txt
 	@echo "kagome_version: `cd $(WORKING_DIR) && ./get_version.sh`" | tee kagome_version.txt
 
-.PHONY: get_versions
+get_versions_zombietests:
+	KAGOME_PACKAGE_VERSION=$(KAGOME_PACKAGE_VERSION) \
+	RUNTIME_PACKAGE_VERSION_NO_ARCH=$(RUNTIME_PACKAGE_VERSION_NO_ARCH) \
+	BUILDER_LATEST_TAG=$(BUILDER_LATEST_TAG)
+			
+.PHONY: get_versions get_versions_zombietests

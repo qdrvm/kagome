@@ -7,9 +7,8 @@
 		echo "-- Build failed. Cleaning up..."; \
 		$(MAKE) clean_container; \
 		exit 1; \
-	fi
-
-#	$(MAKE) clean_container
+	fi ; \
+	$(MAKE) clean_container
 
 stop_container:
 	@echo "-- Stopping and removing polkadot_builder container..."

@@ -62,7 +62,6 @@ copy_logs_to_host:
 	for DIR in $$DIRS_TO_COPY; do \
 		docker cp "$$FINISHED_CONTAINER_NAME:$$DIR/logs" "$(HOST_LOGS_PATH)/$$(basename $$DIR)"; \
 	done; \
-	docker cp "$$FINISHED_CONTAINER_NAME:/tmp/versions.env" "/tmp/versions.env" ; \
 	echo "-- Logs copied to $(HOST_LOGS_PATH)"; \
 	echo "-- Runtime cache directory content:"; \
 	docker exec $$FINISHED_CONTAINER_NAME "/bin/bash" -c "ls -la /tmp/kagome/runtimes-cache/" ; \
