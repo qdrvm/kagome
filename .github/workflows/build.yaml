@@ -5,51 +5,44 @@ on:
     inputs:
       build_amd64:
         description: "Build linux/amd64?"
-        type: choice
-        required: true
-        default: "true"
-        options: [ "true", "false" ]
+        type: boolean
+        required: false
+        default: true
       build_arm64:
         description: "Build linux/arm64?"
-        type: choice
-        required: true
-        default: "true"
-        options: [ "true", "false" ]
+        type: boolean
+        required: false
+        default: true
       build_debug:
         description: "Build Debug?"
-        type: choice
-        required: true
-        default: "true"
-        options: [ "true", "false" ]
+        type: boolean
+        required: false
+        default: true
       build_release:
         description: "Build Release?"
-        type: choice
-        required: true
-        default: "true"
-        options: [ "true", "false" ]
+        type: boolean
+        required: false
+        default: true
       build_relwithdebinfo:
         description: "Build RelWithDebInfo?"
-        type: choice
-        required: true
-        default: "true"
-        options: [ "true", "false" ]
+        type: boolean
+        required: false
+        default: true
       use_cache:
-        description: "Use cache"
-        required: true
-        default: "true"
-        type: choice
-        options: [ "true", "false" ]
+        description: "Use cache?"
+        type: boolean
+        required: false
+        default: true
       cache_upload_allowed:
-        description: "Force cache upload"
-        required: true
-        default: "false"
-        type: choice
-        options: [ "true", "false" ]
+        description: "Force cache upload?"
+        type: boolean
+        required: false
+        default: false
       builder_latest_tag:
         description: "Custom Builder tag"
-        default: "latest"
-        required: false
         type: string
+        required: false
+        default: "latest"
 
   workflow_call:
     inputs:
@@ -82,10 +75,9 @@ on:
         default: "false"
         required: true
       builder_latest_tag:
-        description: "Custom Builder tag"
+        type: string
         default: "latest"
         required: false
-        type: string
     secrets:
       GCP_SERVICE_ACCOUNT_KEY:
         required: true
@@ -105,7 +97,9 @@ env:
   CACHE_PATH: ./build_docker_ci/cache
   DOCKER_BUILD_DIR_NAME: build_docker_ci
 
-  # Environment variables from workflow_dispatch or workflow_call
+  # 1) inputs.<...> (workflow_dispatch, где boolean)
+  # 2) github.event.inputs.<...> (workflow_call, где string)
+  # 3) fallback
   USE_CACHE: ${{ inputs.use_cache || github.event.inputs.use_cache || 'true' }}
   CACHE_UPLOAD_ALLOWED: ${{ inputs.cache_upload_allowed || github.event.inputs.cache_upload_allowed || 'false' }}
   BUILDER_LATEST_TAG: ${{ inputs.builder_latest_tag || github.event.inputs.builder_latest_tag || 'latest' }}
@@ -123,120 +117,132 @@ jobs:
       matrix:
         include:
           # -------------------------------------------------
-          # AMD64 | actions-runner-controller
+          # AMD64 (actions-runner-controller)
           # -------------------------------------------------
           - platform: "linux/amd64"
             build_type: "Debug"
             runs_on: "actions-runner-controller"
-            run_when: ${{ (inputs.build_amd64 == 'true') && (inputs.build_debug == 'true') }}
+            run_when: ${{
+              ((inputs.build_amd64 == true || inputs.build_amd64 == 'true') &&
+              (inputs.build_debug == true || inputs.build_debug == 'true')) }}
 
           - platform: "linux/amd64"
             build_type: "Release"
             runs_on: "actions-runner-controller"
-            run_when: ${{ (inputs.build_amd64 == 'true') && (inputs.build_release == 'true') }}
+            run_when: ${{
+              ((inputs.build_amd64 == true || inputs.build_amd64 == 'true') &&
+              (inputs.build_release == true || inputs.build_release == 'true')) }}
 
           - platform: "linux/amd64"
             build_type: "RelWithDebInfo"
             runs_on: "actions-runner-controller"
-            run_when: ${{ (inputs.build_amd64 == 'true') && (inputs.build_relwithdebinfo == 'true') }}
+            run_when: ${{
+              ((inputs.build_amd64 == true || inputs.build_amd64 == 'true') &&
+              (inputs.build_relwithdebinfo == true || inputs.build_relwithdebinfo == 'true')) }}
 
           # -------------------------------------------------
-          # ARM64 | qdrvm-arm64
+          # ARM64 (self-hosted + qdrvm-arm64)
           # -------------------------------------------------
           - platform: "linux/arm64"
             build_type: "Debug"
             runs_on: [ "self-hosted", "qdrvm-arm64" ]
-            run_when: ${{ (inputs.build_arm64 == 'true') && (inputs.build_debug == 'true') }}
+            run_when: ${{
+              ((inputs.build_arm64 == true || inputs.build_arm64 == 'true') &&
+              (inputs.build_debug == true || inputs.build_debug == 'true')) }}
 
           - platform: "linux/arm64"
             build_type: "Release"
             runs_on: [ "self-hosted", "qdrvm-arm64" ]
-            run_when: ${{ (inputs.build_arm64 == 'true') && (inputs.build_release == 'true') }}
+            run_when: ${{
+              ((inputs.build_arm64 == true || inputs.build_arm64 == 'true') &&
+              (inputs.build_release == true || inputs.build_release == 'true')) }}
 
           - platform: "linux/arm64"
             build_type: "RelWithDebInfo"
             runs_on: [ "self-hosted", "qdrvm-arm64" ]
-            run_when: ${{ (inputs.build_arm64 == 'true') && (inputs.build_relwithdebinfo == 'true') }}
+            run_when: ${{
+              ((inputs.build_arm64 == true || inputs.build_arm64 == 'true') &&
+              (inputs.build_relwithdebinfo == true || inputs.build_relwithdebinfo == 'true')) }}
 
     runs-on: ${{ matrix.runs_on }}
     timeout-minutes: 180
 
     steps:
-      - name: "Skip combination if run_when=false"
-        if: ${{ matrix.run_when == 'false' }}
-        run: |
-          echo "Skipping platform=${{ matrix.platform }} build_type=${{ matrix.build_type }} due to user flag"
-          exit 0
+    - name: "Skip combination if run_when=false"
+      if: ${{ matrix.run_when == false }}
+      run: |
+        echo "Skipping platform=${{ matrix.platform }}, build_type=${{ matrix.build_type }} (run_when=false)"
+        exit 0
 
-      - name: "Checkout"
-        if: ${{ matrix.run_when == 'true' }}
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    - name: "Checkout"
+      if: ${{ matrix.run_when }}
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: "Get master branch"
-        if: ${{ matrix.run_when == 'true' && github.ref != 'refs/heads/master' }}
-        run: git fetch origin master:master || true
+    - name: "Get master branch"
+      if: ${{ matrix.run_when && github.ref != 'refs/heads/master' }}
+      run: git fetch origin master:master || true
 
-      - name: "Authenticate with Google Cloud"
-        if: ${{ matrix.run_when == 'true' }}
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+    - name: "Authenticate with Google Cloud"
+      if: ${{ matrix.run_when }}
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
-      - name: "Set up Cloud SDK"
-        if: ${{ matrix.run_when == 'true' }}
-        uses: google-github-actions/setup-gcloud@v2
+    - name: "Set up Cloud SDK"
+      if: ${{ matrix.run_when }}
+      uses: google-github-actions/setup-gcloud@v2
 
-      - name: "Configure Docker for GCR"
-        if: ${{ matrix.run_when == 'true' }}
-        run: |
-          gcloud auth configure-docker --quiet
-          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+    - name: "Configure Docker for GCR"
+      if: ${{ matrix.run_when }}
+      run: |
+        gcloud auth configure-docker --quiet
+        gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Get commit version"
-        if: ${{ matrix.run_when == 'true' }}
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: make configure
+    - name: "Get commit version"
+      if: ${{ matrix.run_when }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: make configure
 
-      - name: "Install zstd"
-        if: ${{ matrix.run_when == 'true' }}
-        run: |
-          if ! command -v zstd &> /dev/null; then
-            echo "zstd not found, installing..."
-            sudo apt-get update && sudo apt-get install -y zstd || echo "Failed to install zstd, but continuing..."
-          else
-            echo "zstd is already installed"
-          fi
+    - name: "Install zstd"
+      if: ${{ matrix.run_when }}
+      run: |
+        if ! command -v zstd &> /dev/null; then
+          echo "zstd not found, installing..."
+          sudo apt-get update && sudo apt-get install -y zstd || echo "Failed to install zstd, but continuing..."
+        else
+          echo "zstd is already installed"
+        fi
 
-      - name: "Get Cache"
-        if: ${{ matrix.run_when == 'true' && env.USE_CACHE == 'true' }}
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: |
-          make cache_get || true
+    - name: "Get Cache"
+      if: ${{ matrix.run_when && env.USE_CACHE == 'true' }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make cache_get || true
 
-      - name: "Build target"
-        if: ${{ matrix.run_when == 'true' }}
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: |
-          echo "Building for PLATFORM=${{ matrix.platform }}, BUILD_TYPE=${{ matrix.build_type }}"
-          make kagome_docker_build BUILD_TYPE=${{ matrix.build_type }}
-          echo "Build finished!"
+    - name: "Build target"
+      if: ${{ matrix.run_when }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        echo "Building for PLATFORM=${{ matrix.platform }}, BUILD_TYPE=${{ matrix.build_type }}"
+        make kagome_docker_build BUILD_TYPE=${{ matrix.build_type }}
+        echo "Build finished!"
 
-      - name: "Upload cache"
-        if: ${{ matrix.run_when == 'true' && success() }}
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: |
-          make cache_check_and_upload || true
+    - name: "Upload cache"
+      if: ${{ matrix.run_when && success() }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make cache_check_and_upload || true
 
-      - name: "Push Kagome APT Package"
-        if: ${{ matrix.run_when == 'true' }}
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: |
-          make upload_apt_package BUILD_TYPE=${{ matrix.build_type }}
+    - name: "Push Kagome APT Package"
+      if: ${{ matrix.run_when }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make upload_apt_package BUILD_TYPE=${{ matrix.build_type }}
 
-      - name: "Versions Info"
-        if: ${{ matrix.run_when == 'true' }}
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: |
-          make kagome_deb_package_info || true
+    - name: "Versions Info"
+      if: ${{ matrix.run_when }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make kagome_deb_package_info || true
