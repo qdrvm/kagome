@@ -6,16 +6,18 @@ endef
 # (1) test file path
 define run_test
 	@CONTAINER_NAME=zombietest_$$(openssl rand -hex 6); \
-	echo "Running test in container $$CONTAINER_NAME with params \n image:$(1), test:$(2) and \n Kagome package version: $(KAGOME_PACKAGE_VERSION)"; \
+	echo "Running test in container $$CONTAINER_NAME with params \n test:$(1) and \n Kagome package version: $(KAGOME_PACKAGE_VERSION)"; \
 	START_TIME=$$(date +%s); \
 	TEST_PATH=$$(echo $(1) | xargs); \
 	docker run --name $$CONTAINER_NAME \
 		--platform $(PLATFORM) \
 		--entrypoint "/bin/bash" \
-		-v $(WORKING_DIR):/home/nonroot/bin/kagome \
+		-v $(WORKING_DIR):/opt/kagome \
 		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
 		-e USER_ID=$(USER_ID) \
 		-e GROUP_ID=$(GROUP_ID) \
+		-e USER_NAME=kagome_builder \
+		-e USER_GROUP=kagome_builder \
 		-e TEST_PATH=$$TEST_PATH \
 		-e KAGOME_PACKAGE_VERSION=$(KAGOME_PACKAGE_VERSION) \
 		-e RUNTIME_PACKAGE_VERSION=$(RUNTIME_PACKAGE_VERSION) \
@@ -23,13 +25,12 @@ define run_test
 		$(ZOMBIE_TESTER_IMAGE) \
 		-c "sed -i '1s/^#//' /etc/apt/sources.list.d/kagome.list && \
 			install_packages kagome-dev=$(KAGOME_PACKAGE_VERSION) kagome-dev-runtime$(RUNTIME_PACKAGE_VERSION) && \
-			echo \"KAGOME_DEV_VERSION=\$$(apt-cache policy kagome-dev | grep 'Installed:' | awk '{print \$$2}')\" > /tmp/versions.env && \
-			echo \"KAGOME_DEV_RUNTIME_VERSION=\$$(apt-cache policy kagome-dev-runtime | grep 'Installed:' | awk '{print \$$2}')\" >> /tmp/versions.env && \
-			echo \"POLKADOT_VERSION=\$$(polkadot --version | awk '{print \$$2}')\" >> /tmp/versions.env && \
-			echo \"ZOMBIENET_VERSION=\$$(zombienet version)\" >> /tmp/versions.env && \
-			cat /tmp/versions.env && \
+			echo \"KAGOME_DEV_VERSION=\$$(apt-cache policy kagome-dev | grep 'Installed:' | awk '{print \$$2}')\" && \
+			echo \"KAGOME_DEV_RUNTIME_VERSION=\$$(apt-cache policy kagome-dev-runtime | grep 'Installed:' | awk '{print \$$2}')\" && \
+			echo \"POLKADOT_VERSION=\$$(polkadot --version | awk '{print \$$2}')\" && \
+			echo \"ZOMBIENET_VERSION=\$$(zombienet version)\" && \
 			/usr/local/bin/entrypoint.sh \
-			zombienet test -p native /home/nonroot/bin/$$TEST_PATH " ; \
+			zombienet test -p native /opt/$$TEST_PATH " ; \
 	TEST_EXIT_CODE=$$(docker inspect $$CONTAINER_NAME --format='{{.State.ExitCode}}'); \
 	if [ "$(COPY_LOGS_TO_HOST)" = "true" ]; then \
 		$(MAKE) copy_logs_to_host CONTAINER_NAME=$$CONTAINER_NAME; \
