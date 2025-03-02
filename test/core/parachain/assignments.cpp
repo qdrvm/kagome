@@ -24,10 +24,12 @@
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/sr25519_types.hpp"
+#include "crypto/vrf/vrf_provider_impl.hpp"
 #include "log/logger.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/approval/approval_distribution_error.hpp"
+#include "primitives/transcript.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
@@ -48,7 +50,11 @@ struct AssignmentsTest : public test::BaseFS_Test {
     return logger;
   }
 
-  AssignmentsTest() : BaseFS_Test(assignments_directory) {}
+  VRFProviderImpl vrf_provider_;
+
+  AssignmentsTest()
+      : BaseFS_Test(assignments_directory),
+        vrf_provider_(std::make_shared<BoostRandomGenerator>()) {}
 
   void SetUp() override {}
 
@@ -145,6 +151,27 @@ struct AssignmentsTest : public test::BaseFS_Test {
     }
 
     return groups;
+  }
+
+  kagome::crypto::VRFOutput garbage_vrf_signature() {
+    // Create a transcript with the same context as Rust version
+    kagome::primitives::Transcript transcript;
+    transcript.initialize(
+        {'t', 'e', 's', 't', '-', 'g', 'a', 'r', 'b', 'a', 'g', 'e'});
+
+    // Get Alice's keypair
+    SecureBuffer<> seed_buf(Sr25519Seed::size(), 42);
+    auto seed = Sr25519Seed::from(std::move(seed_buf)).value();
+
+    auto alice_keypair = vrf_provider_.generateKeypair();
+
+    auto result = vrf_provider_.signTranscript(transcript, alice_keypair);
+
+    if (not result) {
+      throw std::runtime_error("Failed to create garbage VRF signature");
+    }
+
+    return result.value();
   }
 };
 
@@ -323,11 +350,11 @@ TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
 
 TEST_F(AssignmentsTest, check_rejects_modulo_bad_vrf) {
   auto cs = create_crypto_store();
-  auto asgn_keys = assignment_keys_plus_random(
-      cs, {"//Alice", "//Bob", "//Charlie"}, 0ull);
+  auto asgn_keys =
+      assignment_keys_plus_random(cs, {"//Alice", "//Bob", "//Charlie"}, 0ull);
 
   ::RelayVRFStory vrf_story;
-  ::memset(vrf_story.data, 42, sizeof(vrf_story.data));
+  ::memset(vrf_story.data, uint8_t{42}, sizeof(vrf_story.data));
 
   kagome::runtime::SessionInfo si;
   for (const auto &a : asgn_keys) {
@@ -410,12 +437,12 @@ TEST_F(AssignmentsTest, check_rejects_modulo_bad_vrf) {
         ASSERT_GT(counted, 0);
       };
 
-  auto garbage_vrf_signature = [&]() {
-    VRFOutput garbage;
-    memset(garbage.output.data(), 42, garbage.output.size());
-    memset(garbage.proof.data(), 69, garbage.proof.size());
-    return garbage;
-  };
+  // auto garbage_vrf_signature = [&]() {
+  //   VRFOutput garbage;
+  //   memset(garbage.output.data(), 42, garbage.output.size());
+  //   memset(garbage.proof.data(), 69, garbage.proof.size());
+  //   return garbage;
+  // };
 
   check_mutated_assignments(
       [&](scale::BitVec &cores,
