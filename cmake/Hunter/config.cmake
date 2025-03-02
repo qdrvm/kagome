@@ -107,8 +107,9 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL  https://github.com/libp2p/cpp-libp2p/archive/5d0013db9850a1c23dfe9ef6673077959b2d784f.tar.gz
-    SHA1 bf1b740a60e621cd156fb8754b423750fc7070ed
+    VERSION 0.1.32
+    URL  https://github.com/libp2p/cpp-libp2p/archive/c8b7b7860bb0da540108fd277a74be1a01fdf199.tar.gz
+    SHA1 8b26354a375835bcb32a09111f4d86400e13a64c
     KEEP_PACKAGE_SOURCES
 )
 
@@ -135,9 +136,18 @@ hunter_config(
 
 hunter_config(
     qtils
-    URL  https://github.com/qdrvm/qtils/archive/6d02006f7c0fe44958acbfe53016fa81f1ac0bf5.tar.gz
-    SHA1 b37b32a882788eb8f2c796098b5bf3a19cf00fe3
+    VERSION 0.1.0
+    URL  https://github.com/qdrvm/qtils/archive/refs/tags/v0.1.0.tar.gz
+    SHA1 acc28902af7dc5d74ac33d486ad2261906716f5e
     CMAKE_ARGS
       FORMAT_ERROR_WITH_FULLTYPE=ON
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    soralog
+    VERSION 0.2.5
+    URL  https://github.com/qdrvm/soralog/archive/7a76c991e1a80a9b79297fb544ef3512ea8f5789.tar.gz
+    SHA1 4a6cf3810fe9ec59f58be961234c063637667fab
     KEEP_PACKAGE_SOURCES
 )
