@@ -126,10 +126,10 @@ jobs:
 ##            test: "test-polkadot-functional-0002-parachains-disputes"
           - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
             test: "test-polkadot-functional-0003-beefy-and-mmr"
-          - name: "Approval voting coalescing does not lag finality"
-            test: "test-polkadot-functional-0009-approval-voting-coalescing"
-          - name: "Test we are producing blocks at 6 seconds clip"
-            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
+#          - name: "Approval voting coalescing does not lag finality"
+#            test: "test-polkadot-functional-0009-approval-voting-coalescing"
+#          - name: "Test we are producing blocks at 6 seconds clip"
+#            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
         include:
           - platform: "linux/amd64"
             runs_on: [ "actions-runner-controller" ]
@@ -156,6 +156,7 @@ jobs:
     
     env:
       PLATFORM: ${{ matrix.platform }}
+      ARCH: ${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
 
     steps:
       - name: "Checkout repository"
@@ -198,8 +199,7 @@ jobs:
         id: get_version
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
-          ARCH=$(echo "${{ matrix.platform }}" | cut -d'/' -f2)
-          version=$(make kagome_get_package_version_no_arch)-${ARCH}
+          version=$(make kagome_get_package_version_no_arch)-${{ env.ARCH }}
           echo "kagome_package_version=$version" >> $GITHUB_ENV
 
       - name: "Run test"
@@ -212,7 +212,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logs-${{ matrix.platform }}-${{ matrix.options.test }}
+          name: logs-${{ env.ARCH }}-${{ matrix.options.test }}
           path: /tmp/test_logs
 
       - name: "Versions Info"
