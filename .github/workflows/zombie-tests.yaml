@@ -53,7 +53,6 @@ on:
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-  BUILD_DIR: build
   CTEST_OUTPUT_ON_FAILURE: 1
   CI: true
 
@@ -119,6 +118,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        platform: ["linux/amd64", "linux/arm64"]
         options:
           - name: "PVF preparation & execution time"
             test: "test-polkadot-functional-0001-parachains-pvf"
@@ -186,8 +186,12 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
         
-      - name: "Configure Makefile"
+      - name: "Configure Zombietests Makefile"
         working-directory: ./zombienet/docker
+        run: make configure
+
+      - name: "Configure Kagome Makefile"
+        working-directory: ./housekeeping/docker/kagome-dev
         run: make configure
 
       - name: "Get package version"
