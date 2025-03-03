@@ -26,9 +26,14 @@ namespace kagome::pvm {
   };
 
   template <typename T>
-  concept Indexed = requires(T t, uint32_t ix) {
+  concept IndexedMask = requires(T t, uint32_t ix, typename T::Index idx) {
     typename T::Index;
+
     { t.index(ix) } -> std::convertible_to<typename T::Index>;
+    { t.find_first(idx) } -> std::same_as<Opt<typename T::Index>>;
+
+    { t.set(idx) };
+    { t.unset(idx) };
   };
 
   template <typename T>
@@ -41,10 +46,12 @@ namespace kagome::pvm {
     { T::template to_bin_index<false>() } -> std::convertible_to<uint32_t>;
 
     requires std::is_same_v<typename T::MAX_ALLOCATION_SIZE, typename T::Size>;
+
     requires InitialZero<typename T::Size>;
+    requires IndexedMask<typename T::BitMask>;
+
     requires EmptyDefault<typename T::BitMask>;
     requires EmptyDefault<typename T::BinArray>;
-    requires Indexed<typename T::BitMask>;
   };
 
   template <typename C>
@@ -65,24 +72,6 @@ namespace kagome::pvm {
       bool is_allocated;
     };
 
-    class GenericAllocation {
-      uint32_t node_;
-      Size offset_;
-      Size size_;
-
-     public:
-      static constexpr uint32_t EMPTY = std::numeric_limits<uint32_t>::max();
-      static constexpr GenericAllocation DEFAULT = GenericAllocation{
-          .node = EMPTY,
-          .offset = Size::ZERO,
-          .size = Size::ZERO,
-      };
-
-      bool is_empty() const;
-      Size offset() const;
-      Size size() const;
-    };
-
     std::deque<Node> nodes;
     std::deque<uint32_t> unused_node_slots;
     BitMask bins_with_free_space;
@@ -91,9 +80,30 @@ namespace kagome::pvm {
     static BitMask::Index size_to_bin_round_down(Size size);
     static BitMask::Index size_to_bin_round_up(Size size);
 
-   public:
-    GenericAllocator(Size total);
     Opt<uint32_t> insert_free_node(Size offset, Size size);
+    void remove_node(uint32_t node);
+    void remove_first_free_node(uint32_t node, BitMask::Index bin);
+
+   public:
+    struct GenericAllocation {
+      uint32_t node_;
+      Size offset_;
+      Size size_;
+
+      static constexpr uint32_t EMPTY = std::numeric_limits<uint32_t>::max();
+      static constexpr GenericAllocation DEFAULT = GenericAllocation{
+          .node_ = EMPTY,
+          .offset_ = Size::ZERO,
+          .size_ = Size::ZERO,
+      };
+
+      bool is_empty() const;
+      Size offset() const;
+      Size size() const;
+    };
+
+    GenericAllocator(Size total);
+    Opt<GenericAllocation> alloc(Size size);
   };
 
   template <typename C>
@@ -183,5 +193,101 @@ namespace kagome::pvm {
     first_unallocated_for_bin[bin.index()] = new_node;
     return {new_node};
   }
+
+  template <typename C>
+    requires AllocatorCfg<C>
+  void GenericAllocator<C>::remove_node(uint32_t node) {
+    const auto prev_in_bin = nodes[node].prev_in_bin;
+    if (GenericAllocation::EMPTY != prev_in_bin) {
+      const auto next_in_bin = nodes[node].next_in_bin;
+      nodes[prev_in_bin].next_in_bin = next_in_bin;
+
+      if (next_in_bin < nodes.size()) {
+        nodes[next_in_bin].prev_in_bin = prev_in_bin;
+      } else {
+        assert(GenericAllocation::EMPTY == next_in_bin);
+      }
+    } else {
+      const auto bin = size_to_bin_round_down(nodes[node].size);
+      remove_first_free_node(node, bin);
+    }
+    unused_node_slots.push_back(node);
+  }
+
+  template <typename C>
+    requires AllocatorCfg<C>
+  void GenericAllocator<C>::remove_first_free_node(
+      uint32_t node, GenericAllocator<C>::BitMask::Index bin) {
+    assert(first_unallocated_for_bin[bin.index()] == node);
+    const auto next_in_bin = nodes[node].next_in_bin;
+    first_unallocated_for_bin[bin.index()] = next_in_bin;
+
+    if (next_in_bin < nodes.size()) {
+      nodes[next_in_bin].prev_in_bin = GenericAllocation::EMPTY;
+    } else {
+      assert(GenericAllocation::EMPTY == next_in_bin);
+      bins_with_free_space.unset(bin);
+    }
+  }
+
+      template <typename C>
+    requires AllocatorCfg<C>
+  Opt<typename GenericAllocator<C>::GenericAllocation> GenericAllocator<C>::alloc(GenericAllocator<C>::Size size) {
+        if (0 == size) {
+            return {GenericAllocation::DEFAULT};
+        }
+
+        if (size > Config::MAX_ALLOCATION_SIZE) {
+            return std::nullopt;
+        }
+
+        typename BitMask::Index bin;
+        uint32_t node;
+        if (const auto opt_bin = bins_with_free_space.find_first(size_to_bin_round_up(size))) {
+            bin = *opt_bin;
+            node = first_unallocated_for_bin[opt_bin->index()];
+        }
+        if (const auto opt_bin = bins_with_free_space.find_first(size_to_bin_round_down(size))) {
+            const auto n = first_unallocated_for_bin[opt_bin->index()];
+            if (nodes[node].size < size) {
+                return std::nullopt;
+            }
+            bin = *opt_bin;
+            node = n;
+        } else {
+            return std::nullopt;
+        }
+
+        const auto original_size = nodes[node].size;
+        nodes[node].size = size;
+
+        assert(original_size >= size);
+        assert(!nodes[node].is_allocated);
+        nodes[node].is_allocated = true;
+
+        remove_first_free_node(node, bin);
+
+        const auto offset = nodes[node].offset;
+        const auto remaining_free_pages = original_size - size;
+
+        if (const auto new_free_node = insert_free_node(offset + size, remaining_free_pages)) {
+            const auto next_by_address = nodes[node].next_by_address;
+            nodes[node].next_by_address = new_free_node;
+
+            if (next_by_address < nodes.size()) {
+              nodes[next_by_address].prev_by_address = new_free_node;
+            } else {
+              assert(GenericAllocation::EMPTY == next_by_address);
+            }
+            nodes[new_free_node].prev_by_address = node;
+            nodes[new_free_node].next_by_address = next_by_address;
+        }
+
+        return {GenericAllocation { 
+          .node_ = node, 
+          .offset_ = offset, 
+          .size_ = size,
+        }};
+    }
 
 }  // namespace kagome::pvm
