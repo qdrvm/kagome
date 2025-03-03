@@ -11,11 +11,17 @@ set(FLAGS
     -fno-omit-frame-pointer
     -g
     -O0
-    -fsanitize-ignorelist="${CMAKE_CURRENT_LIST_DIR}/ubsan_ignore.txt"
     )
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
+  list(APPEND FLAGS -fsanitize-ignorelist="${CMAKE_CURRENT_LIST_DIR}/ubsan_ignore.txt")
+else()
+  message(WARNING "Non-Clang compilers do not support -fsanitize-ignorelist flag, some known false positives are expected.")
+endif()
+
 if (UBSAN_ABORT) 
   list(APPEND FLAGS -fno-sanitize-recover=undefined)
 endif()
+
 if (UBSAN_TRAP)
   list(APPEND FLAGS -fsanitize-trap=undefined)
 endif()

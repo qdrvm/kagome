@@ -381,8 +381,7 @@ namespace kagome::api {
         .WillOnce(testing::Return(block_range));
     EXPECT_CALL(*block_tree_, getNumberByHash(from))
         .WillOnce(testing::Return(1));
-    EXPECT_CALL(*block_tree_, getNumberByHash(to))
-        .WillOnce(testing::Return(4));
+    EXPECT_CALL(*block_tree_, getNumberByHash(to)).WillOnce(testing::Return(4));
     for (auto &block_hash : block_range) {
       primitives::BlockHash state_root;
       auto s = block_hash.toString() + "_etats";
@@ -423,8 +422,7 @@ namespace kagome::api {
    */
   TEST_F(StateApiTest, HitsBlockRangeLimits) {
     primitives::BlockHash from{"from"_hash256}, to{"to"_hash256};
-    EXPECT_CALL(*block_tree_, getNumberByHash(from))
-        .WillOnce(Return(42));
+    EXPECT_CALL(*block_tree_, getNumberByHash(from)).WillOnce(Return(42));
     EXPECT_CALL(*block_tree_, getNumberByHash(to))
         .WillOnce(Return(42 + StateApiImpl::kMaxBlockRange + 1));
     EXPECT_OUTCOME_FALSE(

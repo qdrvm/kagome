@@ -379,7 +379,7 @@ size_t size(const PolkadotTrie::NodePtr &node) {
   if (node->isBranch()) {
     auto branch =
         std::dynamic_pointer_cast<kagome::storage::trie::BranchNode>(node);
-    for (const auto &child : branch->children) {
+    for (const auto &child : branch->getChildren()) {
       if (child != nullptr) {
         auto child_node = std::dynamic_pointer_cast<TrieNode>(child);
         count += size(child_node);
@@ -540,7 +540,7 @@ TEST_F(TrieTest, GetPath) {
   auto node1 = trie->getNode(root, KeyNibbles{1, 2, 3, 4}).value();
   auto it = path.begin();
   ASSERT_EQ(it->first, root.get());
-  ASSERT_EQ(it->first->children[it->second], node1);
+  ASSERT_EQ(it->first->getChild(it->second), node1);
   ASSERT_EQ((++it)->first, node1.get());
 }
 

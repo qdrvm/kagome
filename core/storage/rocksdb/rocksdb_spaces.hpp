@@ -8,6 +8,7 @@
 
 #include "storage/spaces.hpp"
 
+#include <optional>
 #include <string>
 
 namespace kagome::storage {
@@ -18,5 +19,7 @@ namespace kagome::storage {
    * @return string representation of space name
    */
   std::string spaceName(Space space);
+
+  std::optional<Space> spaceFromString(std::string_view string);
 
 }  // namespace kagome::storage
