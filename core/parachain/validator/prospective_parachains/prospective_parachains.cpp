@@ -5,6 +5,7 @@
  */
 
 #include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
+#include "parachain/transpose_claim_queue.hpp"
 #include "utils/stringify.hpp"
 
 #define COMPONENT ProspectiveParachains
@@ -151,20 +152,73 @@ namespace kagome::parachain {
   std::optional<ProspectiveParachainsMode>
   ProspectiveParachains::prospectiveParachainsMode(
       const RelayHash &relay_parent) {
-    auto result = parachain_host_->staging_async_backing_params(relay_parent);
-    if (result.has_error()) {
-      SL_TRACE(logger,
-               "Prospective parachains are disabled, is not supported by the "
-               "current Runtime API. (relay parent={}, error={})",
+    const auto cores_result = parachain_host_->availability_cores(relay_parent);
+    if (not cores_result) {
+      SL_ERROR(logger,
+               "Failed to get availability cores (relay_parent={}, error={})",
                relay_parent,
-               result.error());
+               cores_result.error());
       return std::nullopt;
     }
 
-    const parachain::fragment::AsyncBackingParams &vs = result.value();
+    const auto &cores = cores_result.value();
+    std::optional<CoreIndex> core_index_opt;
+
+    for (CoreIndex i = 0; i < cores.size(); ++i) {
+      visit_in_place(
+          cores[i],
+          [&](const runtime::OccupiedCore &occupied) {
+            core_index_opt =
+                i;
+          },
+          [](const auto &) { });
+
+      if (core_index_opt) {
+        break;
+      }
+    }
+
+    if (not core_index_opt) {
+      return std::nullopt;
+    }
+
+    CoreIndex core_index = core_index_opt.value();
+
+    const auto claim_queue_result = parachain_host_->claim_queue(relay_parent);
+    if (not claim_queue_result) {
+      SL_ERROR(logger,
+               "Failed to get claim queue (relay_parent={}, error={})",
+               relay_parent,
+               claim_queue_result.error());
+      return std::nullopt;
+    }
+    const auto& claim_queue_opt = claim_queue_result.value();
+    if (not claim_queue_opt) {
+      SL_DEBUG(logger,
+               "Claim queue not found for relay parent. (relay_parent={})",
+               relay_parent);
+      return std::nullopt;
+    }
+    TransposedClaimQueue transposed_claim_queue =
+        transposeClaimQueue(claim_queue_opt.value());
+
+    std::size_t candidate_depth = 0;
+    auto it = transposed_claim_queue.find(core_index);
+    if (it != transposed_claim_queue.end()) {
+      for (const auto &[_, claim_set] : it->second) {
+        candidate_depth += claim_set.size();
+      }
+    }
+
+    // Calculate allowed_ancestry_len based on the transposed claim queue
+    size_t allowed_ancestry_len = 0;
+    for (const auto &[para_id, depths] : transposed_claim_queue) {
+      allowed_ancestry_len = std::max(allowed_ancestry_len, depths.size());
+    }
+
     return ProspectiveParachainsMode{
-        .max_candidate_depth = vs.max_candidate_depth,
-        .allowed_ancestry_len = vs.allowed_ancestry_len,
+        .max_candidate_depth = candidate_depth,
+        .allowed_ancestry_len = allowed_ancestry_len
     };
   }
 
