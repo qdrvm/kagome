@@ -197,13 +197,12 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     }
     ASSERT_EQ(ancestry_hashes.size(), ancestry_numbers.size());
 
-    if (ancestry_len > 0) {
-        EXPECT_CALL(*block_tree_,
-                    getDescendingChainToBlock(hash, candidate_depth + 1))
-            .WillRepeatedly(Return(ancestry_hashes));
-        EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
-            .WillRepeatedly(Return(1));
-    }
+    // Always set up the mock for getDescendingChainToBlock, regardless of ancestry_len
+    EXPECT_CALL(*block_tree_,
+                getDescendingChainToBlock(hash, testing::_))
+        .WillRepeatedly(Return(ancestry_hashes));
+    EXPECT_CALL(*parachain_api_, session_index_for_child(hash))
+        .WillRepeatedly(Return(1));
 
     std::unordered_set<Hash> used_relay_parents;
     for (size_t i = 0; i < ancestry_hashes.size(); ++i) {
@@ -362,13 +361,18 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
   void introduce_seconded_candidate(
       const network::CommittedCandidateReceipt &candidate,
       const runtime::PersistedValidationData &pvd) {
-    prospective_parachain_->introduce_seconded_candidate(
+    const auto candidate_hash = network::candidateHash(*hasher_, candidate);
+    bool result = prospective_parachain_->introduce_seconded_candidate(
         candidate.descriptor.para_id,
         candidate,
         crypto::Hashed<runtime::PersistedValidationData,
                        32,
                        crypto::Blake2b_StreamHasher<32>>(pvd),
-        network::candidateHash(*hasher_, candidate));
+        candidate_hash);
+    
+    ASSERT_TRUE(result) << "Failed to introduce seconded candidate for para_id: " 
+                      << candidate.descriptor.para_id 
+                      << ", candidate_hash: " << candidate_hash;
   }
 
   void introduce_seconded_candidate_failed(

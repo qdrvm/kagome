@@ -465,6 +465,20 @@ namespace kagome::parachain::fragment {
         break;
       }
     }
+    
+    // If we haven't reached the requested count yet, check unconnected storage 
+    // for backed candidates to include
+    if (count > res.size()) {
+      get_unconnected([&](const auto &candidate_entry) {
+        if (candidate_entry.state == CandidateState::Backed
+            && !scope.get_pending_availability(candidate_entry.candidate_hash)
+            && res.size() < count) {
+          res.emplace_back(candidate_entry.candidate_hash, 
+                           candidate_entry.relay_parent);
+        }
+      });
+    }
+    
     return res;
   }
 
