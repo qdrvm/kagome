@@ -523,3 +523,34 @@ TEST_F(AssignmentsTest, check_rejects_delay_claimed_core_wrong) {
         return std::nullopt;
       });
 }
+
+TEST_F(AssignmentsTest, check_rejects_modulo_core_wrong) {
+  check_mutated_assignments(
+      200,
+      100,
+      25,  // Match Rust test parameters
+      [&](scale::BitVec &cores,
+          kagome::parachain::approval::AssignmentCertV2 &cert,
+          std::vector<kagome::network::GroupIndex> &groups,
+          kagome::network::GroupIndex own_group,
+          kagome::network::ValidatorIndex val_index,
+          kagome::runtime::SessionInfo &config) -> std::optional<bool> {
+        if (kagome::if_type<kagome::parachain::approval::RelayVRFModulo>(
+                cert.kind)
+            || kagome::if_type<
+                kagome::parachain::approval::RelayVRFModuloCompact>(
+                cert.kind)) {
+          // Find the first set bit and increment it by 1 mod 100
+          for (size_t i = 0; i < cores.bits.size(); ++i) {
+            if (cores.bits[i]) {
+              cores.bits[i] = false;
+              cores.bits[(i + 1) % 100] = true;
+              break;
+            }
+          }
+          return false;
+        } else {
+          return std::nullopt;
+        }
+      });
+}
