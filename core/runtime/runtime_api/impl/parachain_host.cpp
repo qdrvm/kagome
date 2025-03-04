@@ -290,14 +290,6 @@ namespace kagome::runtime {
         executor_->call<ClaimQueueSnapshot>(ctx, "ParachainHost_claim_queue"));
   }
 
-  outcome::result<parachain::fragment::AsyncBackingParams>
-  ParachainHostImpl::staging_async_backing_params(
-      const primitives::BlockHash &block) {
-    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-    return executor_->call<parachain::fragment::AsyncBackingParams>(
-        ctx, "ParachainHost_async_backing_params");
-  }
-
   outcome::result<uint32_t> ParachainHostImpl::minimum_backing_votes(
       const primitives::BlockHash &block, SessionIndex index) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));

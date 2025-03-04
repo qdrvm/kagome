@@ -444,19 +444,20 @@ namespace kagome::parachain::fragment {
     return best_chain.chain.size();
   }
 
-  Vec<std::pair<CandidateHash, Hash>> FragmentChain::find_backable_chain(
-      Ancestors ancestors, uint32_t count) const {
-    if (count == 0) {
+  std::vector<std::pair<CandidateHash, Hash>> FragmentChain::find_backable_chain(
+      const Ancestors &ancestors, size_t count) const {
+    if (best_chain.chain.empty()) {
       return {};
     }
 
-    const auto base_pos = find_ancestor_path(std::move(ancestors));
+    const auto base_pos = find_ancestor_path(ancestors);
     const auto actual_end_index =
         std::min(base_pos + size_t(count), best_chain.chain.size());
 
     Vec<std::pair<CandidateHash, Hash>> res;
     res.reserve(actual_end_index - base_pos);
 
+    // First collect candidates from the best chain
     for (size_t ix = base_pos; ix < actual_end_index; ++ix) {
       const auto &elem = best_chain.chain[ix];
       if (!scope.get_pending_availability(elem.candidate_hash)) {
@@ -465,6 +466,46 @@ namespace kagome::parachain::fragment {
         break;
       }
     }
+    
+    // If we have ancestors specified or requested count is 0, don't check unconnected storage
+    if (!ancestors.empty() || count == 0) {
+      return res;
+    }
+    
+    // If we haven't reached the requested count yet, check unconnected storage 
+    // for backed candidates to include
+    if (count > res.size()) {
+      std::vector<std::pair<CandidateHash, Hash>> unconnected_candidates;
+      
+      get_unconnected([&](const auto &candidate_entry) {
+        // Only include candidates with the correct parachain ID
+        // The FragmentChain is already specific to a parachain, so all candidates 
+        // in it should have the correct para_id, but we check the state 
+        // and pending availability
+        if (candidate_entry.state == CandidateState::Backed
+            && !scope.get_pending_availability(candidate_entry.candidate_hash)
+            && res.size() < count) {
+          unconnected_candidates.emplace_back(candidate_entry.candidate_hash, 
+                                       candidate_entry.relay_parent);
+        }
+      });
+      
+      // Sort unconnected candidates by hash for consistency
+      std::sort(unconnected_candidates.begin(), unconnected_candidates.end(), 
+                [](const auto &a, const auto &b) {
+                  return a.first < b.first;
+                });
+                
+      // Add sorted unconnected candidates to the result
+      for (const auto &candidate : unconnected_candidates) {
+        if (res.size() < count) {
+          res.push_back(candidate);
+        } else {
+          break;
+        }
+      }
+    }
+    
     return res;
   }
 

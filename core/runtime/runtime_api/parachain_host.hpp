@@ -223,13 +223,6 @@ namespace kagome::runtime {
     staging_para_backing_state(const primitives::BlockHash &block,
                                ParachainId id) = 0;
 
-    /**
-     * @return candidate's acceptance limitations for asynchronous backing for a
-     * relay parent.
-     */
-    virtual outcome::result<parachain::fragment::AsyncBackingParams>
-    staging_async_backing_params(const primitives::BlockHash &block) = 0;
-
     virtual outcome::result<uint32_t> minimum_backing_votes(
         const primitives::BlockHash &block, SessionIndex index) = 0;
 
