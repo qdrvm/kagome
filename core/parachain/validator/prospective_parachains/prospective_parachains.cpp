@@ -105,6 +105,16 @@ namespace kagome::parachain {
              para,
              count);
 
+    // Check if relay_parent is still active before looking for candidates
+    if (!view().active_leaves.contains(relay_parent)) {
+      SL_TRACE(logger,
+               "Requested backable candidate for inactive leaf. "
+               "(relay_parent={}, para_id={})",
+               relay_parent,
+               para);
+      return {};
+    }
+
     std::vector<std::pair<CandidateHash, Hash>> backable_candidates;
     
     // Use an iterative approach instead of recursion to handle parent blocks
@@ -116,36 +126,29 @@ namespace kagome::parachain {
     size_t current_depth = 0;
     
     while (current_depth < max_ancestry_depth) {
-      // Important: If the relay parent is not active, we should continue to the next parent
-      if (!view().active_leaves.contains(current_relay_parent)) {
-        SL_TRACE(logger,
-                "Relay parent is not active (relay_parent={})",
-                current_relay_parent);
-        
-        // If we're checking the original relay parent, we need to move to its parent
-        if (current_depth == 0 && ancestors.empty() && count > 0) {
-          // Try to get the parent block
-          auto block_header_result = block_tree_->tryGetBlockHeader(current_relay_parent);
-          if (block_header_result.has_value() && block_header_result.value()) {
-            current_relay_parent = block_header_result.value()->parent_hash;
-            current_depth++;
-            continue;
-          }
-        }
-        
-        // Otherwise, we're done
+      // If current_relay_parent is not in active_leaves for depths > 0,
+      // we should proceed but only if current_relay_parent is in the set of relay 
+      // parents managed by view() (still in the chain)
+      if (current_depth > 0 && !view().per_relay_parent.contains(current_relay_parent)) {
+        // This parent is not in our view, likely pruned
         break;
       }
-
+      
       auto fragment_chains_opt = view().get_fragment_chains(current_relay_parent);
       if (!fragment_chains_opt) {
+        // No fragment chains for this relay parent
         SL_TRACE(logger,
-                "No per-relay-parent data for relay parent (relay_parent={})",
+                "No fragment chains for relay parent. (relay_parent={})",
                 current_relay_parent);
-                
-        // If we're checking the original relay parent, try its parent
-        if (current_depth == 0 && ancestors.empty() && count > 0) {
-          // Try to get the parent block
+        
+        // If we're at the original query depth and ancestors are specified,
+        // we should return an empty result
+        if (current_depth == 0 && !ancestors.empty()) {
+          return {};
+        }
+        
+        // If we're at a parent level, continue to the next parent if we haven't found any candidates yet
+        if (backable_candidates.empty() && current_depth < max_ancestry_depth - 1) {
           auto block_header_result = block_tree_->tryGetBlockHeader(current_relay_parent);
           if (block_header_result.has_value() && block_header_result.value()) {
             current_relay_parent = block_header_result.value()->parent_hash;
@@ -154,14 +157,13 @@ namespace kagome::parachain {
           }
         }
         
-        // Otherwise, we're done
+        // No parent to check or we've reached max depth
         break;
       }
-
+      
       const auto &fragment_chains = fragment_chains_opt->get();
       auto chain_it = fragment_chains.find(para);
       
-      // If we find a fragment chain for this para_id, get candidates from it
       if (chain_it != fragment_chains.end()) {
         const auto &chain = chain_it->second;
         
