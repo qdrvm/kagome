@@ -176,16 +176,18 @@ struct AssignmentsTest : public test::BaseFS_Test {
 
   // Helper function to check mutated assignments
   void check_mutated_assignments(
-      const std::function<std::optional<bool>(
-          scale::BitVec &,
-          kagome::parachain::approval::AssignmentCertV2 &,
-          std::vector<kagome::network::GroupIndex> &,
-          kagome::network::GroupIndex,
-          kagome::network::ValidatorIndex,
-          kagome::runtime::SessionInfo &)> &check_fn) {
+      size_t n_validators,
+      size_t n_cores,
+      size_t rotation_offset,
+      const std::function<
+          std::optional<bool>(scale::BitVec &,
+                              kagome::parachain::approval::AssignmentCertV2 &,
+                              std::vector<kagome::network::GroupIndex> &,
+                              kagome::network::GroupIndex,
+                              kagome::network::ValidatorIndex,
+                              kagome::runtime::SessionInfo &)> &check_fn) {
     auto cs = create_crypto_store();
-    auto asgn_keys =
-        assignment_keys_plus_random(cs, {"//Alice", "//Bob", "//Charlie"}, 0ull);
+    auto asgn_keys = assignment_keys_plus_random(cs, {"//Alice"}, 0ull);
 
     ::RelayVRFStory vrf_story;
     ::memset(vrf_story.data, uint8_t{42}, sizeof(vrf_story.data));
@@ -195,19 +197,20 @@ struct AssignmentsTest : public test::BaseFS_Test {
       si.assignment_keys.emplace_back(a);
     }
 
-    si.validator_groups = basic_groups(200, 100);
-    si.n_cores = 100;
+    si.validator_groups = basic_groups(n_validators, n_cores);
+    si.n_cores = n_cores;
     si.zeroth_delay_tranche_width = 10;
     si.relay_vrf_modulo_samples = 15;
     si.n_delay_tranches = 40;
 
-    kagome::parachain::ApprovalDistribution::CandidateIncludedList leaving_cores{};
-    for (size_t i = 0; i < 100; ++i) {
+    kagome::parachain::ApprovalDistribution::CandidateIncludedList
+        leaving_cores{};
+    for (size_t i = 0; i < n_cores; ++i) {
       leaving_cores.emplace_back(std::make_tuple(
           kagome::parachain::ApprovalDistribution::HashedCandidateReceipt{
               kagome::network::CandidateReceipt{}},
           (kagome::parachain::CoreIndex)i,
-          (kagome::parachain::GroupIndex)((i + 25) % 100)));
+          (kagome::parachain::GroupIndex)((i + rotation_offset) % n_cores)));
     }
 
     auto assignments =
@@ -239,7 +242,7 @@ struct AssignmentsTest : public test::BaseFS_Test {
       std::vector<kagome::network::GroupIndex> groups;
       for (size_t i = 0; i < cores.bits.size(); ++i) {
         if (cores.bits[i]) {
-          groups.emplace_back((i + 25) % 100);
+          groups.emplace_back((i + rotation_offset) % n_cores);
         }
       }
 
@@ -439,6 +442,9 @@ TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
 
 TEST_F(AssignmentsTest, check_rejects_modulo_bad_vrf) {
   check_mutated_assignments(
+      200,
+      100,
+      25,  // Match Rust test parameters
       [&](scale::BitVec &cores,
           kagome::parachain::approval::AssignmentCertV2 &cert,
           std::vector<kagome::network::GroupIndex> &groups,
@@ -464,6 +470,9 @@ TEST_F(AssignmentsTest, check_rejects_modulo_bad_vrf) {
 
 TEST_F(AssignmentsTest, check_rejects_modulo_sample_out_of_bounds) {
   check_mutated_assignments(
+      200,
+      100,
+      25,  // Match Rust test parameters
       [&](scale::BitVec &cores,
           kagome::parachain::approval::AssignmentCertV2 &cert,
           std::vector<kagome::network::GroupIndex> &groups,
