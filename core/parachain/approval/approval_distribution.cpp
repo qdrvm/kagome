@@ -522,7 +522,7 @@ namespace {
   // }
   //
   // using CoreIndex = uint32_t;
-  const char ASSIGNED_CORE_CONTEXT[] = "AssignedCoreContext";
+  const char ASSIGNED_CORE_CONTEXT[] = "A&V ASSIGNED v2";
   //
   // // Implement the assigned_core_transcript function
   kagome::primitives::Transcript assigned_core_transcript(
@@ -537,28 +537,42 @@ namespace {
   kagome::primitives::Transcript assigned_cores_transcript(
       const scale::BitVec &core_indices) {
     kagome::primitives::Transcript t;
-    t.initialize(ASSIGNED_CORE_CONTEXT);
-    t.append_message("core", scale::encode(core_indices).value());
+    t.initialize({'A',
+                  '&',
+                  'V',
+                  ' ',
+                  'A',
+                  'S',
+                  'S',
+                  'I',
+                  'G',
+                  'N',
+                  'E',
+                  'D',
+                  ' ',
+                  'v',
+                  '2'});
+    t.append_message({'c', 'o', 'r', 'e', 's'},
+                     scale::encode(core_indices).value());
     return {t};
   }
-
-  constexpr std::string_view RELAY_VRF_MODULO_CONTEXT_V1 = "A&V MOD";
-  constexpr std::string_view RELAY_VRF_MODULO_CONTEXT_V2 = "A&V MOD v2";
 
   kagome::primitives::Transcript relay_vrf_modulo_transcript_v1(
       const RelayVRFStory &relay_vrf_story, uint32_t sample) {
     kagome::primitives::Transcript transcript;
-    transcript.initialize("A&V MOD");
-    transcript.append_message("RC-VRF", relay_vrf_story.data);
-    transcript.append_message("sample", sample);
+    transcript.initialize({'A', '&', 'V', ' ', 'M', 'O', 'D'});
+    transcript.append_message({'R', 'C', '-', 'V', 'R', 'F'},
+                              relay_vrf_story.data);
+    transcript.append_message({'s', 'a', 'm', 'p', 'l', 'e'}, sample);
     return {transcript};
   }
 
   kagome::primitives::Transcript relay_vrf_modulo_transcript_v2(
       const RelayVRFStory &relay_vrf_story) {
     kagome::primitives::Transcript transcript;
-    transcript.initialize("A&V MOD v2");
-    transcript.append_message("RC-VRF", relay_vrf_story.data);
+    transcript.initialize({'A', '&', 'V', ' ', 'M', 'O', 'D', ' ', 'v', '2'});
+    transcript.append_message({'R', 'C', '-', 'V', 'R', 'F'},
+                              relay_vrf_story.data);
     return {transcript};
   }
 
@@ -657,10 +671,17 @@ namespace kagome::parachain {
                                          config.n_cores,
                                          &cores_out,
                                          &cores_out_sz);
+          std::vector<uint32_t> resulting_cores;
+          resulting_cores.reserve(cores_out_sz);
+          for (size_t ix = 0; ix < cores_out_sz; ++ix) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            const auto ci = cores_out[ix];
+            resulting_cores.push_back(ci);
+          }
 
           // Process the resulting cores
-          std::vector<uint32_t> resulting_cores(cores_out,
-                                                cores_out + cores_out_sz);
+          // std::vector<uint32_t> resulting_cores(cores_out,
+          //                                       cores_out + cores_out_sz);
 
           // Validate that all claimed cores are in the resulting cores
           bool all_cores_valid = true;

@@ -88,8 +88,8 @@ endif ()
 
 hunter_config(
     kagome-crates
-    URL  https://github.com/qdrvm/kagome-crates/archive/fc312d47c8f1851298d035d429acc71beaf5582d.tar.gz
-    SHA1 1620c01d9e6e43fa85c7310fc5130dddd48d3f69
+    URL  https://github.com/qdrvm/kagome-crates/archive/11fd7ec3337b631fdf08188d76851352bf15d78a.tar.gz
+    SHA1 f38ad7bf5609ae981bb2eaf14b6372a7674083e7
 )
 
 hunter_config(
