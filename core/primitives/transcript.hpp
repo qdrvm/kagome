@@ -62,6 +62,20 @@ namespace kagome::primitives {
     }
 
     template <typename T, size_t N>
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+    void append_message(const T (&label)[N], const std::vector<uint8_t> &msg) {
+      const uint32_t data_len = msg.size();
+      strobe_.metaAd<false>(label);
+
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+      uint8_t tmp[sizeof(data_len)];
+      decompose(data_len, tmp);
+
+      strobe_.metaAd<true>(tmp);
+      strobe_.ad<false>(msg.data(), msg.size());
+    }
+
+    template <typename T, size_t N>
     void append_message(const T (&label)[N], const uint64_t value) {
       uint8_t tmp[sizeof(value)];
       decompose(value, tmp);
