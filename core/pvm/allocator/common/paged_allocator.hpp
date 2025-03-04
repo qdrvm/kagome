@@ -8,6 +8,7 @@
 
 #include <concepts>
 #include <deque>
+#include <stack>
 #include <type_traits>
 
 #include "pvm/native/linux.hpp"
@@ -73,7 +74,7 @@ namespace kagome::pvm {
     };
 
     std::deque<Node> nodes;
-    std::deque<uint32_t> unused_node_slots;
+    std::stack<uint32_t> unused_node_slots;
     BitMask bins_with_free_space;
     BinArray first_unallocated_for_bin;
 
@@ -104,6 +105,7 @@ namespace kagome::pvm {
 
     GenericAllocator(Size total);
     Opt<GenericAllocation> alloc(Size size);
+    void free(const GenericAllocation &alloc);
   };
 
   template <typename C>
@@ -173,8 +175,8 @@ namespace kagome::pvm {
 
     uint32_t new_node;
     if (!unused_node_slots.empty()) {
-      const auto nn = unused_node_slots.back();
-      unused_node_slots.pop_back();
+      const auto nn = unused_node_slots.top();
+      unused_node_slots.pop();
       nodes[nn] = region;
       new_node = nn;
     } else {
@@ -211,7 +213,7 @@ namespace kagome::pvm {
       const auto bin = size_to_bin_round_down(nodes[node].size);
       remove_first_free_node(node, bin);
     }
-    unused_node_slots.push_back(node);
+    unused_node_slots.push(node);
   }
 
   template <typename C>
@@ -289,5 +291,61 @@ namespace kagome::pvm {
           .size_ = size,
         }};
     }
+
+      template <typename C>
+    requires AllocatorCfg<C>
+    void GenericAllocator<C>::free(const typename GenericAllocator<C>::GenericAllocation &alloc) {
+        if (alloc.is_empty()) {
+            return;
+        }
+
+        auto &node = alloc.node_;
+        auto &offset = alloc.offset_;
+        auto &size = alloc.size_;
+
+        {
+            const auto prev_by_address = nodes[node].prev_by_address;
+            if (prev_by_address != GenericAllocation::EMPTY && !nodes[prev_by_address].is_allocated) {
+                offset = nodes[prev_by_address].offset;
+                size += nodes[prev_by_address].size;
+
+                remove_node(prev_by_address);
+
+                assert(nodes[prev_by_address].next_by_address == node);
+                nodes[node].prev_by_address = nodes[prev_by_address].prev_by_address;
+            }
+        }
+
+        {
+            const auto next_by_address = nodes[node].next_by_address;
+            if (next_by_address != GenericAllocation::EMPTY && !nodes[next_by_address].is_allocated) {
+                size += nodes[next_by_address].size;
+
+                remove_node(next_by_address);
+
+                assert(nodes[next_by_address].prev_by_address == node);
+                nodes[node].next_by_address = nodes[next_by_address].next_by_address;
+            }
+        }
+
+        const auto next_by_address = nodes[node].next_by_address;
+        const auto prev_by_address = nodes[node].prev_by_address;
+        unused_node_slots.push(node);
+
+        const auto new_node = insert_free_node(offset, size);
+        assert(new_node);
+
+        if (new_node) {
+            if (next_by_address != GenericAllocation::EMPTY) {
+                nodes[*new_node].next_by_address = next_by_address;
+                nodes[next_by_address].prev_by_address = new_node;
+            }
+
+            if (prev_by_address != GenericAllocation::EMPTY) {
+                nodes[new_node].prev_by_address = prev_by_address;
+                nodes[prev_by_address].next_by_address = new_node;
+            }
+        }
+    }    
 
 }  // namespace kagome::pvm
