@@ -75,17 +75,6 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   )
 endif ()
 
-hunter_config(
-      WasmEdge
-      URL  https://github.com/qdrvm/WasmEdge/archive/refs/heads/fix/libdir.zip
-      SHA1 0bd0d0d5dc3e377c65a17f2fe309c5cdb9668755
-      CMAKE_ARGS
-        WASMEDGE_BUILD_STATIC_LIB=ON
-        WASMEDGE_BUILD_SHARED_LIB=OFF
-      KEEP_PACKAGE_SOURCES
-  )
-
-
 if ("${WASM_COMPILER}" STREQUAL "WAVM")
   hunter_config(
       LLVM
