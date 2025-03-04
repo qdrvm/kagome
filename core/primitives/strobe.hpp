@@ -88,6 +88,7 @@ namespace kagome::primitives {
 
     void absorb(const uint8_t *src, size_t len) {
       for (size_t i = 0; i < len; ++i) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         *as<uint8_t>(current_position_++) ^= src[i];
         if (kStrobeR == current_position_) {
           runF();
