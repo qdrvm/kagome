@@ -26,7 +26,6 @@
 #include "network/router.hpp"
 #include "parachain/approval/approval.hpp"
 #include "parachain/approval/approval_distribution.hpp"
-
 #include "parachain/approval/approval_distribution_error.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/approval/state.hpp"
