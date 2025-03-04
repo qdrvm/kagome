@@ -27,14 +27,13 @@
 #include "parachain/approval/approval.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 
-#include <primitives/transcript.hpp>
-
 #include "parachain/approval/approval_distribution_error.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/approval/state.hpp"
 #include "parachain/pvf/pvf.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "primitives/math.hpp"
+#include "primitives/transcript.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/map.hpp"
 #include "utils/pool_handler_ready_make.hpp"
@@ -456,79 +455,25 @@ namespace {
     UNREACHABLE;
   }
 
-  // // Assuming approval_types::v1::RELAY_VRF_MODULO_CONTEXT is a string
-  // constant const std::string RELAY_VRF_MODULO_CONTEXT =
-  // "RelayVRFModuloContext";
-  //
-  // // Define the RelayVRFStory struct
-  // struct RelayVRFStory {
-  //   std::array<uint8_t, 32> data;  // Adjust the size according to your needs
-  // };
-  //
-  // // Define the Transcript class
-  // class Transcript {
-  //  public:
-  //   Transcript(const std::string &context) {
-  //     append_message("context",
-  //                    reinterpret_cast<const uint8_t *>(context.c_str()),
-  //                    context.size());
-  //   }
-  //
-  //   void append_message(const char *label,
-  //                       const uint8_t *message,
-  //                       size_t size) {
-  //     data_.insert(data_.end(), label, label + std::strlen(label));
-  //     data_.insert(data_.end(), message, message + size);
-  //   }
-  //
-  //   void append_message(const char *label, const std::string &message) {
-  //     append_message(label,
-  //                    reinterpret_cast<const uint8_t *>(message.data()),
-  //                    message.size());
-  //   }
-  //
-  //   template <typename T>
-  //   void append_message(const char *label, const T &value) {
-  //     append_message(
-  //         label, reinterpret_cast<const uint8_t *>(&value), sizeof(T));
-  //   }
-  //
-  //  private:
-  //   std::vector<uint8_t> data_;
-  // };
-  //
-  // // Implement relay_vrf_modulo_transcript_inner
-  // Transcript relay_vrf_modulo_transcript_inner(
-  //     Transcript transcript,
-  //     const RelayVRFStory &relay_vrf_story,
-  //     const std::optional<uint32_t> &sample) {
-  //   transcript.append_message(
-  //       "RC-VRF", relay_vrf_story.data.data(), relay_vrf_story.data.size());
-  //
-  //   if (sample.has_value()) {
-  //     const uint32_t s = sample.value();
-  //     transcript.append_message(
-  //         "sample", reinterpret_cast<const uint8_t *>(&s), sizeof(s));
-  //   }
-  //
-  //   return transcript;
-  // }
-  //
-  // // Implement relay_vrf_modulo_transcript_v1
-  // Transcript relay_vrf_modulo_transcript_v1(
-  //     const RelayVRFStory &relay_vrf_story, uint32_t sample) {
-  //   return relay_vrf_modulo_transcript_inner(
-  //       Transcript(RELAY_VRF_MODULO_CONTEXT), relay_vrf_story, sample);
-  // }
-  //
-  // using CoreIndex = uint32_t;
-  const char ASSIGNED_CORE_CONTEXT[] = "A&V ASSIGNED v2";
-  //
   // // Implement the assigned_core_transcript function
   kagome::primitives::Transcript assigned_core_transcript(
       const kagome::parachain::CoreIndex &core_index) {
     kagome::primitives::Transcript t;
-    t.initialize(ASSIGNED_CORE_CONTEXT);
+    t.initialize({'A',
+                  '&',
+                  'V',
+                  ' ',
+                  'A',
+                  'S',
+                  'S',
+                  'I',
+                  'G',
+                  'N',
+                  'E',
+                  'D',
+                  ' ',
+                  'v',
+                  '2'});
     t.append_message("core", core_index);
 
     return {t};
@@ -580,13 +525,13 @@ namespace {
 
 namespace kagome::parachain {
 
-  outcome::result<kagome::network::DelayTranche> checkAssignmentCert(
+  outcome::result<DelayTranche> checkAssignmentCert(
       const scale::BitVec &claimed_core_indices,
-      kagome::network::ValidatorIndex validator_index,
-      const kagome::runtime::SessionInfo &config,
+      ValidatorIndex validator_index,
+      const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
-      const kagome::parachain::approval::AssignmentCertV2 &assignment,
-      const std::vector<kagome::network::GroupIndex> &backing_groups) {
+      const approval::AssignmentCertV2 &assignment,
+      const std::vector<GroupIndex> &backing_groups) {
     using namespace kagome;  // NOLINT(google-build-using-namespace)
     using parachain::ApprovalDistributionError;
 
@@ -595,10 +540,9 @@ namespace kagome::parachain {
     }
 
     const auto &validator_public = config.assignment_keys[validator_index];
-    OUTCOME_TRY(pk, network::ValidatorId::fromSpan(validator_public));
 
-    if (kagome::parachain::approval::count_ones(claimed_core_indices) == 0
-        || kagome::parachain::approval::count_ones(claimed_core_indices)
+    if (approval::count_ones(claimed_core_indices) == 0
+        || approval::count_ones(claimed_core_indices)
                != backing_groups.size()) {
       return ApprovalDistributionError::CORE_INDEX_OUT_OF_BOUNDS;
     }
@@ -638,8 +582,8 @@ namespace kagome::parachain {
 
     return visit_in_place(
         assignment.kind,
-        [&](const parachain::approval::RelayVRFModuloCompact &obj)
-            -> outcome::result<kagome::network::DelayTranche> {
+        [&](const approval::RelayVRFModuloCompact &obj)
+            -> outcome::result<DelayTranche> {
           const auto core_bitfield = obj.core_bitfield;
           if (claimed_core_indices != core_bitfield) {
             return ApprovalDistributionError::VRF_MODULO_CORE_INDEX_MISMATCH;
@@ -679,10 +623,6 @@ namespace kagome::parachain {
             resulting_cores.push_back(ci);
           }
 
-          // Process the resulting cores
-          // std::vector<uint32_t> resulting_cores(cores_out,
-          //                                       cores_out + cores_out_sz);
-
           // Validate that all claimed cores are in the resulting cores
           bool all_cores_valid = true;
           for (size_t claimed_core_index = 0;
@@ -707,17 +647,17 @@ namespace kagome::parachain {
           }
 
           if (!all_cores_valid) {
-            // Clean up allocated memory?
+            // Clean up allocated memory
             if (cores_out) {
               sr25519_clear_assigned_cores_v2(cores_out, cores_out_sz);
             }
             return ApprovalDistributionError::VRF_MODULO_CORE_INDEX_MISMATCH;
           }
 
-          return network::DelayTranche(0ull);
+          return DelayTranche(0ull);
         },
-        [&](const parachain::approval::RelayVRFModulo &obj)
-            -> outcome::result<kagome::network::DelayTranche> {
+        [&](const approval::RelayVRFModulo &obj)
+            -> outcome::result<DelayTranche> {
           const auto sample = obj.sample;
           if (sample >= config.relay_vrf_modulo_samples) {
             return ApprovalDistributionError::SAMPLE_OUT_OF_BOUNDS;
@@ -746,7 +686,7 @@ namespace kagome::parachain {
               &res.input_bytes, &res.output_bytes, config.n_cores);
 
           if (core == first_claimed_core_index) {
-            return network::DelayTranche(0ull);
+            return DelayTranche(0ull);
           }
           SL_DEBUG(log_,
                    "VRF modulo core mismatch: expected {}, got {}",
@@ -754,8 +694,8 @@ namespace kagome::parachain {
                    core);
           return ApprovalDistributionError::VRF_MODULO_CORE_INDEX_MISMATCH;
         },
-        [&](const parachain::approval::RelayVRFDelay &obj)
-            -> outcome::result<kagome::network::DelayTranche> {
+        [&](const approval::RelayVRFDelay &obj)
+            -> outcome::result<DelayTranche> {
           const auto core_index = obj.core_index;
           if (parachain::approval::count_ones(claimed_core_indices) != 1) {
             return ApprovalDistributionError::INVALID_ARGUMENTS;
@@ -766,7 +706,7 @@ namespace kagome::parachain {
           }
 
           // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-          network::DelayTranche tranche;
+          DelayTranche tranche;
           if (SR25519_SIGNATURE_RESULT_OK
               != sr25519_vrf_verify_and_get_tranche(
                   validator_public.data(),

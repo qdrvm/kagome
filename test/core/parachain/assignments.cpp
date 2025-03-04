@@ -174,7 +174,9 @@ struct AssignmentsTest : public test::BaseFS_Test {
     return result.value();
   }
 
-  // Helper function to check mutated assignments
+  // Helper function to check mutated assignments. Takes a function that
+  // can mutate the assignment and return boolean indicating if it is expected
+  // to be valid or not
   void check_mutated_assignments(
       size_t n_validators,
       size_t n_cores,
@@ -440,6 +442,14 @@ TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
                    kagome::crypto::constants::sr25519::vrf::OUTPUT_SIZE));
 }
 
+/**
+ * Reference polkadot-sdk test:
+ * https://github.com/paritytech/polkadot-sdk/blob/6b854acc69cd64f7c0e6cdb606e741e630e45032/polkadot/node/core/approval-voting/src/criteria.rs#L1007
+ *
+ * Given: 200 validators, 100 cores, 25 rotation offset
+ * When:  Mutate the RelayVRFDelay assignment with a garbage VRF signature
+ * Then:  The assignment should be rejected
+ */
 TEST_F(AssignmentsTest, check_rejects_delay_bad_vrf) {
   check_mutated_assignments(
       200,
@@ -460,6 +470,14 @@ TEST_F(AssignmentsTest, check_rejects_delay_bad_vrf) {
       });
 }
 
+/**
+ * Reference polkadot-sdk test:
+ * https://github.com/paritytech/polkadot-sdk/blob/6b854acc69cd64f7c0e6cdb606e741e630e45032/polkadot/node/core/approval-voting/src/criteria.rs#L1021
+ * Given: 200 validators, 100 cores, 25 rotation offset
+ * When:  Mutate the RelayVRFModulo and RelayVRFModuloCompact assignments with
+ *        a garbage VRF signature
+ * Then: The assignment should be rejected
+ */
 TEST_F(AssignmentsTest, check_rejects_modulo_bad_vrf) {
   check_mutated_assignments(
       200,
@@ -488,6 +506,13 @@ TEST_F(AssignmentsTest, check_rejects_modulo_bad_vrf) {
       });
 }
 
+/**
+ * Reference polkadot-sdk test:
+ * https://github.com/paritytech/polkadot-sdk/blob/6b854acc69cd64f7c0e6cdb606e741e630e45032/polkadot/node/core/approval-voting/src/criteria.rs#L1039
+ * Given: 200 validators, 100 cores, 25 rotation offset
+ * When: Mutate the RelayVRFModulo assignment with a modulo sample out of bounds
+ * Then: The assignment should be rejected
+ */
 TEST_F(AssignmentsTest, check_rejects_modulo_sample_out_of_bounds) {
   check_mutated_assignments(
       200,
@@ -514,6 +539,13 @@ TEST_F(AssignmentsTest, check_rejects_modulo_sample_out_of_bounds) {
       });
 }
 
+/**
+ * Reference polkadot-sdk test:
+ * https://github.com/paritytech/polkadot-sdk/blob/6b854acc69cd64f7c0e6cdb606e741e630e45032/polkadot/node/core/approval-voting/src/criteria.rs#L1053
+ * Given: 200 validators, 100 cores, 25 rotation offset
+ * When: Mutate the RelayVRFDelay assignment with a claimed core out of bounds
+ * Then: The assignment should be rejected
+ */
 TEST_F(AssignmentsTest, check_rejects_delay_claimed_core_wrong) {
   check_mutated_assignments(
       200,
@@ -544,6 +576,14 @@ TEST_F(AssignmentsTest, check_rejects_delay_claimed_core_wrong) {
       });
 }
 
+/**
+ * Reference polkadot-sdk test:
+ * https://github.com/paritytech/polkadot-sdk/blob/6b854acc69cd64f7c0e6cdb606e741e630e45032/polkadot/node/core/approval-voting/src/criteria.rs#L1067
+ * Given: 200 validators, 100 cores, 25 rotation offset
+ * When: Mutate the RelayVRFModulo and RelayVRFModuloCompact assignments with
+ *       a claimed core out of bounds
+ * Then: The assignment should be rejected
+ */
 TEST_F(AssignmentsTest, check_rejects_modulo_core_wrong) {
   check_mutated_assignments(
       200,

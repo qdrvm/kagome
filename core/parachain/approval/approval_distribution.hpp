@@ -38,14 +38,26 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome::parachain {
-  outcome::result<kagome::network::DelayTranche> checkAssignmentCert(
+  /**
+   * @brief Checks if an assignment certificate is valid and returns the
+   * corresponding delay tranche
+   * @param claimed_core_indices Bitfield of the core indices being claimed
+   * @param validator_index Index of the validator making the assignment
+   * @param session_info Current session info containing validator and
+   * assignment keys
+   * @param relay_vrf_story VRF story for the relay chain block
+   * @param cert The assignment certificate to verify
+   * @param backing_groups Groups that back each assigned core
+   * @return Delay tranche if valid, error otherwise
+   */
+  outcome::result<DelayTranche> checkAssignmentCert(
       const scale::BitVec &claimed_core_indices,
-      kagome::network::ValidatorIndex validator_index,
-      const kagome::runtime::SessionInfo &config,
+      ValidatorIndex validator_index,
+      const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
-      const kagome::parachain::approval::AssignmentCertV2 &assignment,
-      const std::vector<kagome::network::GroupIndex> &backing_groups);
-}
+      const approval::AssignmentCertV2 &assignment,
+      const std::vector<GroupIndex> &backing_groups);
+}  // namespace kagome::parachain
 
 namespace kagome {
   class PoolHandler;
