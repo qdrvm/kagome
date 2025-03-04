@@ -440,6 +440,26 @@ TEST_F(AssignmentsTest, assignments_produced_for_non_backing) {
                    kagome::crypto::constants::sr25519::vrf::OUTPUT_SIZE));
 }
 
+TEST_F(AssignmentsTest, check_rejects_delay_bad_vrf) {
+  check_mutated_assignments(
+      200,
+      100,
+      25,  // Match Rust test parameters
+      [&](scale::BitVec &cores,
+          kagome::parachain::approval::AssignmentCertV2 &cert,
+          std::vector<kagome::network::GroupIndex> &groups,
+          kagome::network::GroupIndex own_group,
+          kagome::network::ValidatorIndex val_index,
+          kagome::runtime::SessionInfo &config) -> std::optional<bool> {
+        if (kagome::if_type<kagome::parachain::approval::RelayVRFDelay>(
+                cert.kind)) {
+          cert.vrf = garbage_vrf_signature();
+          return false;
+        }
+        return std::nullopt;
+      });
+}
+
 TEST_F(AssignmentsTest, check_rejects_modulo_bad_vrf) {
   check_mutated_assignments(
       200,
