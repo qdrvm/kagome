@@ -22,7 +22,7 @@ namespace kagome::consensus::babe {
         if (not consensus) {
           continue;
         }
-        auto decoded_res = consensus->decode();
+        auto decoded_res = consensus->decodeConsensusMessage();
         if (not decoded_res) {
           SL_WARN(logger(),
                   "error decoding digest block={} engine={} digest={}: {}",

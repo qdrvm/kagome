@@ -12,7 +12,6 @@ extern "C" {
 
 #include "common/blob.hpp"
 #include "crypto/common.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::crypto::constants::ed25519 {
   /**
@@ -45,8 +44,6 @@ namespace kagome::crypto {
   template <typename D>
   struct Ed25519Signed {
     using Type = std::decay_t<D>;
-    SCALE_TIE(2);
-
     Type payload;
     Ed25519Signature signature;
   };

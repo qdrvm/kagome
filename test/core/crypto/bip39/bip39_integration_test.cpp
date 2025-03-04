@@ -4,16 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/algorithm/string/join.hpp>
-#include <mock/libp2p/crypto/random_generator_mock.hpp>
+#include <gtest/gtest.h>
 
+#include <boost/algorithm/string/join.hpp>
+#include <qtils/test/outcome.hpp>
+
+#include <mock/libp2p/crypto/random_generator_mock.hpp>
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/bip39/mnemonic.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
-#include "testutil/outcome.hpp"
-
-#include <gtest/gtest.h>
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::common;
@@ -45,14 +45,14 @@ struct Bip39IntegrationTest : public ::testing::TestWithParam<TestItem> {
 
 TEST_P(Bip39IntegrationTest, DeriveEntropyAndSeedSuccess) {
   const TestItem &item = GetParam();
-  EXPECT_OUTCOME_TRUE(mnemonic, Mnemonic::parse(item.mnemonic));
+  ASSERT_OUTCOME_SUCCESS(mnemonic, Mnemonic::parse(item.mnemonic));
   auto joined_words = boost::algorithm::join(*mnemonic.words(), " ");
   ASSERT_EQ(joined_words, item.mnemonic);
 
-  EXPECT_OUTCOME_TRUE(entropy,
-                      bip39_provider->calculateEntropy(*mnemonic.words()));
+  ASSERT_OUTCOME_SUCCESS(entropy,
+                         bip39_provider->calculateEntropy(*mnemonic.words()));
 
-  EXPECT_OUTCOME_TRUE(seed, bip39_provider->makeSeed(entropy, "Substrate"));
+  ASSERT_OUTCOME_SUCCESS(seed, bip39_provider->makeSeed(entropy, "Substrate"));
   ASSERT_EQ(seed, unhex(item.seed).value());
 }
 

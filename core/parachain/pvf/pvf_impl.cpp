@@ -33,6 +33,8 @@
 #include "runtime/runtime_instances_pool.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
 
+#define OUTCOME_UNIQUE QTILS_UNIQUE_NAME(outcome)
+
 #define _CB_TRY_VOID(tmp, expr) \
   auto tmp = (expr);            \
   if (tmp.has_error()) {        \
@@ -134,8 +136,6 @@ namespace kagome::parachain {
   }
 
   struct ValidationParams {
-    SCALE_TIE(4);
-
     HeadData parent_head;
     ParachainBlock block_data;
     BlockNumber relay_parent_number{};

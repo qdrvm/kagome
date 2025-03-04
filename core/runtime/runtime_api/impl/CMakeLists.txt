@@ -71,8 +71,7 @@ target_link_libraries(mmr_api
 
 add_library(parachain_host_api
     parachain_host.cpp
-    parachain_host_types_serde.cpp
-    )
+)
 target_link_libraries(parachain_host_api
     executor
     )

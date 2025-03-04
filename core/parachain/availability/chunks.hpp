@@ -11,6 +11,8 @@
 #include "parachain/availability/erasure_coding_error.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
+#define OUTCOME_UNIQUE QTILS_UNIQUE_NAME(outcome)
+
 #define _EC_CPP_TRY_VOID(tmp, expr)                                            \
   auto &&tmp = expr;                                                           \
   if (ec_cpp::resultHasError(tmp)) {                                           \

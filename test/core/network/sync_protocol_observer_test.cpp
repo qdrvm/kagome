@@ -11,15 +11,15 @@
 #include <functional>
 #include <optional>
 
+#include <qtils/test/outcome.hpp>
+
 #include "application/app_configuration.hpp"
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/network/beefy_mock.hpp"
 #include "mock/libp2p/host/host_mock.hpp"
 #include "primitives/block.hpp"
-#include "testutil/gmock_actions.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
@@ -104,9 +104,9 @@ TEST_F(SyncProtocolObserverTest, ProcessRequest) {
   });
 
   // WHEN
-  EXPECT_OUTCOME_TRUE(response,
-                      sync_protocol_observer_->onBlocksRequest(received_request,
-                                                               peer_info_.id));
+  ASSERT_OUTCOME_SUCCESS(response,
+                         sync_protocol_observer_->onBlocksRequest(
+                             received_request, peer_info_.id));
 
   // THEN
   const auto &received_blocks = response.blocks;

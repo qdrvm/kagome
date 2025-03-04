@@ -8,15 +8,15 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "blockchain/block_storage_error.hpp"
 #include "mock/core/crypto/hasher_mock.hpp"
 #include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "scale/kagome_scale.hpp"
-#include "scale/scale.hpp"
 #include "storage/database_error.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::blockchain::BlockStorageError;
@@ -30,11 +30,11 @@ using kagome::primitives::BlockData;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
+using kagome::scale::encode;
 using kagome::storage::BufferStorageMock;
 using kagome::storage::Space;
 using kagome::storage::SpacedStorageMock;
 using kagome::storage::trie::RootHash;
-using scale::encode;
 using testing::_;
 using testing::Ref;
 using testing::Return;
@@ -80,15 +80,15 @@ class BlockStorageTest : public testing::Test {
 
   std::shared_ptr<BlockStorageImpl> createWithGenesis() {
     // calculate hash of genesis block at put block header
-    static auto encoded_header = Buffer(scale::encode(BlockHeader{}).value());
+    static auto encoded_header = Buffer(encode(BlockHeader{}).value());
     ON_CALL(*hasher, blake2b_256(encoded_header.view()))
         .WillByDefault(Return(genesis_block_hash));
 
-    EXPECT_OUTCOME_TRUE(
+    EXPECT_OUTCOME_SUCCESS(
         new_block_storage,
         BlockStorageImpl::create(root_hash, spaced_storage, hasher));
 
-    return new_block_storage;
+    return new_block_storage.value();
   }
 };
 
@@ -118,7 +118,7 @@ TEST_F(BlockStorageTest, CreateWithEmptyStorage) {
   EXPECT_CALL(*empty_storage, put(_, _))
       .WillRepeatedly(Return(outcome::success()));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  ASSERT_OUTCOME_SUCCESS(
       BlockStorageImpl::create(root_hash, spaced_storage, hasher));
 }
 
@@ -137,7 +137,7 @@ TEST_F(BlockStorageTest, CreateWithExistingGenesis) {
       // trying to get header of block number 0 (genesis block)
       .WillOnce(Return(Buffer{genesis_block_hash}));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  ASSERT_OUTCOME_SUCCESS(
       BlockStorageImpl::create(root_hash, spaced_storage, hasher));
 }
 
@@ -170,7 +170,7 @@ TEST_F(BlockStorageTest, PutBlock) {
   block.header.number = 1;
   block.header.parent_hash = genesis_block_hash;
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->putBlock(block));
+  ASSERT_OUTCOME_SUCCESS(block_storage->putBlock(block));
 }
 
 /*
@@ -216,7 +216,7 @@ TEST_F(BlockStorageTest, PutWithStorageError) {
   block.header.number = 1;
   block.header.parent_hash = genesis_block_hash;
 
-  auto encoded_header = Buffer(scale::encode(block.header).value());
+  auto encoded_header = Buffer(encode(block.header).value());
   ON_CALL(*hasher, blake2b_256(encoded_header.view()))
       .WillByDefault(Return(regular_block_hash));
 
@@ -240,7 +240,7 @@ TEST_F(BlockStorageTest, Remove) {
 
   BufferView hash(genesis_block_hash);
 
-  Buffer encoded_header{scale::encode(BlockHeader{}).value()};
+  Buffer encoded_header{encode(BlockHeader{}).value()};
 
   EXPECT_CALL(*(spaces[Space::kHeader]), tryGetMock(hash))
       .WillOnce(Return(encoded_header));
@@ -251,10 +251,10 @@ TEST_F(BlockStorageTest, Remove) {
   EXPECT_CALL(*(spaces[Space::kJustification]), remove(hash))
       .WillOnce(Return(outcome::success()));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->removeBlock(genesis_block_hash));
+  ASSERT_OUTCOME_SUCCESS(block_storage->removeBlock(genesis_block_hash));
 
   EXPECT_CALL(*(spaces[Space::kHeader]), tryGetMock(hash))
       .WillOnce(Return(std::nullopt));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(block_storage->removeBlock(genesis_block_hash));
+  ASSERT_OUTCOME_SUCCESS(block_storage->removeBlock(genesis_block_hash));
 }

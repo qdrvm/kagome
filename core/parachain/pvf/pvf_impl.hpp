@@ -44,8 +44,6 @@ namespace kagome::parachain {
   struct ValidationParams;
 
   struct ValidationResult {
-    SCALE_TIE(6);
-
     HeadData head_data;
     std::optional<ParachainRuntime> new_validation_code;
     std::vector<UpwardMessage> upward_messages;

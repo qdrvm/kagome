@@ -53,7 +53,7 @@ struct AddressPublisherTest : public testing::Test {
   }
 
   void SetUp() override {
-    roles_.flags.authority = 1;
+    roles_ = Roles::Authority;
     EXPECT_CALL(*config_, roles()).WillOnce(Return(roles_));
     session_keys_ = std::make_shared<SessionKeysImpl>(crypto_store_, *config_);
     libp2p_key_.privateKey.type = libp2p::crypto::Key::Type::Ed25519;

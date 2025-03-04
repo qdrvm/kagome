@@ -23,7 +23,7 @@
 #include "crypto/sr25519_provider.hpp"
 #include "log/trace_macros.hpp"
 #include "runtime/ptr_size.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace {
   template <typename Format, typename... Args>

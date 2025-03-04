@@ -7,6 +7,7 @@
 #include "storage/trie/compact_decode.hpp"
 
 #include "common/empty.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/trie/raw_cursor.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 

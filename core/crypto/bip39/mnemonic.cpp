@@ -6,6 +6,8 @@
 
 #include "crypto/bip39/mnemonic.hpp"
 
+#include <google/protobuf/stubs/port.h>
+
 #include <charconv>
 #include <codecvt>
 #include <locale>
@@ -16,21 +18,72 @@
 #include "crypto/bip39/bip39_types.hpp"
 #include "crypto/hasher.hpp"
 #include "log/logger.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::crypto::bip39 {
 
   namespace {
     /**
-     * @return true if string s is a valid utf-8, false otherwise
+     * @brief Checks if a given string is a valid UTF-8 encoded sequence.
+     *
+     * @param s The input string in UTF-8 encoding.
+     * @return true if the string is valid UTF-8, otherwise false.
+     *
+     * @details
+     * The function performs a byte-by-byte validation of the input string by
+     * analyzing the leading bits of each byte:
+     * - 0xxxxxxx : Single-byte ASCII (valid)
+     * - 110xxxxx : Start of a 2-byte sequence
+     *              (must be followed by 10xxxxxx)
+     * - 1110xxxx : Start of a 3-byte sequence
+     *              (must be followed by two 10xxxxxx bytes)
+     * - 11110xxx : Start of a 4-byte sequence
+     *              (must be followed by three 10xxxxxx bytes)
+     *
+     * Additional checks:
+     * - Surrogate pair range (U+D800 to U+DFFF) is invalid in UTF-8.
+     * - Codepoints above U+10FFFF are not allowed.
      */
-    bool isValidUtf8(const std::string &s) {
-      // cannot replace for std::string_view for security reasons
-      std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>
-          utf16conv;
-      try {
-        auto utf16 = utf16conv.from_bytes(s.data());
-      } catch (...) {
-        return false;
+    bool isValidUtf8(std::string_view s) {
+      size_t i = 0, len = s.size();
+      while (i < len) {
+        auto c = static_cast<uint8_t>(s[i]);
+        if (c <= 0x7F) {
+          // 1-byte character (ASCII)
+          i++;
+        } else if ((c & 0xE0) == 0xC0) {
+          // 2-byte character (110xxxxx 10xxxxxx)
+          if (i + 1 >= len || (s[i + 1] & 0xC0) != 0x80) {
+            return false;
+          }
+          i += 2;
+        } else if ((c & 0xF0) == 0xE0) {
+          // 3-byte character (1110xxxx 10xxxxxx 10xxxxxx)
+          if (i + 2 >= len || (s[i + 1] & 0xC0) != 0x80
+              || (s[i + 2] & 0xC0) != 0x80) {
+            return false;
+          }
+          uint32_t codepoint =
+              ((c & 0x0F) << 12) | ((s[i + 1] & 0x3F) << 6) | (s[i + 2] & 0x3F);
+          if (codepoint >= 0xD800 && codepoint <= 0xDFFF) {
+            return false;  // Invalid UTF-16 surrogate pair range
+          }
+          i += 3;
+        } else if ((c & 0xF8) == 0xF0) {
+          // 4-byte character (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx)
+          if (i + 3 >= len || (s[i + 1] & 0xC0) != 0x80
+              || (s[i + 2] & 0xC0) != 0x80 || (s[i + 3] & 0xC0) != 0x80) {
+            return false;
+          }
+          uint32_t codepoint = ((c & 0x07) << 18) | ((s[i + 1] & 0x3F) << 12)
+                             | ((s[i + 2] & 0x3F) << 6) | (s[i + 3] & 0x3F);
+          if (codepoint > 0x10FFFF) {
+            return false;  // Unicode range limit
+          }
+          i += 4;
+        } else {
+          return false;  // Invalid UTF-8 sequence
+        }
       }
       return true;
     }

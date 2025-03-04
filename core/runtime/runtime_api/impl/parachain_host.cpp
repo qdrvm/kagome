@@ -10,7 +10,6 @@
 #include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/runtime_api/impl/if_export.hpp"
-#include "runtime/runtime_api/impl/parachain_host_types_serde.hpp"
 
 namespace kagome::runtime {
 
@@ -316,7 +315,7 @@ namespace kagome::runtime {
       const primitives::BlockHash &block) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
     OUTCOME_TRY(r,
-                ifExport(executor_->call<scale::BitVec>(
+                ifExport(executor_->call<scale::BitVector>(
                     ctx, "ParachainHost_node_features")));
     return NodeFeatures{std::move(r)};
   }

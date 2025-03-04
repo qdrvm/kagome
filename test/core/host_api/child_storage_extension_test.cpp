@@ -22,7 +22,6 @@
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 #include "storage/trie/types.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/outcome/dummy_error.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/memory.hpp"

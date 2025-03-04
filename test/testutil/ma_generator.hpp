@@ -8,8 +8,9 @@
 
 #include <iostream>
 
+#include <qtils/test/outcome.hpp>
+
 #include "libp2p/multi/multiaddress.hpp"
-#include "testutil/outcome.hpp"
 
 namespace testutil {
   class MultiaddressGenerator {
@@ -21,7 +22,7 @@ namespace testutil {
 
     inline Multiaddress nextMultiaddress() {
       std::string ma = prefix_ + std::to_string(current_port_++);
-      EXPECT_OUTCOME_TRUE(res, Multiaddress::create(ma));
+      ASSERT_OUTCOME_SUCCESS(res, Multiaddress::create(ma));
       return res;
     }
 

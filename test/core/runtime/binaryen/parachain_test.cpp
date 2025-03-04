@@ -8,10 +8,11 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "host_api/impl/host_api_impl.hpp"
 #include "runtime/binaryen/memory_impl.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;

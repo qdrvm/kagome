@@ -6,7 +6,8 @@
 
 #include "consensus/babe/impl/babe_digests_util.hpp"
 
-#include "scale/scale.hpp"
+#include "common/visitor.hpp"
+#include "scale/kagome_scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::consensus::babe, DigestError, e) {
   using E = kagome::consensus::babe::DigestError;
@@ -26,7 +27,7 @@ namespace {
   template <typename T, typename VarT>
   std::optional<std::reference_wrapper<const std::decay_t<T>>> getFromVariant(
       VarT &&v) {
-    return visit_in_place(
+    return kagome::visit_in_place(
         std::forward<VarT>(v),
         [](const T &expected_val)
             -> std::optional<std::reference_wrapper<const std::decay_t<T>>> {

@@ -6,10 +6,10 @@
 
 #pragma once
 
+#include <optional>
 #include <string_view>
 
 #include <boost/variant.hpp>
-#include <optional>
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
@@ -45,7 +45,7 @@ namespace kagome::runtime {
     static outcome::result<common::Buffer> encodeArgs(const Args &...args) {
       if constexpr (sizeof...(args) > 0) {
         return common::map_result(
-            kagome::scale::encode(args...),
+            scale::encode(std::tie(args...)),
             [](auto &&vec) { return common::Buffer{vec}; });
       }
       return outcome::success();
@@ -60,20 +60,21 @@ namespace kagome::runtime {
         return outcome::success();
       } else {
         Result t{};
-        scale::ScaleDecoderStream s(value);
+        scale::DecoderFromSpan decoder(value);
         try {
-          s >> t;
+          decoder >> t;
           // Check whether the whole byte buffer was consumed
-          if (s.hasMore(1)) {
+          if (decoder.has(1)) {
             static auto logger = log::createLogger("Executor", "runtime");
             SL_ERROR(
                 logger,
                 "Runtime API call '{}' result size exceeds the size of the "
-                "type to initialize {} (read {}, total size {})",
+                "type to initialize {}",  //" (read {}, total size {})",
                 method_name,
-                typeid(Result).name(),
-                s.currentIndex(),
-                s.span().size_bytes());
+                typeid(Result).name()
+                // ,decoder.currentIndex()
+                // ,decoder.span().size_bytes()
+            );
             return outcome::failure(ModuleInstance::Error::INVALID_CALL_RESULT);
           }
           return outcome::success(std::move(t));

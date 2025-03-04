@@ -15,7 +15,7 @@
 #include "runtime/memory.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::host_api {
 

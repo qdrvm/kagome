@@ -75,7 +75,7 @@ namespace kagome::log {
   void setLoggingSystem(std::weak_ptr<soralog::LoggingSystem> logging_system) {
     logging_system_ = std::move(logging_system);
     libp2p::log::setLoggingSystem(logging_system_.lock());
-    profiling_logger = createLogger("Profiler", "profile");
+    profiling_logger();  // call to create logger in advance
   }
 
   void tuneLoggingSystem(const std::vector<std::string> &cfg) {

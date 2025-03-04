@@ -64,17 +64,6 @@
         OUTCOME_TRY(blob, Base::fromSpan(span));                               \
         return class_name{std::move(blob)};                                    \
       }                                                                        \
-                                                                               \
-      friend inline ::scale::ScaleEncoderStream &operator<<(                   \
-          ::scale::ScaleEncoderStream &s,                                      \
-          const space_name::class_name &data) {                                \
-        return s << static_cast<const Base &>(data);                           \
-      }                                                                        \
-                                                                               \
-      friend inline ::scale::ScaleDecoderStream &operator>>(                   \
-          ::scale::ScaleDecoderStream &s, space_name::class_name &data) {      \
-        return s >> static_cast<Base &>(data);                                 \
-      }                                                                        \
     };                                                                         \
   };                                                                           \
                                                                                \
@@ -90,8 +79,8 @@
   struct fmt::formatter<space_name::class_name>                                \
       : fmt::formatter<space_name::class_name::Base> {                         \
     template <typename FormatCtx>                                              \
-    auto format(const space_name::class_name &blob,                            \
-                FormatCtx &ctx) const -> decltype(ctx.out()) {                 \
+    auto format(const space_name::class_name &blob, FormatCtx &ctx) const      \
+        -> decltype(ctx.out()) {                                               \
       return fmt::formatter<space_name::class_name::Base>::format(blob, ctx);  \
     }                                                                          \
   };
@@ -277,8 +266,8 @@ struct fmt::formatter<kagome::common::Blob<N>> {
   // Formats the Blob using the parsed format specification (presentation)
   // stored in this formatter.
   template <typename FormatContext>
-  auto format(const kagome::common::Blob<N> &blob,
-              FormatContext &ctx) const -> decltype(ctx.out()) {
+  auto format(const kagome::common::Blob<N> &blob, FormatContext &ctx) const
+      -> decltype(ctx.out()) {
     if (presentation == 's') {
       if constexpr (N > 4) {
         uint16_t head = static_cast<uint16_t>(blob[1])

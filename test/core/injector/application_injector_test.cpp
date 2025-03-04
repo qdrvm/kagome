@@ -99,8 +99,7 @@ namespace {
     EXPECT_CALL(config_mock, enableDbMigration())
         .WillRepeatedly(testing::Return(true));
     kagome::network::Roles roles;
-    roles.flags.full = 1;
-    roles.flags.authority = 1;
+    roles = kagome::network::Roles::Authority | kagome::network::Roles::Full;
     EXPECT_CALL(config_mock, roles()).WillRepeatedly(testing::Return(roles));
     static auto key = std::make_optional(kagome::crypto::Ed25519Seed{});
     EXPECT_CALL(config_mock, nodeKey()).WillRepeatedly(testing::ReturnRef(key));

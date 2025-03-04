@@ -7,7 +7,7 @@
 #pragma once
 
 #include "primitives/block_header.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::network {
 
@@ -36,36 +36,29 @@ namespace kagome::network {
          and this->data == other.data;
     }
 
-    friend inline scale::ScaleEncoderStream &operator<<(
-        scale::ScaleEncoderStream &s, const BlockAnnounce &v) {
-      s << v.header;
+    friend inline void encode(const BlockAnnounce &v, scale::Encoder &encoder) {
+      encode(v.header, encoder);
       if (v.state.has_value()) {
-        s << v.state.value();
+        encode(v.state.value(), encoder);
         if (v.data.has_value()) {
-          s << v.data.value();
+          encode(v.data.value(), encoder);
         }
       }
-      return s;
     }
 
-    friend inline scale::ScaleDecoderStream &operator>>(
-        scale::ScaleDecoderStream &s, BlockAnnounce &v) {
-      s >> v.header;
-      if (s.hasMore(1)) {
-        BlockState tmp;
-        s >> tmp;
-        v.state.emplace(tmp);
+    friend inline void decode(BlockAnnounce &v, scale::Decoder &decoder) {
+      decode(v.header, decoder);
+      if (decoder.has(1)) {
+        decode(v.state.emplace(), decoder);
+        if (decoder.has(1)) {
+          decode(v.data.emplace(), decoder);
+        } else {
+          v.data.reset();
+        }
       } else {
         v.state.reset();
-      }
-      if (s.hasMore(1)) {
-        std::vector<uint8_t> tmp;
-        s >> tmp;
-        v.data.emplace(std::move(tmp));
-      } else {
         v.data.reset();
       }
-      return s;
     }
   };
 

@@ -25,8 +25,8 @@ namespace kagome::network {
         const primitives::Extrinsic &extrinsic) override;
 
    private:
-    std::shared_ptr<kagome::transaction_pool::TransactionPool> pool_;
     log::Logger logger_;
+    std::shared_ptr<kagome::transaction_pool::TransactionPool> pool_;
   };
 
 }  // namespace kagome::network

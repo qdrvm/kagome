@@ -7,6 +7,7 @@
 #include "authorship/impl/proposer_impl.hpp"
 
 #include "authorship/impl/block_builder_error.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace {
   constexpr const char *kTransactionsIncludedInBlock =
@@ -127,19 +128,16 @@ namespace kagome::authorship {
         }
 
         // Estimate the size of the transaction
-        scale::ScaleEncoderStream s(true);
-        s << tx->ext;
-        auto estimate_tx_size = s.size();
+        auto estimate_tx_size = scale::encoded_size(tx->ext).value();
 
         // Check if adding the transaction would exceed the block size limit
         if (block_size + estimate_tx_size > block_size_limit) {
           if (skipped < kMaxSkippedTransactions) {
             ++skipped;
-            SL_DEBUG(
-                logger_,
-                "Transaction would overflow the block size limit, but will "
-                "try {} more transactions before quitting.",
-                kMaxSkippedTransactions - skipped);
+            SL_DEBUG(logger_,
+                     "Transaction would overflow the block size limit, "
+                     "but will try {} more transactions before quitting.",
+                     kMaxSkippedTransactions - skipped);
             continue;
           }
           // Reached the block size limit, stop adding transactions

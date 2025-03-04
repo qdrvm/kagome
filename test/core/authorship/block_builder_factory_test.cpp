@@ -10,8 +10,6 @@
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/runtime/block_builder_api_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
-#include "runtime/runtime_context.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using ::testing::_;

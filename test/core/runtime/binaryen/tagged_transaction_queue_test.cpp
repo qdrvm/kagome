@@ -8,11 +8,11 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "core/runtime/binaryen/binaryen_runtime_test.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "testutil/lazy.hpp"
-#include "testutil/outcome.hpp"
-#include "testutil/runtime/common/basic_code_provider.hpp"
 
 using namespace testing;
 
@@ -51,6 +51,6 @@ TEST_F(TTQTest, DISABLED_ValidateTransactionSuccess) {
 
   // we test now that the functions above are called sequentially
   // unfortunately, we don't have valid data for validate_transaction to succeed
-  EXPECT_OUTCOME_TRUE_1(
+  EXPECT_OUTCOME_SUCCESS(
       ttq_->validate_transaction(TransactionSource::External, ext));
 }

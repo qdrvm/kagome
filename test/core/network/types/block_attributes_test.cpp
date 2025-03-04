@@ -7,14 +7,15 @@
 #include "network/types/block_attributes.hpp"
 
 #include <gtest/gtest.h>
-#include "scale/scale.hpp"
-#include "testutil/outcome.hpp"
+#include <qtils/test/outcome.hpp>
+
+#include "scale/kagome_scale.hpp"
 #include "testutil/testparam.hpp"
 
 using kagome::network::BlockAttribute;
 
-using scale::decode;
-using scale::encode;
+using kagome::scale::decode;
+using kagome::scale::encode;
 
 using BlockAttributesTestParam = testutil::TestParam<BlockAttribute>;
 
@@ -34,10 +35,10 @@ struct BlockAttributesTest
 TEST_P(BlockAttributesTest, DecodeBlockAttributes) {
   auto [encoded_value, should_fail, value] = GetParam();
   if (should_fail) {
-    EXPECT_EC(decode<BlockAttribute>(encoded_value),
-              scale::DecodeError::UNEXPECTED_VALUE);
+    ASSERT_OUTCOME_ERROR(decode<BlockAttribute>(encoded_value),
+                         scale::DecodeError::UNEXPECTED_VALUE);
   } else {
-    EXPECT_OUTCOME_TRUE(val, decode<BlockAttribute>(encoded_value));
+    ASSERT_OUTCOME_SUCCESS(val, decode<BlockAttribute>(encoded_value));
     ASSERT_EQ(val, value);
   }
 }

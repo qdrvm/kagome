@@ -31,7 +31,6 @@ namespace kagome::primitives::parachain {
    * @brief Relay primitive is empty in polkadot for now
    */
   struct Relay {};
-  SCALE_EMPTY_CODER(Relay);
 
   /**
    * @brief Parachain primitive

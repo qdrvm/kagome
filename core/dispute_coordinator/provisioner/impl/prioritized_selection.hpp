@@ -6,9 +6,10 @@
 
 #pragma once
 
+#include <scale/bit_vector.hpp>
+
 #include "dispute_coordinator/types.hpp"
 #include "log/logger.hpp"
-#include "scale/bitvec.hpp"
 
 namespace kagome::runtime {
   class ParachainHost;
@@ -22,12 +23,10 @@ namespace kagome::dispute {
 
   /// The entire state of a dispute.
   struct DisputeState {
-    SCALE_TIE(4);
-
     /// A bitfield indicating all validators for the candidate.
-    scale::BitVec validators_for;
+    scale::BitVector validators_for;
     /// A bitfield indicating all validators against the candidate.
-    scale::BitVec validators_against;
+    scale::BitVector validators_against;
     /// The block number at which the dispute started on-chain.
     primitives::BlockNumber start;
     /// The block number at which the dispute concluded on-chain.

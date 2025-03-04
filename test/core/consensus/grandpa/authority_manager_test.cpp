@@ -88,9 +88,9 @@ class AuthorityManagerTest : public testing::Test {
                             .authorities;
             if (it->second.second) {
               header.digest.emplace_back(Consensus{ForcedChange{
+                  *it->second.second,
                   list,
                   0,
-                  *it->second.second,
               }});
             } else {
               header.digest.emplace_back(Consensus{ScheduledChange{list, 0}});

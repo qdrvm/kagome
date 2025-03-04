@@ -155,9 +155,9 @@ namespace kagome::parachain {
       return;
     }
     SL_DEBUG(log(),
-            "candidate={} chunk={} not found",
-            candidate_hash,
-            active.chunk_index);
+             "candidate={} chunk={} not found",
+             candidate_hash,
+             active.chunk_index);
     active_.erase(it);
   }
 

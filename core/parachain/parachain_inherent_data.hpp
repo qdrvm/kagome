@@ -13,8 +13,6 @@
 namespace kagome::parachain {
 
   struct ParachainInherentData {
-    SCALE_TIE(4);
-
     /// The array of signed bitfields by validators claiming the candidate is
     /// available (or not).
     /// @note The array must be sorted by validator index corresponding to the

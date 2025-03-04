@@ -61,10 +61,10 @@ TEST_F(HttpListenerTest, EchoSuccess) {
           post(*local_context, [&] {
             auto client = std::make_shared<HttpClient>(*local_context);
 
-            ASSERT_OUTCOME_SUCCESS_TRY(client->connect(endpoint));
+            ASSERT_OUTCOME_SUCCESS(client->connect(endpoint));
 
             client->query(request, [&](outcome::result<std::string> res) {
-              ASSERT_OUTCOME_SUCCESS_TRY(res);
+              ASSERT_OUTCOME_SUCCESS(res);
               EXPECT_EQ(res.value(), response);
               client->disconnect();
               time_is_out = false;

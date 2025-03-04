@@ -91,7 +91,7 @@ namespace kagome::blockchain {
     bool operator()(const std::shared_ptr<const TreeNode> &lhs,
                     const std::shared_ptr<const TreeNode> &rhs) const {
       BOOST_ASSERT(lhs and rhs);
-      return lhs->info > rhs->info;
+      return rhs->info < lhs->info;
     }
   };
 

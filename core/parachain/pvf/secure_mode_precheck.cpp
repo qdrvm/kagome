@@ -6,25 +6,24 @@
 
 #include "secure_mode_precheck.hpp"
 
+#include <filesystem>
+#include <iostream>
+
 #include <boost/asio/read.hpp>
 #include <boost/asio/readable_pipe.hpp>
 #include <boost/process/v2.hpp>
 #include <boost/process/v2/environment.hpp>
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/stdio.hpp>
-#include <filesystem>
-#include <iostream>
 #include <libp2p/log/configurator.hpp>
 #include <qtils/bytestr.hpp>
-#include <scale/scale.hpp>
-#include <soralog/macro.hpp>
 
 #include "common/buffer.hpp"
-#include "common/buffer_view.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
 #include "parachain/pvf/clone.hpp"
 #include "parachain/pvf/secure_mode.hpp"
+#include "scale/kagome_scale.hpp"
 #include "utils/get_exe_path.hpp"
 
 namespace kagome::parachain {

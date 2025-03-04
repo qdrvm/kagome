@@ -54,7 +54,7 @@ namespace kagome::common {
     explicit SLBuffer(const std::array<typename Base::value_type, N> &other)
         : Base(other.begin(), other.end()) {}
 
-    SLBuffer(const uint8_t *begin, const uint8_t *end) : Base(begin, end) {};
+    SLBuffer(const uint8_t *begin, const uint8_t *end) : Base(begin, end){};
 
     using Base::Base;
     using Base::operator=;

@@ -70,37 +70,32 @@
 namespace kagome::parachain {
 
   struct GeneralKnowledge {
-    SCALE_TIE(1);
-
     CandidateHash hash;
+    bool operator==(const GeneralKnowledge &other) const = default;
   };
 
   // Specific knowledge of a given statement (with its originator)
   struct SpecificKnowledge {
-    SCALE_TIE(2);
-
     network::CompactStatement statement;
     ValidatorIndex index;
+    bool operator==(const SpecificKnowledge &other) const = default;
   };
 
   // A piece of knowledge about a candidate
   using Knowledge = std::variant<GeneralKnowledge, SpecificKnowledge>;
 
   struct IncomingP2P {
-    SCALE_TIE(1);
-
     Knowledge knowledge;
+    bool operator==(const IncomingP2P &other) const = default;
   };
 
   struct OutgoingP2P {
-    SCALE_TIE(1);
-
     Knowledge knowledge;
+    bool operator==(const OutgoingP2P &other) const = default;
   };
   struct Seconded {
-    SCALE_TIE(1);
-
     CandidateHash hash;
+    bool operator==(const Seconded &other) const = default;
   };
 
   using TaggedKnowledge = std::variant<IncomingP2P, OutgoingP2P, Seconded>;

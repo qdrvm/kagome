@@ -164,7 +164,7 @@ namespace kagome::network {
     void clearClosedPingingConnections();
 
     using IsLight = Tagged<bool, struct IsLightTag>;
-    size_t countPeers(PeerType in_out, IsLight in_light = false) const;
+    size_t countPeers(PeerType in_out, IsLight in_light = IsLight{false}) const;
 
     void collectGarbage();
 

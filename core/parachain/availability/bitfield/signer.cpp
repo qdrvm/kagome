@@ -52,10 +52,10 @@ namespace kagome::parachain {
   outcome::result<void> BitfieldSigner::sign(const ValidatorSigner &signer,
                                              const Candidates &candidates) {
     const BlockHash &relay_parent = signer.relayParent();
-    scale::BitVec bitfield;
-    bitfield.bits.reserve(candidates.size());
+    scale::BitVector bitfield;
+    bitfield.reserve(candidates.size());
     for (auto &candidate : candidates) {
-      bitfield.bits.push_back(
+      bitfield.push_back(
           candidate && store_->hasChunk(*candidate, signer.validatorIndex()));
     }
 

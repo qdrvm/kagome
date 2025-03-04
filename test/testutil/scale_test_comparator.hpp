@@ -7,14 +7,13 @@
 #pragma once
 
 #include "scale/kagome_scale.hpp"
-#include "scale/scale.hpp"
 
 namespace testutil {
 
-  template <typename... T>
+  template <typename... Args>
   inline outcome::result<std::vector<uint8_t>> scaleEncodeAndCompareWithRef(
-      T &&...t) {
-    return scale::encode(std::forward<T>(t)...);
+      const Args &...args) {
+    return kagome::scale::encode(std::tie(args...));
   }
 
 }  // namespace testutil

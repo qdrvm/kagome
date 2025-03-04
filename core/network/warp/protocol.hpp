@@ -39,11 +39,11 @@ namespace kagome::network {
                      const blockchain::GenesisBlockHash &genesis,
                      std::shared_ptr<WarpSyncCache> cache)
         : RequestResponseProtocolImpl(
-              kName,
-              std::move(inject),
-              make_protocols(kWarpProtocol, genesis, chain_spec),
-              log::createLogger(kName, "warp_sync_protocol"),
-              kRequestTimeout),
+            kName,
+            std::move(inject),
+            make_protocols(kWarpProtocol, genesis, chain_spec),
+            log::createLogger(kName, "warp_sync_protocol"),
+            kRequestTimeout),
           cache_{std::move(cache)} {}
 
     std::optional<outcome::result<ResponseType>> onRxRequest(

@@ -16,17 +16,3 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::primitives, InherentDataError, e) {
   }
   return "Unknown error";
 }
-
-namespace kagome::primitives {
-
-  bool InherentData::operator==(
-      const kagome::primitives::InherentData &rhs) const {
-    return data == rhs.data;
-  }
-
-  bool InherentData::operator!=(
-      const kagome::primitives::InherentData &rhs) const {
-    return !operator==(rhs);
-  }
-
-}  // namespace kagome::primitives

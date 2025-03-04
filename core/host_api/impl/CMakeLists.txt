@@ -74,6 +74,7 @@ target_link_libraries(storage_extension
     logger
     storage
     scale::scale
+    scale::scale_append
     runtime_transaction_error
     )
 kagome_install(storage_extension)

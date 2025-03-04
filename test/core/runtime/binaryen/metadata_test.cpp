@@ -13,7 +13,6 @@
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "runtime/binaryen/memory_impl.hpp"
 #include "runtime/runtime_api/impl/metadata.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using ::testing::_;
