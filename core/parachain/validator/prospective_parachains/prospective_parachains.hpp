@@ -32,38 +32,47 @@ namespace kagome::parachain {
   using ParentHeadData =
       boost::variant<ParentHeadData_OnlyHash, ParentHeadData_WithData>;
 
+  // Forward declarations
+  namespace fragment {
+    class FragmentChainAccessor;
+  }
+
+  // Forward declaration needed for View
+  class ProspectiveParachains;
+
+  // Move the View and RelayBlockViewData structures outside the class to make them fully accessible
+  struct RelayBlockViewData {
+    // The fragment chains for current and upcoming scheduled paras.
+    std::unordered_map<ParachainId, fragment::FragmentChain> fragment_chains;
+  };
+
+  struct View {
+    // Per relay parent fragment chains. These includes all relay parents
+    // under the implicit view.
+    std::unordered_map<Hash, RelayBlockViewData> per_relay_parent;
+    // The hashes of the currently active leaves. This is a subset of the keys
+    // in `per_relay_parent`.
+    std::unordered_set<Hash> active_leaves;
+    // The backing implicit view.
+    ImplicitView implicit_view;
+
+    // Get the fragment chains of this leaf.
+    std::optional<std::reference_wrapper<
+        const std::unordered_map<ParachainId, fragment::FragmentChain>>>
+    get_fragment_chains(const Hash &leaf) const {
+      auto view_data = utils::get(per_relay_parent, leaf);
+      if (view_data) {
+        return std::cref(view_data->get().fragment_chains);
+      }
+      return std::nullopt;
+    }
+  };
+
   class ProspectiveParachains
       : public std::enable_shared_from_this<ProspectiveParachains> {
 #ifdef CFG_TESTING
    public:
 #endif  // CFG_TESTING
-    struct RelayBlockViewData {
-      // The fragment chains for current and upcoming scheduled paras.
-      std::unordered_map<ParachainId, fragment::FragmentChain> fragment_chains;
-    };
-
-    struct View {
-      // Per relay parent fragment chains. These includes all relay parents
-      // under the implicit view.
-      std::unordered_map<Hash, RelayBlockViewData> per_relay_parent;
-      // The hashes of the currently active leaves. This is a subset of the keys
-      // in `per_relay_parent`.
-      std::unordered_set<Hash> active_leaves;
-      // The backing implicit view.
-      ImplicitView implicit_view;
-
-      // Get the fragment chains of this leaf.
-      std::optional<std::reference_wrapper<
-          const std::unordered_map<ParachainId, fragment::FragmentChain>>>
-      get_fragment_chains(const Hash &leaf) const {
-        auto view_data = utils::get(per_relay_parent, leaf);
-        if (view_data) {
-          return std::cref(view_data->get().fragment_chains);
-        }
-        return std::nullopt;
-      }
-    };
-
     struct ImportablePendingAvailability {
       network::CommittedCandidateReceipt candidate;
       runtime::PersistedValidationData persisted_validation_data;
@@ -94,6 +103,13 @@ namespace kagome::parachain {
     answerMinimumRelayParentsRequest(const RelayHash &relay_parent);
 
     std::vector<std::pair<CandidateHash, Hash>> answerGetBackableCandidates(
+        const RelayHash &relay_parent,
+        ParachainId para,
+        uint32_t count,
+        const fragment::Ancestors &ancestors);
+
+    // Internal method for fetching backable candidates
+    std::vector<std::pair<CandidateHash, Hash>> answerGetBackableCandidatesInternal(
         const RelayHash &relay_parent,
         ParachainId para,
         uint32_t count,
@@ -156,6 +172,40 @@ namespace kagome::parachain {
                              32,
                              crypto::Blake2b_StreamHasher<32>> &pvd,
         const CandidateHash &candidate_hash);
+
+    // Helper method to access fragment chains
+    fragment::FragmentChainAccessor fragment_chains();
   };
+
+  // Helper class to access fragment chains from a view
+  namespace fragment {
+    class FragmentChainAccessor {
+    public:
+      explicit FragmentChainAccessor(View &view) 
+        : view_(view) {}
+
+      std::optional<std::reference_wrapper<FragmentChain>> find(
+          ParachainId para_id, const Hash &relay_parent) {
+        if (!view_.active_leaves.contains(relay_parent)) {
+          return std::nullopt;
+        }
+
+        auto view_data = utils::get(view_.per_relay_parent, relay_parent);
+        if (!view_data) {
+          return std::nullopt;
+        }
+
+        auto chains_it = utils::get(view_data->get().fragment_chains, para_id);
+        if (!chains_it) {
+          return std::nullopt;
+        }
+
+        return std::ref(*chains_it);
+      }
+
+    private:
+      View &view_;
+    };
+  }  // namespace fragment
 
 }  // namespace kagome::parachain
