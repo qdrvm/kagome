@@ -228,17 +228,20 @@ struct AssignmentsTest : public test::BaseFS_Test {
     size_t counted = 0;
     for (auto &[core, assignment] : assignments) {
       scale::BitVec cores;
+      cores.bits.resize(n_cores);  // Pre-allocate with correct size
       kagome::visit_in_place(
           assignment.cert.kind,
           [&](const kagome::parachain::approval::RelayVRFModuloCompact
                   &compact) { cores = compact.core_bitfield; },
           [&](const kagome::parachain::approval::RelayVRFModulo &modulo) {
-            cores.bits.resize(core + 1);
-            cores.bits[core] = true;
+            if (core < cores.bits.size()) {
+              cores.bits[core] = true;
+            }
           },
           [&](const kagome::parachain::approval::RelayVRFDelay &delay) {
-            cores.bits.resize(delay.core_index + 1);
-            cores.bits[delay.core_index] = true;
+            if (delay.core_index < cores.bits.size()) {
+              cores.bits[delay.core_index] = true;
+            }
           });
 
       std::vector<kagome::network::GroupIndex> groups;
