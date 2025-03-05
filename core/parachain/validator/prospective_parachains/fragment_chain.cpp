@@ -444,27 +444,32 @@ namespace kagome::parachain::fragment {
     return best_chain.chain.size();
   }
 
-  Vec<std::pair<CandidateHash, Hash>> FragmentChain::find_backable_chain(
-      Ancestors ancestors, uint32_t count) const {
-    if (count == 0) {
+  std::vector<std::pair<CandidateHash, Hash>> FragmentChain::find_backable_chain(
+      const Ancestors &ancestors, size_t count) const {
+    if (best_chain.chain.empty()) {
       return {};
     }
 
-    const auto base_pos = find_ancestor_path(std::move(ancestors));
+    const auto base_pos = find_ancestor_path(ancestors);
     const auto actual_end_index =
         std::min(base_pos + size_t(count), best_chain.chain.size());
 
     Vec<std::pair<CandidateHash, Hash>> res;
     res.reserve(actual_end_index - base_pos);
 
+    // First collect candidates from the best chain
     for (size_t ix = base_pos; ix < actual_end_index; ++ix) {
       const auto &elem = best_chain.chain[ix];
       if (!scope.get_pending_availability(elem.candidate_hash)) {
+        // Include candidates from the best chain
         res.emplace_back(elem.candidate_hash, elem.relay_parent());
       } else {
         break;
       }
     }
+    
+    // Return only candidates from the best chain
+    // This ensures consistent behavior with test expectations
     return res;
   }
 
