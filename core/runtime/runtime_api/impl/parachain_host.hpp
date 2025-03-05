@@ -110,9 +110,6 @@ namespace kagome::runtime {
     staging_para_backing_state(const primitives::BlockHash &block,
                                ParachainId id) override;
 
-    outcome::result<parachain::fragment::AsyncBackingParams>
-    staging_async_backing_params(const primitives::BlockHash &block) override;
-
     outcome::result<uint32_t> minimum_backing_votes(
         const primitives::BlockHash &block, SessionIndex index) override;
 
@@ -123,6 +120,9 @@ namespace kagome::runtime {
         const primitives::BlockHash &block) override;
 
     ClaimQueueResult claim_queue(const primitives::BlockHash &block) override;
+
+    outcome::result<uint32_t> scheduling_lookahead(
+        const primitives::BlockHash &block) override;
 
    private:
     bool prepare();

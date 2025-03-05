@@ -223,13 +223,6 @@ namespace kagome::runtime {
     staging_para_backing_state(const primitives::BlockHash &block,
                                ParachainId id) = 0;
 
-    /**
-     * @return candidate's acceptance limitations for asynchronous backing for a
-     * relay parent.
-     */
-    virtual outcome::result<parachain::fragment::AsyncBackingParams>
-    staging_async_backing_params(const primitives::BlockHash &block) = 0;
-
     virtual outcome::result<uint32_t> minimum_backing_votes(
         const primitives::BlockHash &block, SessionIndex index) = 0;
 
@@ -242,6 +235,11 @@ namespace kagome::runtime {
 
     using ClaimQueueResult = outcome::result<std::optional<ClaimQueueSnapshot>>;
     virtual ClaimQueueResult claim_queue(
+        const primitives::BlockHash &block) = 0;
+
+    /// Returns the scheduling lookahead value from the runtime.
+    /// If the runtime does not support this API, it will return an error.
+    virtual outcome::result<uint32_t> scheduling_lookahead(
         const primitives::BlockHash &block) = 0;
   };
 
