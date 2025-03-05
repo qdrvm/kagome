@@ -86,7 +86,7 @@ jobs:
           - name: "MacOS: Build Debug ASAN"
             build_type: "Debug"
             wasm_compiler: "WasmEdge"
-            sanitizer: "-DASAN=ON"
+            sanitizer: "-DASAN=ON -DMallocNanoZone=0"
     name: "${{ matrix.options.name }}"
     steps:
     - uses: actions/checkout@v4
