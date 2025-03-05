@@ -30,26 +30,46 @@ namespace kagome::parachain::fragment {
 
   void FragmentChain::candidate_backed(
       const CandidateHash &newly_backed_candidate) {
+    // If the candidate is already in the best chain, there's nothing to do
     if (best_chain.candidates.contains(newly_backed_candidate)) {
       return;
     }
 
+    // Find the candidate in unconnected storage
     auto it = unconnected.by_candidate_hash.find(newly_backed_candidate);
     if (it == unconnected.by_candidate_hash.end()) {
       return;
     }
+    
+    // Get the candidate's info before modifying anything
     const auto parent_head_hash = it->second.parent_head_data_hash;
+    const auto output_head_hash = it->second.output_head_data_hash;
 
+    // Mark the candidate as backed in the unconnected storage
     unconnected.mark_backed(newly_backed_candidate);
+    
+    // Try to revert the chain to insert this candidate
     if (!revert_to(parent_head_hash)) {
       return;
     }
 
+    // Create a copy of the unconnected storage for rebuilding the chain
     auto prev_storage{std::move(unconnected)};
+    
+    // Rebuild the chain from the parent head hash
+    // This should incorporate the newly backed candidate and any previously 
+    // unconnected candidates that can now form a chain with it
     populate_chain(prev_storage);
 
+    // Process remaining candidates that couldn't be added to the chain
     trim_uneligible_forks(prev_storage, parent_head_hash);
     populate_unconnected_potential_candidates(std::move(prev_storage));
+    
+    // For debugging purposes, log the chain we've built
+    SL_TRACE(logger, 
+             "After backing candidate {}, best chain has {} candidates", 
+             newly_backed_candidate, 
+             best_chain.chain.size());
   }
 
   bool FragmentChain::is_candidate_backed(const CandidateHash &hash) const {
@@ -184,11 +204,11 @@ namespace kagome::parachain::fragment {
       return;
     }
 
-    for (;;) {
-      if (best_chain.chain.size() > scope.max_depth) {
-        break;
-      }
-
+    // Keep building the chain as long as we can find valid candidates
+    bool found_candidate = true;
+    while (found_candidate && best_chain.chain.size() <= scope.max_depth) {
+      found_candidate = false;
+      
       Constraints child_constraints;
       if (auto c = scope.base_constraints.apply_modifications(
               cumulative_modifications);
@@ -211,6 +231,7 @@ namespace kagome::parachain::fragment {
           hasher_->blake2b_256(child_constraints.required_parent);
       Option<BestCandidate> best_candidate;
 
+      // Find all backed candidates that could be the next in the chain
       storage.possible_backed_para_children(
           required_head_hash, [&](const auto &candidate) {
             auto pending =
@@ -272,6 +293,7 @@ namespace kagome::parachain::fragment {
               }
             }
 
+            // Select the best candidate based on pending availability or fork selection rule
             if (!best_candidate
                 || scope.get_pending_availability(candidate.candidate_hash)) {
               best_candidate = BestCandidate{
@@ -299,6 +321,10 @@ namespace kagome::parachain::fragment {
         break;
       }
 
+      // We found a candidate to add to the chain
+      found_candidate = true;
+      
+      // Remove the selected candidate from storage and add it to the best chain
       storage.remove_candidate(best_candidate->candidate_hash, hasher_);
       cumulative_modifications.stack(
           best_candidate->fragment.constraint_modifications());
@@ -444,27 +470,30 @@ namespace kagome::parachain::fragment {
     return best_chain.chain.size();
   }
 
-  Vec<std::pair<CandidateHash, Hash>> FragmentChain::find_backable_chain(
-      Ancestors ancestors, uint32_t count) const {
-    if (count == 0) {
+  std::vector<std::pair<CandidateHash, Hash>> FragmentChain::find_backable_chain(
+      const Ancestors &ancestors, size_t count) const {
+    if (best_chain.chain.empty()) {
       return {};
     }
 
-    const auto base_pos = find_ancestor_path(std::move(ancestors));
+    const auto base_pos = find_ancestor_path(ancestors);
     const auto actual_end_index =
         std::min(base_pos + size_t(count), best_chain.chain.size());
 
     Vec<std::pair<CandidateHash, Hash>> res;
     res.reserve(actual_end_index - base_pos);
 
+    // Collect candidates from the best chain
     for (size_t ix = base_pos; ix < actual_end_index; ++ix) {
       const auto &elem = best_chain.chain[ix];
       if (!scope.get_pending_availability(elem.candidate_hash)) {
+        // Include candidates from the best chain
         res.emplace_back(elem.candidate_hash, elem.relay_parent());
       } else {
         break;
       }
     }
+    
     return res;
   }
 

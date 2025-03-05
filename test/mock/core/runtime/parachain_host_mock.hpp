@@ -144,11 +144,6 @@ namespace kagome::runtime {
         (const primitives::BlockHash &, ParachainId),
         (override));
 
-    MOCK_METHOD(outcome::result<parachain::fragment::AsyncBackingParams>,
-                staging_async_backing_params,
-                (const primitives::BlockHash &),
-                (override));
-
     MOCK_METHOD(outcome::result<uint32_t>,
                 minimum_backing_votes,
                 (const primitives::BlockHash &, SessionIndex),
@@ -166,6 +161,11 @@ namespace kagome::runtime {
 
     MOCK_METHOD(ClaimQueueResult,
                 claim_queue,
+                (const primitives::BlockHash &),
+                (override));
+
+    MOCK_METHOD(outcome::result<uint32_t>,
+                scheduling_lookahead,
                 (const primitives::BlockHash &),
                 (override));
   };
