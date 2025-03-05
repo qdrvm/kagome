@@ -601,8 +601,10 @@ namespace kagome::parachain {
               validator_public.data(),
               assignment.vrf.output.data(),
               vrf_proof.data(),
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
               reinterpret_cast<const Strobe128 *>(
                   modulo_transcript.data().data()),
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
               reinterpret_cast<const Strobe128 *>(transcript.data().data()));
 
           // Prepare output variables
@@ -678,8 +680,10 @@ namespace kagome::parachain {
               validator_public.data(),
               assignment.vrf.output.data(),
               vrf_proof.data(),
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
               reinterpret_cast<const Strobe128 *>(
                   modulo_transcript.data().data()),
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
               reinterpret_cast<const Strobe128 *>(transcript.data().data()));
 
           auto core = sr25519_relay_vrf_modulo_core(

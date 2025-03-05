@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "primitives/strobe.hpp"
 
 namespace kagome::primitives {
