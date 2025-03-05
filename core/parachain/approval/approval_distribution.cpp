@@ -473,7 +473,8 @@ namespace {
                   ' ',
                   'v',
                   '2'});
-    t.append_message("core", core_index);
+
+    t.append_message({'c', 'o', 'r', 'e'}, core_index);
 
     return {t};
   }
