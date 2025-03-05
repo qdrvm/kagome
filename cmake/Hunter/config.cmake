@@ -18,6 +18,13 @@
 # )
 
 hunter_config(
+    qtils
+    VERSION 0.1.0
+    CMAKE_ARGS
+      FORMAT_ERROR_WITH_FULLTYPE=ON
+)
+
+hunter_config(
     backward-cpp
     URL https://github.com/bombela/backward-cpp/archive/refs/tags/v1.6.zip
     SHA1 93c4c843fc9308e62ac462459077d87dc6dd9885
@@ -106,50 +113,8 @@ hunter_config(
 )
 
 hunter_config(
-    libp2p
-    VERSION 0.1.32
-#    URL  https://github.com/libp2p/cpp-libp2p/archive/refs/tags/v0.1.32.tar.gz
-#    SHA1 8ec296bd0946891e0ba66a708f530cf16524f377
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    soralog
-    VERSION 0.2.5
-#    URL  https://github.com/qdrvm/soralog/archive/refs/tags/v0.2.5.tar.gz
-#    SHA1 67da2d17e93954c198b4419daa55911342c924a9
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
     wabt
     URL https://github.com/qdrvm/wabt/archive/d1abde6977d4d3f81024a7eb099228107f27377e.tar.gz
     SHA1 0917dd9e8300c888ef0005b027008efe001abda4
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    scale
-    VERSION 2.0.0
-#    URL  https://github.com/qdrvm/scale-codec-cpp/archive/refs/tags/v2.0.0.tar.gz
-#    SHA1 a83f0a034693809b948451ff774aeb58462a0f96
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    qtils
-    VERSION 0.1.0
-#    URL  https://github.com/qdrvm/qtils/archive/refs/tags/v0.1.0.tar.gz
-#    SHA1 acc28902af7dc5d74ac33d486ad2261906716f5e
-    CMAKE_ARGS
-      FORMAT_ERROR_WITH_FULLTYPE=ON
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    soralog
-    VERSION 0.2.5
-#    URL  https://github.com/qdrvm/soralog/archive/7a76c991e1a80a9b79297fb544ef3512ea8f5789.tar.gz
-#    SHA1 4a6cf3810fe9ec59f58be961234c063637667fab
     KEEP_PACKAGE_SOURCES
 )
