@@ -9,8 +9,10 @@
 #include <unordered_map>
 #include "pvm/native/linux.hpp"
 #include "pvm/types.hpp"
+#include "pvm/allocator/linux/mmap.hpp"
+#include "pvm/allocator/common/paged_allocator.hpp"
 
-namespace kagome::pvm::sandbox {
+namespace kagome::pvm {
 
   struct ShmAllocator {
    private:
@@ -18,7 +20,7 @@ namespace kagome::pvm::sandbox {
       uint32_t page_shift;
 
       // TODO(iceseer)
-      // native::linux::Mmap mmap;
+      native::linux::Mmap mmap;
       // Fd fd;
       // mutable: Mutex<GenericAllocator<Config>>,
     };
