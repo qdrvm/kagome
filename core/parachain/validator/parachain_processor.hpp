@@ -910,32 +910,25 @@ namespace kagome::parachain {
                                  slots_util,
                                  std::move(babe_config_repo),
                                  std::move(statement_distribution)),
-          main_pool_handler_{main_thread_pool.handler(app_state_manager)} {
-    }
+          main_pool_handler_{main_thread_pool.handler(app_state_manager)} {}
 
     void onValidationProtocolMsg(
         const libp2p::peer::PeerId &peer_id,
         const network::VersionedValidatorProtocolMessage &message) override {
-      REINVOKE(*main_pool_handler_,
-               onValidationProtocolMsg,
-               peer_id,
-               message);
+      REINVOKE(*main_pool_handler_, onValidationProtocolMsg, peer_id, message);
       ParachainProcessorImpl::onValidationProtocolMsg(peer_id, message);
     }
 
     void OnBroadcastBitfields(
         const primitives::BlockHash &relay_parent,
         const network::SignedBitfield &bitfield) override {
-      REINVOKE(*main_pool_handler_,
-               OnBroadcastBitfields,
-               relay_parent,
-               bitfield);
+      REINVOKE(
+          *main_pool_handler_, OnBroadcastBitfields, relay_parent, bitfield);
       ParachainProcessorImpl::OnBroadcastBitfields(relay_parent, bitfield);
     }
 
     void onViewUpdated(const network::ExView &event) override {
-      REINVOKE(
-          *main_pool_handler_, onViewUpdated, event);
+      REINVOKE(*main_pool_handler_, onViewUpdated, event);
       ParachainProcessorImpl::onViewUpdated(event);
     }
 
@@ -946,15 +939,13 @@ namespace kagome::parachain {
                handle_collation_fetch_response,
                std::move(collation_event),
                std::move(response));
-      ParachainProcessorImpl::handle_collation_fetch_response(std::move(collation_event), std::move(response));
+      ParachainProcessorImpl::handle_collation_fetch_response(
+          std::move(collation_event), std::move(response));
     }
 
     void handleStatement(const primitives::BlockHash &relay_parent,
                          const SignedFullStatementWithPVD &statement) override {
-      REINVOKE(*main_pool_handler_,
-               handleStatement,
-               relay_parent,
-               statement);
+      REINVOKE(*main_pool_handler_, handleStatement, relay_parent, statement);
       ParachainProcessorImpl::handleStatement(relay_parent, statement);
     }
 
@@ -984,9 +975,8 @@ namespace kagome::parachain {
                kMode,
                candidate_hash,
                std::move(validate_and_second_result));
-      ParachainProcessorImpl::makeAvailable(kMode,
-               candidate_hash,
-               std::move(validate_and_second_result));
+      ParachainProcessorImpl::makeAvailable(
+          kMode, candidate_hash, std::move(validate_and_second_result));
     }
 
     void validateAsync(ValidationTaskType kMode,
@@ -1001,11 +991,8 @@ namespace kagome::parachain {
                pov,
                pvd,
                relay_parent);
-      ParachainProcessorImpl::validateAsync(kMode,
-               candidate,
-               pov,
-               pvd,
-               relay_parent);
+      ParachainProcessorImpl::validateAsync(
+          kMode, candidate, pov, pvd, relay_parent);
     }
 
     void on_pvf_result_received(
@@ -1038,9 +1025,8 @@ namespace kagome::parachain {
                relay_parent,
                peer_id,
                std::move(prospective_candidate));
-      ParachainProcessorImpl::handle_advertisement(relay_parent,
-               peer_id,
-               std::move(prospective_candidate));
+      ParachainProcessorImpl::handle_advertisement(
+          relay_parent, peer_id, std::move(prospective_candidate));
     }
   };
 

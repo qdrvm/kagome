@@ -40,12 +40,11 @@ namespace kagome::network {
     static constexpr std::chrono::seconds kRequestTimeout{1};
 
    public:
-    FetchChunkProtocolImpl(
-        RequestResponseInject inject,
-        const application::ChainSpec & /*chain_spec*/,
-        const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::ParachainStorage> pp,
-        std::shared_ptr<PeerManager> pm)
+    FetchChunkProtocolImpl(RequestResponseInject inject,
+                           const application::ChainSpec & /*chain_spec*/,
+                           const blockchain::GenesisBlockHash &genesis_hash,
+                           std::shared_ptr<parachain::ParachainStorage> pp,
+                           std::shared_ptr<PeerManager> pm)
         : RequestResponseProtocolImpl<
               FetchChunkRequest,
               FetchChunkResponse,

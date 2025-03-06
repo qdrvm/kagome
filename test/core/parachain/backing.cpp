@@ -12,6 +12,7 @@
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
+#include "crypto/random_generator/boost_generator.hpp"
 #include "injector/bind_by_lambda.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -39,7 +40,6 @@
 #include "primitives/event_types.hpp"
 #include "testutil/lazy.hpp"
 #include "utils/map.hpp"
-#include "crypto/random_generator/boost_generator.hpp"
 
 using namespace kagome::parachain;
 namespace runtime = kagome::runtime;
@@ -205,10 +205,10 @@ class BackingTest : public ProspectiveParachainsTestHarness {
       head_data[chain_a] = {4, 5, 6};
       head_data[chain_b] = {5, 6, 7};
 
-        auto csprng = std::make_shared<kagome::crypto::BoostRandomGenerator>();
+      auto csprng = std::make_shared<kagome::crypto::BoostRandomGenerator>();
       crypto::Bip39ProviderImpl bip_provider{
           std::make_shared<crypto::Pbkdf2ProviderImpl>(),
-          csprng, // std::make_shared<libp2p::crypto::random::CSPRNGMock>(),
+          csprng,  // std::make_shared<libp2p::crypto::random::CSPRNGMock>(),
           std::make_shared<crypto::HasherImpl>(),
       };
 
