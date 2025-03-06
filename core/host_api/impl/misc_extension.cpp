@@ -23,10 +23,12 @@ namespace kagome::host_api {
       std::shared_ptr<const runtime::CoreApiFactory> core_factory)
       : hasher_{std::move(hasher)},
         memory_provider_{std::move(memory_provider)},
+        storage_provider_{std::move(storage_provider)},
         core_factory_{std::move(core_factory)},
         logger_{log::createLogger("MiscExtension", "misc_extension")} {
     BOOST_ASSERT(hasher_);
     BOOST_ASSERT(memory_provider_);
+    BOOST_ASSERT(storage_provider_);
   }
 
   runtime::WasmSpan MiscExtension::ext_misc_runtime_version_version_1(

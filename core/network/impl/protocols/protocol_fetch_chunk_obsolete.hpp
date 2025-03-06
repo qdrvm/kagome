@@ -16,6 +16,7 @@
 #include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
 #include "network/common.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "utils/non_copyable.hpp"
@@ -37,9 +38,11 @@ namespace kagome::network {
                                            ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
+    static constexpr std::chrono::seconds kRequestTimeout{1};
+
    public:
     FetchChunkProtocolObsoleteImpl(
-        libp2p::Host &host,
+        const RequestResponseInject &inject,
         const application::ChainSpec & /*chain_spec*/,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<parachain::ParachainStorage> pp,
@@ -48,14 +51,14 @@ namespace kagome::network {
               FetchChunkRequest,
               FetchChunkResponseObsolete,
               ScaleMessageReadWriter>{kFetchChunkProtocolName,
-                                      host,
+                                      inject,
                                       make_protocols(
                                           kFetchChunkProtocolObsolete,
                                           genesis_hash,
                                           kProtocolPrefixPolkadot),
                                       log::createLogger(kFetchChunkProtocolName,
                                                         "req_chunk_protocol"),
-                                      main_thread_pool},
+                                      kRequestTimeout},
           pp_{std::move(pp)} {
       BOOST_ASSERT(pp_);
     }

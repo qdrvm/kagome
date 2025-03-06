@@ -32,8 +32,8 @@ namespace kagome::storage::trie {
      * Writes a trie to a storage, recursively storing its
      * nodes.
      */
-    virtual outcome::result<RootHash> storeTrie(PolkadotTrie &trie,
-                                                StateVersion version) = 0;
+    virtual outcome::result<std::pair<RootHash, std::unique_ptr<BufferBatch>>>
+    storeTrie(PolkadotTrie &trie, StateVersion version) = 0;
 
     /**
      * Fetches a trie from the storage. A nullptr is returned in case that there
@@ -55,11 +55,10 @@ namespace kagome::storage::trie {
                                                 EncodedNode) {}) const = 0;
 
     /**
-     * Retrieves a node, replacing a dummy node to an actual node if
-     * needed
+     * Retrieves a normal node from a dummy node
      */
     virtual outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const std::shared_ptr<OpaqueTrieNode> &node,
+        const DummyNode &node,
         const OnNodeLoaded &on_node_loaded = [](const common::Hash256 &,
                                                 EncodedNode) {}) const = 0;
 

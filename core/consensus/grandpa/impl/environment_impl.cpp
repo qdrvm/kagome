@@ -220,8 +220,7 @@ namespace kagome::consensus::grandpa {
     // Select best block with actual set_id
     if (voter_set_id.has_value()) {
       while (best_block.number > finalized.number) {
-        OUTCOME_TRY(header,
-                    block_tree_->getBlockHeader(best_block.hash));
+        OUTCOME_TRY(header, block_tree_->getBlockHeader(best_block.hash));
         auto parent_block = *header.parentInfo();
 
         auto voter_set = authority_manager_->authorities(

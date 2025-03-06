@@ -42,6 +42,8 @@ namespace kagome::storage::trie {
 
     virtual ~Codec() = default;
 
+    enum class TraversePolicy : uint8_t { IgnoreMerkleCache, UncachedOnly };
+
     /**
      * @brief Encode node to byte representation and store children
      * @param node node in the trie
@@ -53,6 +55,7 @@ namespace kagome::storage::trie {
     virtual outcome::result<common::Buffer> encodeNode(
         const TrieNode &node,
         StateVersion version,
+        TraversePolicy policy,
         const ChildVisitor &child_visitor = NoopChildVisitor) const = 0;
 
     /**
@@ -72,6 +75,7 @@ namespace kagome::storage::trie {
     virtual outcome::result<MerkleValue> merkleValue(
         const OpaqueTrieNode &node,
         StateVersion version,
+        TraversePolicy policy,
         const ChildVisitor &child_visitor = NoopChildVisitor) const = 0;
 
     /**
@@ -83,6 +87,22 @@ namespace kagome::storage::trie {
 
     virtual bool shouldBeHashed(const ValueAndHash &value,
                                 StateVersion version) const = 0;
+
+    struct PerformanceStats {
+      uint64_t encoded_nodes{};
+      uint64_t decoded_nodes{};
+      uint64_t encoded_values{};
+      uint64_t node_cache_hits{};
+      uint64_t total_encoded_values_size{};
+      uint64_t total_encoded_nodes_size{};
+      uint64_t total_decoded_nodes_size{};
+    };
+    virtual const PerformanceStats &getPerformanceStats() const {
+      static PerformanceStats stats{};
+      return stats;
+    }
+
+    virtual void resetPerformanceStats() const {}
   };
 
 }  // namespace kagome::storage::trie

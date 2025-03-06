@@ -218,8 +218,8 @@ namespace kagome::application {
      * List of telemetry endpoints specified via CLI argument or config file
      * @return a vector of parsed telemetry endpoints
      */
-    virtual const std::vector<telemetry::TelemetryEndpoint>
-        &telemetryEndpoints() const = 0;
+    virtual const std::vector<telemetry::TelemetryEndpoint> &
+    telemetryEndpoints() const = 0;
 
     /**
      * @return enum constant of the chosen sync method
@@ -330,6 +330,8 @@ namespace kagome::application {
         const = 0;
 
     virtual std::optional<PrecompileWasmConfig> precompileWasm() const = 0;
+
+    virtual uint32_t maxParallelDownloads() const = 0;
   };
 
 }  // namespace kagome::application

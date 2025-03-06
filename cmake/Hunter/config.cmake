@@ -88,8 +88,8 @@ endif ()
 
 hunter_config(
     kagome-crates
-    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/v1.0.3.tar.gz
-    SHA1 4207446a0e45764b814805821aa6860924b03cb7
+    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/v1.0.4.tar.gz
+    SHA1 a85f3ca7a5dac2d22c609cc0c3f39408ad72dba8
 )
 
 hunter_config(
@@ -108,6 +108,13 @@ hunter_config(
 hunter_config(
     soralog
     VERSION 0.2.4
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    wabt
+    URL https://github.com/qdrvm/wabt/archive/d1abde6977d4d3f81024a7eb099228107f27377e.tar.gz
+    SHA1 0917dd9e8300c888ef0005b027008efe001abda4
     KEEP_PACKAGE_SOURCES
 )
 

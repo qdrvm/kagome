@@ -70,7 +70,10 @@ namespace kagome::storage::trie {
         }
         if (cursor.branch_end) {
           auto &node = cursor.stack.back().node;
-          OUTCOME_TRY(raw, codec.encodeNode(*node, StateVersion::V0));
+          OUTCOME_TRY(raw,
+                      codec.encodeNode(*node,
+                                       StateVersion::V0,
+                                       Codec::TraversePolicy::UncachedOnly));
           auto hash = codec.hash256(raw);
           db[hash] = {std::move(raw), std::move(node)};
           cursor.pop();

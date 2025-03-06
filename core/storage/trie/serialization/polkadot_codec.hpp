@@ -40,6 +40,7 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeNode(
         const TrieNode &node,
         StateVersion version,
+        TraversePolicy policy,
         const ChildVisitor &child_visitor = NoopChildVisitor) const override;
 
     outcome::result<std::shared_ptr<TrieNode>> decodeNode(
@@ -49,6 +50,7 @@ namespace kagome::storage::trie {
     outcome::result<MerkleValue> merkleValue(
         const OpaqueTrieNode &node,
         StateVersion version,
+        TraversePolicy policy,
         const ChildVisitor &child_visitor = NoopChildVisitor) const override;
 
     common::Hash256 hash256(const BufferView &buf) const override;
@@ -60,6 +62,17 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeHeader(const TrieNode &node,
                                          StateVersion version) const;
 
+    bool shouldBeHashed(const ValueAndHash &value,
+                        StateVersion version) const override;
+
+    const PerformanceStats &getPerformanceStats() const override {
+      return stats_;
+    }
+
+    void resetPerformanceStats() const override {
+      stats_ = PerformanceStats{};
+    }
+
    private:
     outcome::result<void> encodeValue(
         common::Buffer &out,
@@ -70,7 +83,9 @@ namespace kagome::storage::trie {
     outcome::result<Buffer> encodeBranch(
         const BranchNode &node,
         StateVersion version,
+        TraversePolicy policy,
         const ChildVisitor &child_visitor) const;
+
     outcome::result<Buffer> encodeLeaf(const LeafNode &node,
                                        StateVersion version,
                                        const ChildVisitor &child_visitor) const;
@@ -86,10 +101,8 @@ namespace kagome::storage::trie {
         const KeyNibbles &partial_key,
         BufferStream &stream) const;
 
-    bool shouldBeHashed(const ValueAndHash &value,
-                        StateVersion version) const override;
-
     RootHashFunc hash_func_;
+    mutable PerformanceStats stats_;
   };
 
 }  // namespace kagome::storage::trie
