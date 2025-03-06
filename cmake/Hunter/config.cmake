@@ -113,8 +113,8 @@ hunter_config(
 
 hunter_config(
     wabt
-    URL https://github.com/qdrvm/wabt/archive/d1abde6977d4d3f81024a7eb099228107f27377e.tar.gz
-    SHA1 0917dd9e8300c888ef0005b027008efe001abda4
+    URL https://github.com/qdrvm/wabt/archive/2e9d30c4a67c1b884a8162bf3f3a5a8585cfdb94.tar.gz
+    SHA1 b5759660eb8ad3f074274341641e918f688868bd
     KEEP_PACKAGE_SOURCES
 )
 
