@@ -911,11 +911,6 @@ namespace kagome::parachain {
                                  std::move(babe_config_repo),
                                  std::move(statement_distribution)),
           main_pool_handler_{main_thread_pool.handler(app_state_manager)} {
-      app_state_manager.takeControl(*this);
-    }
-
-    bool prepare() {
-      return true;
     }
 
     void onValidationProtocolMsg(

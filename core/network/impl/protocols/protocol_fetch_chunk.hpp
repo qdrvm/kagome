@@ -44,7 +44,7 @@ namespace kagome::network {
         RequestResponseInject inject,
         const application::ChainSpec & /*chain_spec*/,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::ParachainProcessorImpl> pp,
+        std::shared_ptr<parachain::ParachainStorage> pp,
         std::shared_ptr<PeerManager> pm)
         : RequestResponseProtocolImpl<
               FetchChunkRequest,

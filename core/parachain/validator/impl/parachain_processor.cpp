@@ -318,6 +318,7 @@ namespace kagome::parachain {
   bool ParachainProcessorImpl::prepare() {
     statement_distribution->store_parachain_processor(weak_from_this());
     // Set the broadcast callback for the bitfield signer
+
     bitfield_signer_->setBroadcastCallback(
         [wptr_self{weak_from_this()}](const primitives::BlockHash &relay_parent,
                                       const network::SignedBitfield &bitfield) {
