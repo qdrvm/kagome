@@ -10,6 +10,7 @@
 using namespace kagome::parachain::grid;
 
 class GridTrackerTest : public ProspectiveParachainsTestHarness {
+ public:
   static void SetUpTestCase() {
     testutil::prepareLoggers();
   }
@@ -22,7 +23,6 @@ class GridTrackerTest : public ProspectiveParachainsTestHarness {
     ProspectiveParachainsTestHarness::TearDown();
   }
 
- public:
   Groups dummy_groups(size_t group_size) {
     std::vector<std::vector<ValidatorIndex>> groups;
     {
