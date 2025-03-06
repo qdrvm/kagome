@@ -152,8 +152,8 @@ namespace kagome::consensus::grandpa {
 
     auto entry_it = entries_.end();
 
-    // Find first (best) ancestor among those presented in the entries,
-    // and take corresponding entry
+    // Find the first (best) ancestor among those presented in the entries,
+    // and take a corresponding entry
     auto ancestry_it = std::ranges::find_if(
         ancestry.begin() + 1,
         ancestry.end(),
@@ -171,7 +171,8 @@ namespace kagome::consensus::grandpa {
 
     // Needed ancestries is ancestries from parent to ancestor represented in
     // found entry
-    std::vector<BlockHash> ancestors(ancestry.begin() + 1, ancestry_it + 1);
+    std::vector<BlockHash> ancestors(std::next(ancestry.begin()),
+                                     std::next(ancestry_it));
 
     // Block will become a head instead his oldest ancestor
     if (!ancestors.empty()) {
@@ -283,15 +284,17 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    Entry active_node = entries_.at(node_key);
-    if (not condition(active_node.cumulative_vote)) {
+    const auto &start_node = entries_.at(node_key);
+    if (not condition(start_node.cumulative_vote)) {
       return std::nullopt;
     }
 
     /// entries to be processed
     std::stack<std::reference_wrapper<const Entry>> nodes;
 
-    nodes.emplace(active_node);
+    auto active_node = start_node;
+
+    nodes.emplace(start_node);
     while (not nodes.empty()) {
       auto &node = nodes.top().get();
       nodes.pop();
