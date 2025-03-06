@@ -282,17 +282,17 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    Entry active_node = entries_.at(node_key);
-    if (not condition(active_node.cumulative_vote)) {
+    const Entry *active_node = &entries_.at(node_key);
+    if (not condition(active_node->cumulative_vote)) {
       return std::nullopt;
     }
 
     /// entries to be processed
-    std::stack<std::reference_wrapper<const Entry>> nodes;
+    std::stack<const Entry *> nodes;
 
     nodes.emplace(active_node);
     while (not nodes.empty()) {
-      auto &node = nodes.top().get();
+      const auto &node = *nodes.top();
       nodes.pop();
 
       for (auto &descendant_hash : node.descendants) {
@@ -308,14 +308,14 @@ namespace kagome::consensus::grandpa {
           continue;
         }
 
-        if (descendant.number > active_node.number
-            or (descendant.number == active_node.number
-                and active_node.cumulative_vote.sum(vote_type)
+        if (descendant.number > active_node->number
+            or (descendant.number == active_node->number
+                and active_node->cumulative_vote.sum(vote_type)
                         < descendant.cumulative_vote.sum(vote_type))) {
           node_key = descendant_hash;
-          active_node = descendant;
+          active_node = &descendant;
 
-          nodes.emplace(descendant);
+          nodes.emplace(&descendant);
         }
       }
 
@@ -326,7 +326,7 @@ namespace kagome::consensus::grandpa {
         force_constrain ? current_best : std::nullopt;
 
     Subchain subchain =
-        ghostFindMergePoint(vote_type, node_key, active_node, info, condition);
+        ghostFindMergePoint(vote_type, node_key, *active_node, info, condition);
     auto &hashes = subchain.hashes;
 
     if (hashes.empty()) {
