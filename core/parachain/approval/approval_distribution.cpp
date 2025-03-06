@@ -648,11 +648,12 @@ namespace kagome::parachain {
             }
           }
 
+          // Clean up allocated memory
+          if (cores_out) {
+            sr25519_clear_assigned_cores_v2(cores_out, cores_out_sz);
+          }
+
           if (!all_cores_valid) {
-            // Clean up allocated memory
-            if (cores_out) {
-              sr25519_clear_assigned_cores_v2(cores_out, cores_out_sz);
-            }
             return ApprovalDistributionError::VRF_MODULO_CORE_INDEX_MISMATCH;
           }
 
