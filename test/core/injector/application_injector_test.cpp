@@ -135,6 +135,10 @@ namespace {
 
 class KagomeInjectorTest : public test::BaseFS_Test {
  public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   KagomeInjectorTest() : BaseFS_Test{db_path_} {}
 
   void SetUp() override {

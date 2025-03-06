@@ -10,6 +10,10 @@
 using namespace kagome::parachain::grid;
 
 class GridTrackerTest : public ProspectiveParachainsTestHarness {
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     ProspectiveParachainsTestHarness::SetUp();
   }

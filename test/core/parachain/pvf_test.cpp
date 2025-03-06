@@ -70,8 +70,11 @@ using testing::ReturnRef;
 
 class PvfTest : public testing::Test {
  public:
-  void SetUp() {
+  static void SetUpTestCase() {
     testutil::prepareLoggers();
+  }
+
+  void SetUp() {
     EXPECT_CALL(*app_config_, usePvfSubprocess()).WillRepeatedly(Return(false));
     EXPECT_CALL(*app_config_, parachainRuntimeInstanceCacheSize())
         .WillRepeatedly(Return(2));
