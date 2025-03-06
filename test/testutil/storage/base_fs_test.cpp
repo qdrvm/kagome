@@ -30,12 +30,12 @@ namespace test {
   }
 
   BaseFS_Test::BaseFS_Test(fs::path path)
-      : logger(kagome::log::createLogger(getPathString(), "testing")),
+      : logger(kagome::log::createLogger(fs::weakly_canonical(path).string(),
+                                         "testing",
+                                         kagome::log::Level::DEBUG)),
         base_path(std::move(path)) {
     clear();
     mkdir();
-
-    logger->setLevel(kagome::log::Level::DEBUG);
   }
 
   void BaseFS_Test::SetUp() {
