@@ -7,16 +7,16 @@ command = "polkadot"
 
 [[relaychain.node_groups]]
 name = "validator"
-count = 2
+count = 8
 args = ["--log=beefy=debug", "--enable-offchain-indexing=true"]
 
 [[relaychain.node_groups]]
 name = "kagome-validator"
 command = "kagome"
 prometheus_prefix = "kagome"
-count = 1
+count = 8
 args = ["--log=beefy=debug", "--enable-offchain-indexing=true", "--wasm-execution=Compiled"]
 
-[[relaychain.nodes]]
-name = "validator-unstable"
-args = ["--log=beefy=debug", "--enable-offchain-indexing=true"]
+#[[relaychain.nodes]]
+#name = "validator-unstable"
+#args = ["--log=beefy=debug", "--enable-offchain-indexing=true"]
