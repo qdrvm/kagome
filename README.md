@@ -103,9 +103,9 @@ If you are using a Debian-based Linux system, the following command allows you t
 ```sh
 git clone https://github.com/qdrvm/kagome
 cd kagome
-sudo chmod +x scripts/init.sh scripts/build.sh
+chmod +x scripts/init.sh scripts/build.sh
 
-sudo ./scripts/init.sh
+./scripts/init.sh
 ./scripts/build.sh
 ```
 

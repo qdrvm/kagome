@@ -14,8 +14,8 @@ set +a
 
 # if not using nix, install the following packages
 if [ -z "$FLAKE_INITIATED" ]; then
-    apt update
-    apt install --no-install-recommends -y \
+    sudo apt update
+    sudo apt install --no-install-recommends -y \
         build-essential git gcc ca-certificates python-is-python3 python3-pip \
         python3-venv curl libgmp-dev libncurses6 libncurses-dev libnsl-dev libseccomp-dev
 fi
