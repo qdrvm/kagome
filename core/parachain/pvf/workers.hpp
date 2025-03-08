@@ -9,6 +9,7 @@
 #include <deque>
 #include <filesystem>
 #include <list>
+#include <mutex>
 
 #include "metrics/metrics.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
@@ -82,6 +83,7 @@ namespace kagome::parachain {
     size_t max_;
     PvfWorkerInputConfig worker_config_;
     std::list<Worker> free_;
+    mutable std::mutex free_mutex_;  // Mutex for protecting free_ list
     size_t used_ = 0;
     std::unordered_map<PvfExecTimeoutKind, std::deque<Job>> queues_;
 

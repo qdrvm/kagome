@@ -197,6 +197,7 @@ namespace kagome::parachain {
   }
 
   void PvfWorkers::findFree(Job &&job) {
+    std::unique_lock lock(free_mutex_);
     auto it = std::ranges::find_if(free_, [&](const Worker &worker) {
       return worker.code_params == job.code_params;
     });
@@ -205,6 +206,7 @@ namespace kagome::parachain {
     }
     auto worker = std::move(*it);
     free_.erase(it);
+    lock.unlock();
     writeCode(std::move(job), std::move(worker), std::make_shared<Used>(*this));
   }
 
@@ -252,7 +254,9 @@ namespace kagome::parachain {
           if (not r) {
             return;
           }
+          std::unique_lock lock(self->free_mutex_);
           self->free_.emplace_back(std::move(worker));
+          lock.unlock();
           self->dequeue();
         });
     auto cb = [cb_shared, timeout](outcome::result<Buffer> r) mutable {
