@@ -111,58 +111,31 @@ env:
   IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
 
 jobs:
+  setup_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Generate build matrix"
+        id: matrix
+        uses: ./.github/actions/matrix-builder
+        with:
+          build_amd64: ${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}
+          build_arm64: ${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'true' }}
+          build_debug: ${{ inputs.build_debug || github.event.inputs.build_debug || 'true' }}
+          build_release: ${{ inputs.build_release || github.event.inputs.build_release || 'true' }}
+          build_relwithdebinfo: ${{ inputs.build_relwithdebinfo || github.event.inputs.build_relwithdebinfo || 'true' }}
+          amd64_runner: '"actions-runner-controller"'
+          arm64_runner: '["self-hosted","qdrvm-arm64"]'
+
   build:
+    needs: setup_matrix
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # -------------------------------------------------
-          # AMD64 (actions-runner-controller)
-          # -------------------------------------------------
-          - platform: "linux/amd64"
-            build_type: "Debug"
-            runs_on: "actions-runner-controller"
-            run_when: ${{
-              ((inputs.build_amd64 == true || inputs.build_amd64 == 'true') &&
-              (inputs.build_debug == true || inputs.build_debug == 'true')) }}
-
-          - platform: "linux/amd64"
-            build_type: "Release"
-            runs_on: "actions-runner-controller"
-            run_when: ${{
-              ((inputs.build_amd64 == true || inputs.build_amd64 == 'true') &&
-              (inputs.build_release == true || inputs.build_release == 'true')) }}
-
-          - platform: "linux/amd64"
-            build_type: "RelWithDebInfo"
-            runs_on: "actions-runner-controller"
-            run_when: ${{
-              ((inputs.build_amd64 == true || inputs.build_amd64 == 'true') &&
-              (inputs.build_relwithdebinfo == true || inputs.build_relwithdebinfo == 'true')) }}
-
-          # -------------------------------------------------
-          # ARM64 (self-hosted + qdrvm-arm64)
-          # -------------------------------------------------
-          - platform: "linux/arm64"
-            build_type: "Debug"
-            runs_on: [ "self-hosted", "qdrvm-arm64" ]
-            run_when: ${{
-              ((inputs.build_arm64 == true || inputs.build_arm64 == 'true') &&
-              (inputs.build_debug == true || inputs.build_debug == 'true')) }}
-
-          - platform: "linux/arm64"
-            build_type: "Release"
-            runs_on: [ "self-hosted", "qdrvm-arm64" ]
-            run_when: ${{
-              ((inputs.build_arm64 == true || inputs.build_arm64 == 'true') &&
-              (inputs.build_release == true || inputs.build_release == 'true')) }}
-
-          - platform: "linux/arm64"
-            build_type: "RelWithDebInfo"
-            runs_on: [ "self-hosted", "qdrvm-arm64" ]
-            run_when: ${{
-              ((inputs.build_arm64 == true || inputs.build_arm64 == 'true') &&
-              (inputs.build_relwithdebinfo == true || inputs.build_relwithdebinfo == 'true')) }}
+      matrix: ${{ fromJSON(needs.setup_matrix.outputs.matrix) }}
 
     runs-on: ${{ matrix.runs_on }}
     timeout-minutes: 180
@@ -172,20 +145,13 @@ jobs:
       BUILD_TYPE: ${{ matrix.build_type }}
 
     steps:
-    - name: "Skip combination if run_when=false"
-      if: ${{ matrix.run_when == false }}
-      run: |
-        echo "Skipping platform=${{ matrix.platform }}, build_type=${{ matrix.build_type }} (run_when=false)"
-        exit 0
-
     - name: "Checkout"
-      if: ${{ matrix.run_when }}
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
     - name: "Get master branch"
-      if: ${{ matrix.run_when && github.ref != 'refs/heads/master' }}
+      if: ${{ github.ref != 'refs/heads/master' }}
       run: git fetch origin master:master || true
 
     - name: "Authenticate with Google Cloud"
