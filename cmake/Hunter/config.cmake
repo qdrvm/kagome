@@ -121,7 +121,7 @@ hunter_config(
 
 hunter_config(
     "scale"
-    VERSION "2.0.1"
+    #VERSION "2.0.1"
     URL  https://github.com/qdrvm/scale-codec-cpp/archive/888e1729bdda2eee3ba00916063728946680fb64.tar.gz
     SHA1 7429c8a4ab692392aae946a03732f39114b75744
     KEEP_PACKAGE_SOURCES
