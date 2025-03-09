@@ -52,32 +52,33 @@ namespace kagome::consensus::babe {
 
     /**
      * @brief outputs object of type BabeBlockHeader to stream
-     * @param s stream reference
+     * @param encoder stream reference
      * @param v value to output
      * @return reference to stream
      */
-    friend inline ::scale::ScaleEncoderStream &operator<<(
-        ::scale::ScaleEncoderStream &s, const BabeBlockHeader &bh) {
-      s << bh.slot_assignment_type << bh.authority_index << bh.slot_number;
+    friend inline void encode(const BabeBlockHeader &bh,
+                              scale::Encoder &encoder) {
+      encode(
+          std::tie(bh.slot_assignment_type, bh.authority_index, bh.slot_number),
+          encoder);
       if (bh.needVRFCheck()) {
-        s << bh.vrf_output;
+        encode(bh.vrf_output, encoder);
       }
-      return s;
     }
 
     /**
      * @brief decodes object of type BabeBlockHeader from stream
-     * @param s stream reference
+     * @param decoder stream reference
      * @param v value to output
      * @return reference to stream
      */
-    friend inline ::scale::ScaleDecoderStream &operator>>(
-        ::scale::ScaleDecoderStream &s, BabeBlockHeader &bh) {
-      s >> bh.slot_assignment_type >> bh.authority_index >> bh.slot_number;
+    friend inline void decode(BabeBlockHeader &bh, scale::Decoder &decoder) {
+      decode(
+          std::tie(bh.slot_assignment_type, bh.authority_index, bh.slot_number),
+          decoder);
       if (bh.needVRFCheck()) {
-        s >> bh.vrf_output;
+        decode(bh.vrf_output, decoder);
       }
-      return s;
     }
   };
 }  // namespace kagome::consensus::babe

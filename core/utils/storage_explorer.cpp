@@ -467,8 +467,9 @@ namespace kagome {
         auto *consensus_digest =
             std::get_if<kagome::primitives::Consensus>(&digest_item);
         if (consensus_digest) {
-          auto decoded = unwrapResult("Decoding consensus digest",
-                                      consensus_digest->decode());
+          auto decoded =
+              unwrapResult("Decoding consensus digest",
+                           consensus_digest->decodeConsensusMessage());
           if (decoded.consensus_engine_id
               == kagome::primitives::kGrandpaEngineId) {
             reportAuthorityUpdate(

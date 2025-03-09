@@ -6,7 +6,7 @@
 
 #include "dispute_coordinator/impl/storage_impl.hpp"
 
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"
 

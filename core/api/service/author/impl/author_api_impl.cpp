@@ -20,7 +20,7 @@
 #include "crypto/sr25519_types.hpp"
 #include "primitives/transaction.hpp"
 #include "runtime/runtime_api/session_keys_api.hpp"
-#include "scale/scale_decoder_stream.hpp"
+#include "scale/kagome_scale.hpp"
 #include "subscription/subscriber.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 

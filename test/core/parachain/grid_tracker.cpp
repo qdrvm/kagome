@@ -6,11 +6,15 @@
 
 #include "parachain/backing/grid_tracker.hpp"
 #include "core/parachain/parachain_test_harness.hpp"
-#include "utils/map.hpp"
 
 using namespace kagome::parachain::grid;
 
 class GridTrackerTest : public ProspectiveParachainsTestHarness {
+ public:
+  static void SetUpTestCase() {
+    testutil::prepareLoggers();
+  }
+
   void SetUp() override {
     ProspectiveParachainsTestHarness::SetUp();
   }
@@ -19,7 +23,6 @@ class GridTrackerTest : public ProspectiveParachainsTestHarness {
     ProspectiveParachainsTestHarness::TearDown();
   }
 
- public:
   Groups dummy_groups(size_t group_size) {
     std::vector<std::vector<ValidatorIndex>> groups;
     {
@@ -34,12 +37,8 @@ class GridTrackerTest : public ProspectiveParachainsTestHarness {
 
   StatementFilter create_filter(const std::vector<bool> (&flags)[2]) {
     StatementFilter statement_filter;
-    statement_filter.seconded_in_group = scale::BitVec{
-        .bits = flags[0],
-    };
-    statement_filter.validated_in_group = scale::BitVec{
-        .bits = flags[1],
-    };
+    statement_filter.seconded_in_group = flags[0];
+    statement_filter.validated_in_group = flags[1];
     return statement_filter;
   }
 };
@@ -917,89 +916,83 @@ TEST_F(GridTrackerTest, knowledge_rejects_conflicting_manifest) {
   {
     auto s = expected_manifest_summary;
     s.claimed_group_index = GroupIndex(1);
-    EXPECT_EC(knowledge.import_received(3, 2, fromNumber(1), s),
-              GridTracker::Error::CONFLICTING);
+    ASSERT_OUTCOME_ERROR(knowledge.import_received(3, 2, fromNumber(1), s),
+                         GridTracker::Error::CONFLICTING);
   }
 
   // conflicting parent hash
   {
     auto s = expected_manifest_summary;
     s.claimed_parent_hash = fromNumber(3);
-    EXPECT_EC(knowledge.import_received(3, 2, fromNumber(1), s),
-              GridTracker::Error::CONFLICTING);
+    ASSERT_OUTCOME_ERROR(knowledge.import_received(3, 2, fromNumber(1), s),
+                         GridTracker::Error::CONFLICTING);
   }
 
   // conflicting seconded statements bitfield
   {
     auto s = expected_manifest_summary;
-    s.statement_knowledge.seconded_in_group.bits = {false, true, false};
-    EXPECT_EC(knowledge.import_received(3, 2, fromNumber(1), s),
-              GridTracker::Error::CONFLICTING);
+    s.statement_knowledge.seconded_in_group = {false, true, false};
+    ASSERT_OUTCOME_ERROR(knowledge.import_received(3, 2, fromNumber(1), s),
+                         GridTracker::Error::CONFLICTING);
   }
 
   // conflicting valid statements bitfield
   {
     auto s = expected_manifest_summary;
-    s.statement_knowledge.validated_in_group.bits = {false, true, false};
-    EXPECT_EC(knowledge.import_received(3, 2, fromNumber(1), s),
-              GridTracker::Error::CONFLICTING);
+    s.statement_knowledge.validated_in_group = {false, true, false};
+    ASSERT_OUTCOME_ERROR(knowledge.import_received(3, 2, fromNumber(1), s),
+                         GridTracker::Error::CONFLICTING);
   }
 }
 
 TEST_F(GridTrackerTest, reject_overflowing_manifests) {
   ReceivedManifests knowledge;
 
-  ASSERT_TRUE(
-      knowledge
-          .import_received(3,
-                           2,
-                           fromNumber(1),
-                           ManifestSummary{
-                               .claimed_parent_hash = fromNumber(0xA),
-                               .claimed_group_index = GroupIndex(0),
-                               .statement_knowledge = create_filter(
-                                   {{true, true, false}, {false, true, true}}),
-                           })
-          .has_value());
+  ASSERT_OUTCOME_SUCCESS(knowledge.import_received(
+      3,
+      2,
+      fromNumber(1),
+      ManifestSummary{
+          .claimed_parent_hash = fromNumber(0xA),
+          .claimed_group_index = GroupIndex(0),
+          .statement_knowledge =
+              create_filter({{true, true, false}, {false, true, true}}),
+      }));
 
-  ASSERT_TRUE(
-      knowledge
-          .import_received(3,
-                           2,
-                           fromNumber(2),
-                           ManifestSummary{
-                               .claimed_parent_hash = fromNumber(0xB),
-                               .claimed_group_index = GroupIndex(0),
-                               .statement_knowledge = create_filter(
-                                   {{true, false, true}, {false, true, true}}),
-                           })
-          .has_value());
+  ASSERT_OUTCOME_SUCCESS(knowledge.import_received(
+      3,
+      2,
+      fromNumber(2),
+      ManifestSummary{
+          .claimed_parent_hash = fromNumber(0xB),
+          .claimed_group_index = GroupIndex(0),
+          .statement_knowledge =
+              create_filter({{true, false, true}, {false, true, true}}),
+      }));
 
   // Reject a seconding validator that is already at the seconding limit.
   // Seconding counts for the validators should not be applied.
-  EXPECT_EC(knowledge.import_received(
-                3,
-                2,
-                fromNumber(3),
-                ManifestSummary{
-                    .claimed_parent_hash = fromNumber(0xC),
-                    .claimed_group_index = GroupIndex(0),
-                    .statement_knowledge = create_filter(
-                        {{true, true, true}, {false, true, true}}),
-                }),
-            GridTracker::Error::SECONDING_OVERFLOW);
-
-  // Don't reject validators that have seconded less than the limit so far.
-  ASSERT_TRUE(
-      knowledge
-          .import_received(3,
+  ASSERT_OUTCOME_ERROR(knowledge.import_received(
+                           3,
                            2,
                            fromNumber(3),
                            ManifestSummary{
                                .claimed_parent_hash = fromNumber(0xC),
                                .claimed_group_index = GroupIndex(0),
                                .statement_knowledge = create_filter(
-                                   {{false, true, true}, {false, true, true}}),
-                           })
-          .has_value());
+                                   {{true, true, true}, {false, true, true}}),
+                           }),
+                       GridTracker::Error::SECONDING_OVERFLOW);
+
+  // Don't reject validators that have seconded less than the limit so far.
+  ASSERT_OUTCOME_SUCCESS(knowledge.import_received(
+      3,
+      2,
+      fromNumber(3),
+      ManifestSummary{
+          .claimed_parent_hash = fromNumber(0xC),
+          .claimed_group_index = GroupIndex(0),
+          .statement_knowledge =
+              create_filter({{false, true, true}, {false, true, true}}),
+      }));
 }

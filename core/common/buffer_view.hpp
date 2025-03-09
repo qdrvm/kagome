@@ -126,8 +126,8 @@ struct fmt::formatter<kagome::common::BufferView> {
   // Formats the Blob using the parsed format specification (presentation)
   // stored in this formatter.
   template <typename FormatContext>
-  auto format(const kagome::common::BufferView &view,
-              FormatContext &ctx) const -> decltype(ctx.out()) {
+  auto format(const kagome::common::BufferView &view, FormatContext &ctx) const
+      -> decltype(ctx.out()) {
     // ctx.out() is an output iterator to write to.
 
     if (view.empty()) {

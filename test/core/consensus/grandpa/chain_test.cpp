@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <boost/asio/io_context.hpp>
+#include <qtils/test/outcome.hpp>
 
 #include "common/main_thread_pool.hpp"
 #include "consensus/grandpa/impl/environment_impl.hpp"
@@ -26,7 +27,6 @@
 #include "mock/core/runtime/parachain_host_mock.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::Watchdog;

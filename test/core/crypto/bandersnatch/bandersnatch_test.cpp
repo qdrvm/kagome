@@ -8,11 +8,12 @@
 
 #include <span>
 
+#include <qtils/test/outcome.hpp>
+
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bandersnatch/vrf.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Blob;

@@ -13,8 +13,6 @@ namespace kagome::consensus::babe {
 
   /// Data are corresponding to the epoch
   struct EpochData {
-    SCALE_TIE(2);
-
     /// The authorities actual for corresponding epoch
     Authorities authorities;
 

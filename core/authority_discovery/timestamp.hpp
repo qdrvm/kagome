@@ -6,9 +6,8 @@
 
 #pragma once
 
-#include "scale/big_fixed_integers.hpp"
+#include <scale/kagome_scale.hpp>
 
 namespace kagome::authority_discovery {
-  using Timestamp = ::scale::uint128_t;
-  using TimestampScale = ::scale::Fixed<Timestamp>;
+  using Timestamp = scale::uint128_t;
 }  // namespace kagome::authority_discovery

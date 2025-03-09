@@ -7,7 +7,10 @@
 #include "network/impl/state_protocol_observer_impl.hpp"
 
 #include <gtest/gtest.h>
+
 #include <cstdint>
+
+#include <qtils/test/outcome.hpp>
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
@@ -18,10 +21,8 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "storage/trie/trie_batches.hpp"
-#include "storage/trie/trie_storage_backend.hpp"
 #include "storage/trie/types.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome;
@@ -125,10 +126,10 @@ namespace kagome::network {
  * @then response with 2 entries
  */
 TEST_F(StateProtocolObserverTest, Simple) {
-  EXPECT_OUTCOME_TRUE(batch, persistent_empty_batch());
+  ASSERT_OUTCOME_SUCCESS(batch, persistent_empty_batch());
   std::ignore = batch->put("abc"_buf, "123"_buf);
   std::ignore = batch->put("cde"_buf, "345"_buf);
-  EXPECT_OUTCOME_TRUE(hash, batch->commit(storage::trie::StateVersion::V0));
+  ASSERT_OUTCOME_SUCCESS(hash, batch->commit(storage::trie::StateVersion::V0));
 
   auto header = makeBlockHeader(hash);
   EXPECT_CALL(*headers_, getBlockHeader({"1"_hash256}))
@@ -140,8 +141,8 @@ TEST_F(StateProtocolObserverTest, Simple) {
       .no_proof = true,
   };
 
-  EXPECT_OUTCOME_TRUE(response,
-                      state_protocol_observer_->onStateRequest(request));
+  ASSERT_OUTCOME_SUCCESS(response,
+                         state_protocol_observer_->onStateRequest(request));
 
   StateResponse ref = {
       .entries = {{

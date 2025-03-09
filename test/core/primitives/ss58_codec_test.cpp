@@ -6,9 +6,10 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "crypto/hasher/hasher_impl.hpp"
 #include "primitives/ss58_codec.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::crypto::HasherImpl;
 

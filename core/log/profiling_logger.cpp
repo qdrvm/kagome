@@ -8,5 +8,8 @@
 
 namespace kagome::log {
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  Logger profiling_logger = nullptr;
+  Logger profiling_logger() {
+    static auto logger = createLogger("Profiler", "profile");
+    return logger;
+  }
 }  // namespace kagome::log

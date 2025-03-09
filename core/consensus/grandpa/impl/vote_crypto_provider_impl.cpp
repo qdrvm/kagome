@@ -26,7 +26,8 @@ namespace kagome::consensus::grandpa {
     if (not keypair_) {
       return std::nullopt;
     }
-    auto payload = scale::encode(vote, round_number_, voter_set_->id()).value();
+    auto payload =
+        scale::encode(std::tie(vote, round_number_, voter_set_->id())).value();
     auto signature = ed_provider_->sign(*keypair_, payload).value();
     return {{.message = std::move(vote),
              .signature = signature,
@@ -36,7 +37,7 @@ namespace kagome::consensus::grandpa {
   bool VoteCryptoProviderImpl::verify(const SignedMessage &vote,
                                       RoundNumber number) const {
     auto payload =
-        scale::encode(vote.message, number, voter_set_->id()).value();
+        scale::encode(std::tie(vote.message, number, voter_set_->id())).value();
     auto verifying_result =
         ed_provider_->verify(vote.signature, payload, vote.id);
     bool result = verifying_result.has_value() and verifying_result.value();
@@ -47,7 +48,7 @@ namespace kagome::consensus::grandpa {
       for (auto n = number > 100 ? number - 100 : 0; n < number + 100; n++) {
         for (auto id = voter_set_->id() - 100; id < voter_set_->id() + 100;
              id++) {
-          auto payload = scale::encode(vote.message, n, id).value();
+          auto payload = scale::encode(std::tie(vote.message, n, id)).value();
           auto verifying_result =
               ed_provider_->verify(vote.signature, payload, vote.id);
           if (verifying_result.has_value() and verifying_result.value()) {

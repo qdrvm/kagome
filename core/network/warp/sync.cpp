@@ -21,6 +21,9 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome::network {
+
+  using consensus::grandpa::IsBlockFinalized;
+
   WarpSync::WarpSync(
       application::AppStateManager &app_state_manager,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -88,9 +91,10 @@ namespace kagome::network {
       if (not change.scheduled and i != res.proofs.size() - 1) {
         return;
       }
-      auto authorities =
-          authority_manager_->authorities(block_tree_->getLastFinalized(), true)
-              .value();
+      auto authorities = authority_manager_
+                             ->authorities(block_tree_->getLastFinalized(),
+                                           IsBlockFinalized(true))
+                             .value();
 
       auto result =
           grandpa_->verifyJustification(fragment.justification, *authorities);

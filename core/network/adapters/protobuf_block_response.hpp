@@ -11,7 +11,7 @@
 #include "common/bytestr.hpp"
 #include "network/protobuf/api.v1.pb.h"
 #include "network/types/blocks_response.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::network {
 

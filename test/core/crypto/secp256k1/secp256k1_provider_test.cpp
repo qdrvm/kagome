@@ -6,11 +6,12 @@
 
 #include "crypto/secp256k1/secp256k1_provider_impl.hpp"
 
+#include <gtest/gtest.h>
+
+#include <qtils/test/outcome.hpp>
+
 #include "common/buffer.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
-
-#include <gtest/gtest.h>
-#include "testutil/outcome.hpp"
 
 using kagome::common::Blob;
 using kagome::common::Buffer;
@@ -41,11 +42,12 @@ struct Secp256k1ProviderTest : public ::testing::Test {
 
   void SetUp() override {
     // message: "this is a message"
-    EXPECT_OUTCOME_TRUE(secp_message_vector,
-                        Buffer::fromHex("746869732069732061206d657373616765"));
+    ASSERT_OUTCOME_SUCCESS(
+        secp_message_vector,
+        Buffer::fromHex("746869732069732061206d657373616765"));
     secp_message_hash = hasher->blake2s_256(secp_message_vector);
 
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         secp_public_key_expanded_bytes,
         Buffer::fromHex("04f821bc128a43d9b0516969111e19a40bab417f45181d692d0519"
                         "a3b35573cb63178403d12eb41d7702913a70ebc1c64438002a1474"
@@ -53,13 +55,14 @@ struct Secp256k1ProviderTest : public ::testing::Test {
     secp_public_key_expanded =
         UncompressedPublicKey::fromSpan(secp_public_key_expanded_bytes).value();
 
-    EXPECT_OUTCOME_TRUE(secp_public_key_compressed_bytes,
-                        Buffer::fromHex("03f821bc128a43d9b0516969111e19a40bab41"
-                                        "7f45181d692d0519a3b35573cb63"));
+    ASSERT_OUTCOME_SUCCESS(
+        secp_public_key_compressed_bytes,
+        Buffer::fromHex("03f821bc128a43d9b0516969111e19a40bab41"
+                        "7f45181d692d0519a3b35573cb63"));
     secp_public_key_compressed =
         CompressedPublicKey::fromSpan(secp_public_key_compressed_bytes).value();
 
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         secp_signature_bytes,
         Buffer::fromHex("ebdedee38bcf530f13c1b5c8717d974a6f8bd25a7e3707ca36c7ee"
                         "7efd5aa6c557bcc67906975696cbb28a556b649e5fbf5ce5183157"
@@ -109,9 +112,9 @@ TEST_F(Secp256k1ProviderTest, RecoverInvalidSignatureFailure) {
  * @then Recovery is successful, public key returned
  */
 TEST_F(Secp256k1ProviderTest, RecoverUncompressedSuccess) {
-  EXPECT_OUTCOME_TRUE(public_key,
-                      secp256K1_provider->recoverPublickeyUncompressed(
-                          secp_signature, secp_message_hash, false));
+  ASSERT_OUTCOME_SUCCESS(public_key,
+                         secp256K1_provider->recoverPublickeyUncompressed(
+                             secp_signature, secp_message_hash, false));
   EXPECT_EQ(public_key, secp_public_key_expanded);
 }
 
@@ -121,8 +124,8 @@ TEST_F(Secp256k1ProviderTest, RecoverUncompressedSuccess) {
  * @then Recovery is successful, public key is returned
  */
 TEST_F(Secp256k1ProviderTest, RecoverCompressedSuccess) {
-  EXPECT_OUTCOME_TRUE(public_key,
-                      secp256K1_provider->recoverPublickeyCompressed(
-                          secp_signature, secp_message_hash, false));
+  ASSERT_OUTCOME_SUCCESS(public_key,
+                         secp256K1_provider->recoverPublickeyCompressed(
+                             secp_signature, secp_message_hash, false));
   EXPECT_EQ(public_key, secp_public_key_compressed);
 }

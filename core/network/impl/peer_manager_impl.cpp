@@ -15,6 +15,7 @@
 
 #include "common/main_thread_pool.hpp"
 #include "network/can_disconnect.hpp"
+#include "scale/kagome_scale.hpp"
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
 #include "utils/pool_handler_ready_make.hpp"
@@ -660,24 +661,28 @@ namespace kagome::network {
 
   std::vector<scale::PeerInfoSerializable>
   PeerManagerImpl::loadLastActivePeers() {
-    auto get_res = storage_->get(storage::kActivePeersKey);
-    if (not get_res) {
+    auto data_opt_res = storage_->tryGet(storage::kActivePeersKey);
+    if (not data_opt_res) {
       SL_ERROR(log_,
-               "List of last active peers cannot be obtained from storage. "
-               "Error={}",
-               get_res.error());
+               "List of last active peers cannot be obtained from storage: {}",
+               data_opt_res.error());
       return {};
     }
-
-    std::vector<scale::PeerInfoSerializable> last_active_peers;
-    scale::ScaleDecoderStream s{get_res.value()};
-    try {
-      s >> last_active_peers;
-    } catch (...) {
-      SL_ERROR(log_, "Unable to decode list of active peers");
+    auto &data_opt = data_opt_res.value();
+    if (not data_opt.has_value()) {
+      SL_ERROR(log_, "List of last active peers has not found in storage");
       return {};
     }
-    return last_active_peers;
+    auto &data = data_opt.value();
+    auto decode_res =
+        scale::decode<std::vector<scale::PeerInfoSerializable>>(data);
+    if (decode_res.has_error()) {
+      SL_ERROR(log_,
+               "Unable to decode list of active peers: {}",
+               decode_res.error());
+      return {};
+    }
+    return std::move(decode_res.value());
   }
 
   void PeerManagerImpl::storeActivePeers() {
@@ -694,16 +699,16 @@ namespace kagome::network {
       return;
     }
 
-    scale::ScaleEncoderStream out;
-    try {
-      out << last_active_peers;
-    } catch (...) {
-      SL_ERROR(log_, "Unable to encode list of active peers");
+    auto encode_res = scale::encode(last_active_peers);
+    if (encode_res.has_error()) {
+      SL_ERROR(log_,
+               "Unable to encode list of active peers: {}",
+               encode_res.error());
       return;
     }
 
     auto save_res = storage_->put(storage::kActivePeersKey,
-                                  common::Buffer{out.to_vector()});
+                                  common::Buffer(encode_res.value()));
     if (not save_res) {
       SL_ERROR(log_, "Cannot store active peers. Error={}", save_res.error());
       return;
@@ -737,9 +742,8 @@ namespace kagome::network {
           if (it == peer_states_.end()) {
             return false;
           }
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-          const auto &roles = it->second.roles.flags;
-          return (in_light ? roles.light : roles.full) == 1;
+          const auto &roles = it->second.roles;
+          return in_light ? roles.isLight() : roles.isFull();
         });
   }
 

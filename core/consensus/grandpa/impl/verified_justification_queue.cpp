@@ -18,6 +18,8 @@ namespace kagome::consensus::grandpa {
   /// When to start fetching justification range
   constexpr size_t kRangeStart = 8;
 
+  using consensus::grandpa::IsBlockFinalized;
+
   VerifiedJustificationQueue::VerifiedJustificationQueue(
       application::AppStateManager &app_state_manager,
       common::MainThreadPool &main_thread_pool,
@@ -42,7 +44,7 @@ namespace kagome::consensus::grandpa {
 
   void VerifiedJustificationQueue::start() {
     if (auto r = authority_manager_->authorities(
-            block_tree_->getLastFinalized(), true)) {
+            block_tree_->getLastFinalized(), IsBlockFinalized(true))) {
       expected_ = (**r).id;
     }
     chain_sub_.onHead([weak{weak_from_this()}]() {
@@ -251,8 +253,8 @@ namespace kagome::consensus::grandpa {
 
   void VerifiedJustificationQueue::warp() {
     if (auto r = authority_manager_->authorities(
-            block_tree_->getLastFinalized(), true)) {
-      expected_ = (**r).id;
+            block_tree_->getLastFinalized(), IsBlockFinalized(true))) {
+      expected_ = (*r)->id;
     }
     required_.clear();
   }

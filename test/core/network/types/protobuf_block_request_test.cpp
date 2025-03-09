@@ -7,7 +7,7 @@
 
 #include <gmock/gmock.h>
 
-#include "testutil/outcome.hpp"
+#include <qtils/test/outcome.hpp>
 
 using kagome::network::BlockAttribute;
 using kagome::network::BlocksRequest;
@@ -25,7 +25,7 @@ struct ProtobufBlockRequestAdapterTest : public ::testing::Test {
     request.direction = Direction::DESCENDING;
     request.fields = toBlockAttribute(0x19);
 
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         hash_from,
         BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
                            "c7d43b127ec35cd8325602dd47fd"));
@@ -47,7 +47,7 @@ TEST_F(ProtobufBlockRequestAdapterTest, Serialization) {
 
   AdapterType::write(request, data, data.end());
   BlocksRequest r2;
-  EXPECT_OUTCOME_TRUE(it_read, AdapterType::read(r2, data, data.begin()));
+  ASSERT_OUTCOME_SUCCESS(it_read, AdapterType::read(r2, data, data.begin()));
 
   ASSERT_EQ(it_read, data.end());
   ASSERT_EQ(r2.max, request.max);

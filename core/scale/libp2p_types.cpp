@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <exception>
 
+#include "scale/kagome_scale.hpp"
+
 namespace scale {
 
   PeerInfoSerializable::PeerInfoSerializable()
@@ -22,21 +24,20 @@ namespace scale {
     return res.value();
   }
 
-  scale::ScaleEncoderStream &operator<<(
-      scale::ScaleEncoderStream &s, const libp2p::peer::PeerInfo &peer_info) {
+  void encode(const libp2p::peer::PeerInfo &peer_info,
+              scale::Encoder &encoder) {
     std::vector<std::string> addresses;
     addresses.reserve(peer_info.addresses.size());
     for (const auto &addr : peer_info.addresses) {
       addresses.emplace_back(addr.getStringAddress());
     }
-    return s << peer_info.id.toBase58() << addresses;
+    encoder << peer_info.id.toBase58() << addresses;
   }
 
-  scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                        libp2p::peer::PeerInfo &peer_info) {
+  void decode(libp2p::peer::PeerInfo &peer_info, scale::Decoder &decoder) {
     std::string peer_id_base58;
     std::vector<std::string> addresses;
-    s >> peer_id_base58 >> addresses;
+    decoder >> peer_id_base58 >> addresses;
     auto peer_id_res = libp2p::peer::PeerId::fromBase58(peer_id_base58);
     peer_info.id = std::move(peer_id_res.value());
     std::vector<libp2p::multi::Multiaddress> multi_addrs;
@@ -49,6 +50,6 @@ namespace scale {
       }
     });
     peer_info.addresses = std::move(multi_addrs);
-    return s;
   }
+
 }  // namespace scale

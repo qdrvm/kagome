@@ -7,7 +7,7 @@
 
 #include <gmock/gmock.h>
 
-#include "testutil/outcome.hpp"
+#include <qtils/test/outcome.hpp>
 
 using kagome::network::ProtobufMessageAdapter;
 using kagome::network::StateRequest;
@@ -19,7 +19,7 @@ struct ProtobufStateRequestAdapterTest : public ::testing::Test {
   using AdapterType = ProtobufMessageAdapter<StateRequest>;
 
   void SetUp() {
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         hash_from,
         BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
                            "c7d43b127ec35cd8325602dd47fd"));
@@ -43,7 +43,7 @@ TEST_F(ProtobufStateRequestAdapterTest, Serialization) {
 
   AdapterType::write(request, data, data.end());
   StateRequest r2;
-  EXPECT_OUTCOME_TRUE(it_read, AdapterType::read(r2, data, data.begin()));
+  ASSERT_OUTCOME_SUCCESS(it_read, AdapterType::read(r2, data, data.begin()));
 
   ASSERT_EQ(it_read, data.end());
   ASSERT_EQ(r2.hash, request.hash);

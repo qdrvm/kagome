@@ -7,11 +7,13 @@
 #include <memory>
 
 #include <gtest/gtest.h>
+
+#include <qtils/test/outcome.hpp>
+
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/buffer_stream.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using namespace kagome;
 using namespace common;
@@ -27,9 +29,9 @@ struct NodeDecodingTest
 TEST_P(NodeDecodingTest, GetHeader) {
   auto node = GetParam();
 
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       encoded, codec->encodeNode(*node, storage::trie::StateVersion::V0, {}));
-  EXPECT_OUTCOME_TRUE(decoded, codec->decodeNode(encoded));
+  ASSERT_OUTCOME_SUCCESS(decoded, codec->decodeNode(encoded));
   auto decoded_node = std::dynamic_pointer_cast<TrieNode>(decoded);
   EXPECT_EQ(decoded_node->getKeyNibbles(), node->getKeyNibbles());
   EXPECT_EQ(decoded_node->getValue(), node->getValue());

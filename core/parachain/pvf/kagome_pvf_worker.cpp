@@ -44,7 +44,7 @@
 #include "runtime/runtime_context.hpp"
 #include "runtime/wabt/instrument.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "utils/mkdirs.hpp"
 #include "utils/spdlog_stderr.hpp"
 
@@ -67,7 +67,9 @@ namespace kagome::parachain {
 
   namespace {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    static kagome::log::Logger logger;
+    static kagome::log::Logger logger = [] {
+      return kagome::log::createLogger("PVF Worker", "parachain");
+    }();
   }  // namespace
 
   bool checkEnvVarsEmpty(const char **env) {
@@ -414,7 +416,6 @@ namespace kagome::parachain {
       return EXIT_FAILURE;
     }
     kagome::log::setLoggingSystem(logging_system);
-    logger = kagome::log::createLogger("PVF Worker", "parachain");
     if (argc < 2) {
       SL_ERROR(logger, "missing unix socket path arg");
       return EXIT_FAILURE;

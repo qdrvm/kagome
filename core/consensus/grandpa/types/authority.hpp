@@ -16,10 +16,9 @@ namespace kagome::consensus::grandpa {
   using AuthorityWeight = uint64_t;
 
   struct Authority {
-    SCALE_TIE(2);
-
     AuthorityId id;
     AuthorityWeight weight{};
+    bool operator==(const Authority &other) const = default;
   };
 
   using Authorities =
@@ -31,15 +30,9 @@ namespace kagome::consensus::grandpa {
    * List of authorities with an identifier
    */
   struct AuthoritySet {
-    SCALE_TIE(2);
-
-    AuthoritySet() = default;
-
-    AuthoritySet(AuthoritySetId id, Authorities authorities)
-        : id{id}, authorities{std::move(authorities)} {}
-
     AuthoritySetId id{};
     Authorities authorities;
+    bool operator==(const AuthoritySet &other) const = default;
   };
 
 }  // namespace kagome::consensus::grandpa

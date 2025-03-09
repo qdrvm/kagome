@@ -48,17 +48,16 @@ namespace kagome::network {
         std::shared_ptr<parachain::ParachainProcessorImpl> pp,
         common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
-              FetchChunkRequest,
-              FetchChunkResponseObsolete,
-              ScaleMessageReadWriter>{kFetchChunkProtocolName,
-                                      inject,
-                                      make_protocols(
-                                          kFetchChunkProtocolObsolete,
-                                          genesis_hash,
-                                          kProtocolPrefixPolkadot),
-                                      log::createLogger(kFetchChunkProtocolName,
-                                                        "req_chunk_protocol"),
-                                      kRequestTimeout},
+            FetchChunkRequest,
+            FetchChunkResponseObsolete,
+            ScaleMessageReadWriter>{kFetchChunkProtocolName,
+                                    inject,
+                                    make_protocols(kFetchChunkProtocolObsolete,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(kFetchChunkProtocolName,
+                                                      "req_chunk_protocol"),
+                                    kRequestTimeout},
           pp_{std::move(pp)} {
       BOOST_ASSERT(pp_);
     }

@@ -110,7 +110,7 @@ namespace kagome::parachain::grid {
         GroupIndex group_index,
         size_t group_size,
         size_t seconding_limit,
-        const std::vector<bool> &fresh_seconded);
+        const scale::BitVector &fresh_seconded);
   };
 
   /// Knowledge that we have about a remote peer concerning a candidate, and

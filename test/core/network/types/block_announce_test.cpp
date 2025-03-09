@@ -8,9 +8,10 @@
 #include <iostream>
 
 #include <gmock/gmock.h>
-#include "scale/scale.hpp"
+#include <qtils/test/outcome.hpp>
+
+#include "scale/kagome_scale.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/primitives/mp_utils.hpp"
 
 using kagome::common::Buffer;
@@ -20,11 +21,10 @@ using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Digest;
 using kagome::primitives::PreRuntime;
+using kagome::scale::decode;
+using kagome::scale::encode;
 
 using testutil::createHash256;
-
-using scale::decode;
-using scale::encode;
 
 struct BlockAnnounceTest : public ::testing::Test {
   void SetUp() {

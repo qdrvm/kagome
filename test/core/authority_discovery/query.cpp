@@ -134,8 +134,9 @@ struct QueryTest : testing::Test {
   }
 
   void expect(std::optional<size_t> i) {
-    auto r = query_->get(audi_key_.public_key);
-    EXPECT_EQ(r, i ? std::make_optional(info(*i)) : std::nullopt);
+    auto actual = query_->get(audi_key_.public_key);
+    auto expected = i ? std::make_optional(info(*i)) : std::nullopt;
+    EXPECT_EQ(actual, expected);
   }
 
   std::shared_ptr<BlockTreeMock> block_tree_ =

@@ -32,8 +32,6 @@ namespace kagome::consensus::grandpa {
   // TODO(turuslan): #1857, grandpa voting during forced change
 
   struct GrandpaIndexedValue {
-    SCALE_TIE_ONLY(next_set_id, forced_target, state);
-
     /**
      * Set id is missing from grandpa digests.
      */
@@ -48,6 +46,11 @@ namespace kagome::consensus::grandpa {
      * Next authorities lazily computed from `set_id` and digest.
      */
     std::optional<std::shared_ptr<const AuthoritySet>> next;
+
+    SCALE_CUSTOM_DECOMPOSITION(GrandpaIndexedValue,
+                               next_set_id,
+                               forced_target,
+                               state);
   };
 
   class AuthorityManagerImpl final

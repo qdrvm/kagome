@@ -10,7 +10,6 @@
 
 #include "primitives/block.hpp"
 #include "primitives/justification.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::primitives {
 
@@ -19,8 +18,6 @@ namespace kagome::primitives {
    * to get certain information about the block
    */
   struct BlockData {
-    SCALE_TIE(7);
-
     primitives::BlockHash hash;
     std::optional<primitives::BlockHeader> header{};
     std::optional<primitives::BlockBody> body{};
@@ -28,6 +25,7 @@ namespace kagome::primitives {
     std::optional<common::Buffer> message_queue{};
     std::optional<primitives::Justification> justification{};
     std::optional<primitives::Justification> beefy_justification{};
+    bool operator==(const BlockData &other) const = default;
   };
 
   struct BlockDataFlags {

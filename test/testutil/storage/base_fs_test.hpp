@@ -42,8 +42,8 @@ namespace test {
     }
 
    protected:
-    fs::path base_path;
     kagome::log::Logger logger;
+    fs::path base_path;
   };
 
 }  // namespace test

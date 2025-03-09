@@ -16,7 +16,6 @@ extern "C" {
 #include "common/int_serialization.hpp"
 #include "crypto/common.hpp"
 #include "primitives/math.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::crypto {
   namespace constants::sr25519 {
@@ -55,12 +54,11 @@ namespace kagome::crypto {
    * verification of its randomness.
    */
   struct VRFOutput {
-    SCALE_TIE(2);
-
     // an internal representation of the generated random value
     VRFPreOutput output{};
     // the proof to the output, serves as the verification of its randomness
     VRFProof proof{};
+    bool operator==(const VRFOutput &other) const = default;
   };
 
   /**
@@ -92,8 +90,6 @@ namespace kagome::crypto {
   template <typename D>
   struct Sr25519Signed {
     using Type = std::decay_t<D>;
-    SCALE_TIE(2);
-
     Type payload;
     Sr25519Signature signature;
   };

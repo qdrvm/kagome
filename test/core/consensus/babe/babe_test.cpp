@@ -9,6 +9,7 @@
 #include <latch>
 
 #include <boost/range/adaptor/transformed.hpp>
+#include <qtils/test/outcome.hpp>
 
 #include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
@@ -41,10 +42,10 @@
 #include "mock/core/runtime/babe_api_mock.hpp"
 #include "mock/core/runtime/offchain_worker_api_mock.hpp"
 #include "primitives/event_types.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/sr25519_utils.hpp"
 #include "utils/watchdog.hpp"
@@ -120,6 +121,7 @@ using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::events::StorageSubscriptionEngine;
 using kagome::runtime::BabeApiMock;
 using kagome::runtime::OffchainWorkerApiMock;
+using kagome::scale::encode;
 using kagome::storage::trie::calculateOrderedTrieHash;
 using kagome::storage::trie::StateVersion;
 using Seal = kagome::consensus::babe::Seal;
@@ -139,12 +141,12 @@ static Digest make_digest(SlotNumber slot, AuthorityIndex authority_index = 0) {
       .authority_index = authority_index,
       .slot_number = slot,
   };
-  Buffer encoded_header{scale::encode(babe_header).value()};
+  Buffer encoded_header{encode(babe_header).value()};
   digest.emplace_back(
       PreRuntime{kagome::primitives::kBabeEngineId, encoded_header});
 
   Seal seal{};
-  Buffer encoded_seal{scale::encode(seal).value()};
+  Buffer encoded_seal{encode(seal).value()};
   digest.emplace_back(
       SealDigest{kagome::primitives::kBabeEngineId, encoded_seal});
 
@@ -220,13 +222,13 @@ class BabeTest : public testing::Test {
     lottery = std::make_shared<BabeLotteryMock>();
 
     hasher = std::make_shared<HasherMock>();
-    static const auto d1 = scale::encode(genesis_block_header).value();
+    static const auto d1 = encode(genesis_block_header).value();
     ON_CALL(*hasher, blake2b_256(BufferView(d1)))
         .WillByDefault(Return(genesis_block_info.hash));
-    static const auto d2 = scale::encode(best_block_header).value();
+    static const auto d2 = encode(best_block_header).value();
     ON_CALL(*hasher, blake2b_256(BufferView(d2)))
         .WillByDefault(Return(best_block_info.hash));
-    static const auto d3 = scale::encode(new_block_header).value();
+    static const auto d3 = encode(new_block_header).value();
     ON_CALL(*hasher, blake2b_256(BufferView(d3)))
         .WillByDefault(Return(new_block_info.hash));
 
@@ -375,7 +377,7 @@ class BabeTest : public testing::Test {
           return calculateOrderedTrieHash(
                      StateVersion::V0,
                      block.body | transformed([](const auto &ext) {
-                       return Buffer{scale::encode(ext).value()};
+                       return Buffer{encode(ext).value()};
                      }),
                      kagome::crypto::blake2b<32>)
               .value();
@@ -512,7 +514,7 @@ TEST_F(BabeTest, SlotLeader) {
   std::latch latch(1);
   babe->on_proposed = [&] { latch.count_down(); };
 
-  ASSERT_OUTCOME_SUCCESS_TRY(babe->processSlot(slot, best_block_info));
+  ASSERT_OUTCOME_SUCCESS(babe->processSlot(slot, best_block_info));
 
   latch.wait();
 }
@@ -563,6 +565,5 @@ TEST_F(BabeTest, EquivocationReport) {
                   "parent"_hash256, equivocation_proof, ownership_proof))
       .WillOnce(Return(outcome::success()));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      babe->reportEquivocation(first.hash(), second.hash()));
+  ASSERT_OUTCOME_SUCCESS(babe->reportEquivocation(first.hash(), second.hash()));
 }

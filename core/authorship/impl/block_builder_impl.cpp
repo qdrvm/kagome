@@ -104,20 +104,13 @@ namespace kagome::authorship {
   }
 
   size_t BlockBuilderImpl::estimateBlockSize() const {
-    scale::ScaleEncoderStream s(true);
-    for (const auto &xt : extrinsics_) {
-      s << xt;
-    }
-    return estimatedBlockHeaderSize() + s.size();
+    auto size = scale::encoded_size(extrinsics_).value();
+    return estimatedBlockHeaderSize() + size;
   }
 
   size_t BlockBuilderImpl::estimatedBlockHeaderSize() const {
-    static std::optional<size_t> size = std::nullopt;
-    if (not size) {
-      scale::ScaleEncoderStream s(true);
-      s << block_header_;
-      size = s.size();
-    }
-    return size.value();
+    static const size_t size =
+        scale::encoded_size(primitives::BlockHeader{}).value();
+    return size;
   }
 }  // namespace kagome::authorship

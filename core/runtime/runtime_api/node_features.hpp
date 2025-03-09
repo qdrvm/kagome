@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <optional>
 
-#include <scale/bitvec.hpp>
+#include <scale/bit_vector.hpp>
 
 namespace kagome::runtime {
   struct NodeFeatures {
@@ -48,9 +48,9 @@ namespace kagome::runtime {
     };
 
     bool has(Index index) const {
-      return bits and index < bits->bits.size() && bits->bits.at(index);
+      return bits and index < bits->size() and (*bits)[index];
     }
 
-    std::optional<scale::BitVec> bits;
+    std::optional<scale::BitVector> bits;
   };
 }  // namespace kagome::runtime

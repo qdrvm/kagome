@@ -15,7 +15,6 @@
 #include "common/int_serialization.hpp"
 #include "crypto/common.hpp"
 #include "primitives/math.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::crypto::constants::bandersnatch {
   /// Important constants to deal with bandersnatch

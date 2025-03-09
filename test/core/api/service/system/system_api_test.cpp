@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/consensus/timeline/timeline_mock.hpp"
@@ -15,10 +17,7 @@
 #include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/core/runtime/account_nonce_api_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
-#include "scale/kagome_scale.hpp"
-#include "scale/scale.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/scale_test_comparator.hpp"
 
 using kagome::api::SystemApi;
@@ -97,7 +96,7 @@ TEST_F(SystemApiTest, GetNonceNoPendingTxs) {
       .WillOnce(Return(kagome::common::Hash512{{'\035', '!'}}));
   EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions());
 
-  EXPECT_OUTCOME_TRUE(nonce, system_api_->getNonceFor(kSs58Account))
+  ASSERT_OUTCOME_SUCCESS(nonce, system_api_->getNonceFor(kSs58Account));
   ASSERT_EQ(nonce, kInitialNonce);
 }
 
@@ -125,9 +124,9 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
   std::vector<std::pair<Transaction::Hash, std::shared_ptr<const Transaction>>>
       ready_txs;
   for (size_t i = 0; i < kReadyTxNum; i++) {
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         enc_nonce,
-        testutil::scaleEncodeAndCompareWithRef(kAccountId, kInitialNonce + i))
+        testutil::scaleEncodeAndCompareWithRef(kAccountId, kInitialNonce + i));
     encoded_nonces[i] = std::move(enc_nonce);
     ready_txs.emplace_back(
         std::make_pair(Hash256{{static_cast<uint8_t>(i)}},
@@ -138,6 +137,6 @@ TEST_F(SystemApiTest, GetNonceWithPendingTxs) {
   EXPECT_CALL(*transaction_pool_mock_, getReadyTransactions())
       .WillOnce(Return(ready_txs));
 
-  EXPECT_OUTCOME_TRUE(nonce, system_api_->getNonceFor(kSs58Account));
+  ASSERT_OUTCOME_SUCCESS(nonce, system_api_->getNonceFor(kSs58Account));
   ASSERT_EQ(nonce, kInitialNonce + kReadyTxNum);
 }

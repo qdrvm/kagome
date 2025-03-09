@@ -65,14 +65,14 @@ namespace kagome::parachain::statement_distribution {
       return disabled_validators.contains(validator_index);
     }
 
-    scale::BitVec disabled_bitmask(
+    scale::BitVector disabled_bitmask(
         const std::span<const ValidatorIndex> &group) const {
-      scale::BitVec v;
-      v.bits.resize(group.size());
+      scale::BitVector bits;
+      bits.resize(group.size());
       for (size_t ix = 0; ix < group.size(); ++ix) {
-        v.bits[ix] = is_disabled(group[ix]);
+        bits[ix] = is_disabled(group[ix]);
       }
-      return v;
+      return bits;
     }
   };
 

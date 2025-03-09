@@ -11,7 +11,6 @@
 #include "mock/core/clock/clock_mock.hpp"
 #include "primitives/transaction.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::clock::SystemClock;
 using kagome::clock::SystemClockMock;

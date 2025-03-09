@@ -72,6 +72,7 @@ using kagome::primitives::events::ChainEventType;
 using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::events::ChainSubscriptionEnginePtr;
 using kagome::runtime::BeefyApiMock;
+using kagome::scale::encode;
 using kagome::storage::InMemorySpacedStorage;
 using testing::_;
 using testing::Return;
@@ -441,8 +442,7 @@ TEST_F(BeefyTest, beefy_importing_justifications) {
             .value();
     peer.beefy_->onJustification(
         blocks_[block_number].hash(),
-        {Buffer{scale::encode(
-                    BeefyJustification{SignedCommitment{commitment, {sig}}})
+        {Buffer{encode(BeefyJustification{SignedCommitment{commitment, {sig}}})
                     .value()}});
   };
   EXPECT_EQ(peer.beefy_->finalized(), 0);

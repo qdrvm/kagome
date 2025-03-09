@@ -10,7 +10,6 @@
 #include <cstdint>
 #include <optional>
 
-#include "scale/tie.hpp"
 #include "scale/tie_hash.hpp"
 
 namespace kagome {
@@ -19,7 +18,6 @@ namespace kagome {
    * allow it to grow dynamically.
    */
   struct HeapAllocStrategyDynamic {
-    SCALE_TIE(1);
     SCALE_TIE_HASH_BOOST(HeapAllocStrategyDynamic);
 
     /**
@@ -29,6 +27,8 @@ namespace kagome {
      * maximum limit supported by WASM (4GB).
      */
     std::optional<uint32_t> maximum_pages;
+
+    bool operator==(const HeapAllocStrategyDynamic &other) const = default;
   };
   /**
    * Allocate a static number of heap pages.
@@ -36,7 +36,6 @@ namespace kagome {
    * pages requested by the wasm file plus the `extra_pages`.
    */
   struct HeapAllocStrategyStatic {
-    SCALE_TIE(1);
     SCALE_TIE_HASH_BOOST(HeapAllocStrategyStatic);
 
     /**
@@ -44,6 +43,8 @@ namespace kagome {
      * requested by the wasm file.
      */
     uint32_t extra_pages;
+
+    bool operator==(const HeapAllocStrategyStatic &other) const = default;
   };
   /**
    * Defines the heap pages allocation strategy the wasm runtime should use.

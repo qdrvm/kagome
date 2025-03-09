@@ -8,7 +8,7 @@
 
 #include "common/buffer.hpp"
 #include "outcome/outcome.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::crypto {
 
@@ -38,19 +38,11 @@ namespace kagome::crypto {
 
     constexpr auto operator<=>(const KeyType &other) const = default;
 
-    friend inline ::scale::ScaleEncoderStream &operator<<(
-        ::scale::ScaleEncoderStream &s, const KeyType &v) {
-      return s << v.id_;
-    }
-
-    friend inline ::scale::ScaleDecoderStream &operator>>(
-        ::scale::ScaleDecoderStream &s, KeyType &v) {
-      return s >> v.id_;
-    }
-
     std::string toString() const {
       return {reinterpret_cast<const char *>(&id_), 4};
     }
+
+    SCALE_CUSTOM_DECOMPOSITION(KeyType, id_);
 
    private:
     uint32_t id_{0};

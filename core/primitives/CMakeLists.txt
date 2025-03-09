@@ -11,7 +11,6 @@ add_library(primitives
     inherent_data.cpp
     token_error.cpp
     transaction_validity.cpp
-    version.cpp
 )
 
 target_link_libraries(primitives

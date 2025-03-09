@@ -25,8 +25,6 @@ namespace kagome::consensus::beefy {
   using MmrRootHash = common::Hash256;
 
   struct ValidatorSet {
-    SCALE_TIE(2);
-
     std::vector<crypto::EcdsaPublicKey> validators;
     AuthoritySetId id = 0;
 
@@ -49,16 +47,13 @@ namespace kagome::consensus::beefy {
   constexpr PayloadId kMmr{{'m', 'h'}};
 
   struct Commitment {
-    SCALE_TIE(3);
-
     std::vector<std::pair<PayloadId, common::Buffer>> payload;
     primitives::BlockNumber block_number;
     AuthoritySetId validator_set_id;
+    bool operator==(const Commitment &other) const = default;
   };
 
   struct VoteMessage {
-    SCALE_TIE(3);
-
     Commitment commitment;
     crypto::EcdsaPublicKey id;
     crypto::EcdsaSignature signature;
@@ -68,9 +63,9 @@ namespace kagome::consensus::beefy {
     Commitment commitment;
     std::vector<std::optional<crypto::EcdsaSignature>> signatures;
   };
-  inline ::scale::ScaleEncoderStream &operator<<(::scale::ScaleEncoderStream &s,
-                                                 const SignedCommitment &v) {
-    s << v.commitment;
+
+  inline void encode(const SignedCommitment &v, scale::Encoder &encoder) {
+    encode(v.commitment, encoder);
     size_t count = 0;
     common::Buffer bits;
     // https://github.com/paritytech/substrate/blob/55bb6298e74d86be12732fd0f120185ee8fbfe97/primitives/consensus/beefy/src/commitment.rs#L149-L152
@@ -83,21 +78,20 @@ namespace kagome::consensus::beefy {
       }
       ++i;
     }
-    s << bits;
-    s << static_cast<uint32_t>(v.signatures.size());
-    s << ::scale::CompactInteger{count};
+    encode(bits, encoder);
+    encode(static_cast<uint32_t>(v.signatures.size()), encoder);
+    encode(scale::as_compact(count), encoder);
     for (auto &sig : v.signatures) {
       if (sig) {
-        s << *sig;
+        encode(*sig, encoder);
       }
     }
-    return s;
   }
-  inline ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
-                                                 SignedCommitment &v) {
-    s >> v.commitment;
+
+  inline void decode(SignedCommitment &v, scale::Decoder &decoder) {
+    decode(v.commitment, decoder);
     common::Buffer bits;
-    s >> bits;
+    decode(bits, decoder);
     size_t expected_count = 0;
     for (auto byte : bits) {
       for (; byte; byte >>= 1) {
@@ -105,22 +99,21 @@ namespace kagome::consensus::beefy {
       }
     }
     uint32_t total = 0;
-    s >> total;
+    decode(total, decoder);
     if (bits.size() * 8 < total) {
-      ::scale::raise(::scale::DecodeError::NOT_ENOUGH_DATA);
+      scale::raise(scale::DecodeError::NOT_ENOUGH_DATA);
     }
-    ::scale::CompactInteger actual_count;
-    s >> actual_count;
+    size_t actual_count;  // NOLINT(cppcoreguidelines-init-variables)
+    decode(scale::as_compact(actual_count), decoder);
     if (actual_count != expected_count) {
-      ::scale::raise(::scale::DecodeError::TOO_MANY_ITEMS);
+      scale::raise(scale::DecodeError::TOO_MANY_ITEMS);
     }
     v.signatures.resize(total);
     for (size_t i = 0; i < total; ++i) {
       if ((bits[i / 8] & (1 << (7 - i % 8))) != 0) {
-        s >> v.signatures[i].emplace();
+        decode(v.signatures[i].emplace(), decoder);
       }
     }
-    return s;
   }
 
   using BeefyJustification = boost::variant<Unused<0>, SignedCommitment>;
@@ -128,8 +121,6 @@ namespace kagome::consensus::beefy {
   using BeefyGossipMessage = boost::variant<VoteMessage, BeefyJustification>;
 
   struct DoubleVotingProof {
-    SCALE_TIE(2);
-
     VoteMessage first;
     VoteMessage second;
   };

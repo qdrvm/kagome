@@ -9,7 +9,6 @@
 #include <optional>
 
 #include "common/buffer.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::primitives {
 
@@ -22,8 +21,7 @@ namespace kagome::primitives {
    * @brief Extrinsic class represents extrinsic
    */
   struct Extrinsic {
-    SCALE_TIE(1);
-
     common::Buffer data;  ///< extrinsic content as byte array
+    bool operator==(const Extrinsic &other) const = default;
   };
 }  // namespace kagome::primitives

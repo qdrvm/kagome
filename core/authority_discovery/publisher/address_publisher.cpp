@@ -172,7 +172,7 @@ namespace kagome::authority_discovery {
       PB_SPAN_ADD(record, addresses, address.getBytesAddress());
     }
     if (now) {
-      TimestampScale time{now->count()};
+      Timestamp time{now->count()};
       OUTCOME_TRY(encoded_time, scale::encode(time));
       PB_SPAN_SET(*record.mutable_creation_time(), timestamp, encoded_time);
     }

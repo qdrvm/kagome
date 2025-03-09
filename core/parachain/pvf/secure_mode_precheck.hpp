@@ -10,7 +10,6 @@
 
 #include "parachain/pvf/secure_mode.hpp"
 #include "qtils/outcome.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::parachain {
 
@@ -19,8 +18,6 @@ namespace kagome::parachain {
    * platform
    */
   struct SecureModeSupport {
-    SCALE_TIE(4);
-
     // The filesystem root of the PVF process can be set to the worker directory
     bool chroot;
 

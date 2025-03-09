@@ -20,7 +20,9 @@ namespace kagome::telemetry {
       OnConnectedCallback callback,
       std::shared_ptr<MessagePool> message_pool,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
-      : io_context_{std::move(io_context)},
+      : log_(log::createLogger(
+          "TelemetryConnection#" + std::to_string(++instance_), "telemetry")),
+        io_context_{std::move(io_context)},
         endpoint_{std::move(endpoint)},
         callback_{std::move(callback)},
         message_pool_{std::move(message_pool)},
@@ -29,10 +31,7 @@ namespace kagome::telemetry {
     BOOST_ASSERT(io_context_);
     BOOST_ASSERT(message_pool_);
     BOOST_ASSERT(scheduler_);
-    auto instance_number = std::to_string(++instance_);
     queue_.set_capacity(message_pool_->capacity());
-    log_ = log::createLogger("TelemetryConnection#" + instance_number,
-                             "telemetry");
   }
 
   void TelemetryConnectionImpl::connect() {
@@ -158,9 +157,9 @@ namespace kagome::telemetry {
   boost::beast::lowest_layer_type<TelemetryConnectionImpl::SslStream> &
   TelemetryConnectionImpl::stream_lowest_layer() {
     return secure_ ? boost::beast::get_lowest_layer(
-                         *boost::relaxed_get<WsSslStreamPtr>(ws_))
+               *boost::relaxed_get<WsSslStreamPtr>(ws_))
                    : boost::beast::get_lowest_layer(
-                         *boost::relaxed_get<WsTcpStreamPtr>(ws_));
+                       *boost::relaxed_get<WsTcpStreamPtr>(ws_));
   }
 
   template <typename WsStreamT>

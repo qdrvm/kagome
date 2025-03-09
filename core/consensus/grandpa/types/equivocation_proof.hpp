@@ -12,7 +12,6 @@
 #include "consensus/grandpa/types/authority.hpp"
 #include "consensus/grandpa/vote_types.hpp"
 #include "primitives/block_header.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::consensus::grandpa {
 
@@ -58,13 +57,16 @@ namespace kagome::consensus::grandpa {
       return round_number;
     }
 
-    friend scale::ScaleEncoderStream &operator<<(
-        scale::ScaleEncoderStream &s, const Equivocation &equivocation) {
-      return s << equivocation.stage << equivocation.round_number
-               << equivocation.first.id << equivocation.first.getBlockInfo()
-               << equivocation.first.signature
-               << equivocation.second.getBlockInfo()
-               << equivocation.second.signature;
+    friend void encode(const Equivocation &equivocation,
+                       scale::Encoder &encoder) {
+      encode(std::tie(equivocation.stage,
+                      equivocation.round_number,
+                      equivocation.first.id),
+             encoder);
+      encode(equivocation.first.getBlockInfo(), encoder);
+      encode(equivocation.first.signature, encoder);
+      encode(equivocation.second.getBlockInfo(), encoder);
+      encode(equivocation.second.signature, encoder);
     }
   };
 
@@ -73,10 +75,9 @@ namespace kagome::consensus::grandpa {
   /// prevote or precommit stage) for different blocks. Proving is achieved
   /// by collecting the signed messages of conflicting votes.
   struct EquivocationProof {
-    SCALE_TIE(2);
-
     AuthoritySetId set_id;
     Equivocation equivocation;
+    SCALE_CUSTOM_DECOMPOSITION(EquivocationProof, set_id, equivocation)
   };
 
 }  // namespace kagome::consensus::grandpa

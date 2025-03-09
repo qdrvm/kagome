@@ -52,7 +52,7 @@ namespace kagome::parachain {
 
     std::map<ValidatorIndex, SignedBitfield> selected;
     for (const auto &bf : it->second) {
-      if (bf.payload.payload.bits.size() != cores.size()) {
+      if (bf.payload.payload.size() != cores.size()) {
         logger_->warn(
             "dropping bitfield due to length mismatch.(relay parent={})",
             relay_parent);
@@ -70,7 +70,7 @@ namespace kagome::parachain {
             continue;
           }
 
-          if (bf.payload.payload.bits[ix]) {
+          if (bf.payload.payload[ix]) {
             SL_INFO(logger_,
                     "dropping invalid bitfield - bit is set for an unoccupied "
                     "core.(relay_parent={})",

@@ -18,14 +18,14 @@
 #include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/module.hpp"
 #include "runtime/wavm/module_params.hpp"
+#include "scale/kagome_scale.hpp"
 #include "utils/read_file.hpp"
 #include "utils/write_file.hpp"
 
 namespace kagome::runtime::wavm {
   struct Compiled {
-    SCALE_TIE(2);
-
-    Buffer wasm, compiled;
+    Buffer wasm;
+    Buffer compiled;
   };
 
   static thread_local std::shared_ptr<Compiled> loading;

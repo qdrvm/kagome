@@ -8,7 +8,6 @@
 
 #include "common/buffer.hpp"
 #include "primitives/common.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::primitives {
   enum class MmrError : uint8_t {
@@ -30,8 +29,6 @@ namespace kagome::primitives {
   using MmrLeaves = std::vector<common::Buffer>;
 
   struct MmrProof {
-    SCALE_TIE(3);
-
     std::vector<uint64_t> leaf_indices;
     uint64_t leaf_count;
     std::vector<common::Hash256> items;

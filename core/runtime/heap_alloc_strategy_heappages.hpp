@@ -7,6 +7,7 @@
 #pragma once
 
 #include "runtime/heap_alloc_strategy.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/buffer_map_types.hpp"
 #include "storage/predefined_keys.hpp"
 

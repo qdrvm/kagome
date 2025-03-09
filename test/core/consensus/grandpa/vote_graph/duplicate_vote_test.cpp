@@ -38,7 +38,7 @@ TEST_F(VoteGraphFixture, DuplicateVote) {
 
   expect_getAncestry(
       GENESIS_HASH, "C"_H, vec("C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {3, "C"_H}, voter));
+  EXPECT_OUTCOME_SUCCESS(graph->insert(vt, {3, "C"_H}, voter));
 
   AssertGraphCorrect(*graph, R"(
         {
@@ -74,7 +74,7 @@ TEST_F(VoteGraphFixture, DuplicateVote) {
 
   expect_getAncestry(
       GENESIS_HASH, "D"_H, vec("D"_H, "C"_H, "B"_H, "A"_H, GENESIS_HASH));
-  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {4, "D"_H}, voter));
+  EXPECT_OUTCOME_SUCCESS(graph->insert(vt, {4, "D"_H}, voter));
 
   // WHEN.1
 
@@ -120,7 +120,7 @@ TEST_F(VoteGraphFixture, DuplicateVote) {
 
   // WHEN.2
 
-  EXPECT_OUTCOME_TRUE_1(graph->insert(vt, {3, "C"_H}, voter));
+  EXPECT_OUTCOME_SUCCESS(graph->insert(vt, {3, "C"_H}, voter));
 
   // THEN.2
 

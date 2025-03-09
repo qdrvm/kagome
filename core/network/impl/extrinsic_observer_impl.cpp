@@ -13,7 +13,8 @@ namespace kagome::network {
 
   ExtrinsicObserverImpl::ExtrinsicObserverImpl(
       std::shared_ptr<kagome::transaction_pool::TransactionPool> pool)
-      : pool_(std::move(pool)) {
+      : logger_(log::createLogger("ExtrinsicObserver", "network")),
+        pool_(std::move(pool)) {
     BOOST_ASSERT(pool_);
   }
 
