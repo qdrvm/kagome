@@ -178,6 +178,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
+      platforms: ${{ steps.extract-platforms.outputs.platforms }}
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
@@ -190,6 +191,12 @@ jobs:
           run_arm64: ${{ env.RUN_ARM64 }}
           amd64_runner: '"actions-runner-controller"'
           arm64_runner: '["self-hosted","qdrvm-arm64"]'
+      
+      - name: "Extract platforms for cartesian product"
+        id: extract-platforms
+        run: |
+          platforms=$(echo '${{ steps.matrix.outputs.matrix }}' | jq -c '.include | map({platform: .platform, runs_on: .runs_on})')
+          echo "platforms=$platforms" >> $GITHUB_OUTPUT
 
   zombie_tests:
     timeout-minutes: 60
@@ -197,7 +204,8 @@ jobs:
     if: always() && (needs.check_package_exists.outputs.package_exists == 'true' || needs.kagome_dev_docker_build.result == 'success')
     strategy:
       fail-fast: false
-      matrix: 
+      matrix:
+        platform_config: ${{ fromJSON(needs.setup_matrix.outputs.platforms) }}
         scenario: [
           { name: "0001 PVF preparation & execution time", test: "test-polkadot-functional-0001-parachains-pvf" },
           { name: "0003 BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute", test: "test-polkadot-functional-0003-beefy-and-mmr" },
@@ -218,13 +226,12 @@ jobs:
         #    test: "test-polkadot-functional-0006-parachains-max-tranche0"
         #  - name: "Test validator disabling effects"
         #    test: "test-polkadot-functional-0010-validator-disabling"
-        include: ${{ fromJSON(needs.setup_matrix.outputs.matrix).include }}
 
-    runs-on: ${{ matrix.runs_on }}
+    runs-on: ${{ matrix.platform_config.runs_on }}
     
     env:
-      PLATFORM: ${{ matrix.platform }}
-      ARCH: ${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+      PLATFORM: ${{ matrix.platform_config.platform }}
+      ARCH: ${{ matrix.platform_config.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
 
     steps:
       - name: "Checkout repository"
