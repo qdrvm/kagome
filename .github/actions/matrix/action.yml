@@ -1,0 +1,38 @@
+name: 'Setup Matrix'
+description: 'Dynamically configure the platform matrix'
+
+inputs:
+  run_amd64:
+    description: 'Run on AMD64 architecture'
+    required: false
+    default: 'true'
+  run_arm64:
+    description: 'Run on ARM64 architecture'
+    required: false
+    default: 'true'
+
+outputs:
+  matrix:
+    description: 'The generated matrix'
+    value: ${{ steps.set-matrix.outputs.matrix }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: set-matrix
+      shell: bash
+      run: |
+        PLATFORMS=()
+        if [[ "${{ inputs.run_amd64 }}" == "true" ]]; then
+          PLATFORMS+=("linux/amd64")
+        fi
+        if [[ "${{ inputs.run_arm64 }}" == "true" ]]; then
+          PLATFORMS+=("linux/arm64")
+        fi
+        if [[ ${#PLATFORMS[@]} -eq 0 ]]; then
+          echo "No platforms selected, defaulting to both"
+          PLATFORMS=("linux/amd64" "linux/arm64")
+        fi
+        
+        JSON=$(printf '{"platform":["%s"]}' "$(IFS='","'; echo "${PLATFORMS[*]}")")
+        echo "matrix=$JSON" >> $GITHUB_OUTPUT

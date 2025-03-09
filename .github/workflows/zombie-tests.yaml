@@ -49,6 +49,72 @@ on:
         default: '25.03.02-0.14.1-3fbf6c6'
         required: true
         type: 'string'
+      run_amd64:
+        description: 'Run tests on AMD64 architecture'
+        required: false
+        default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
+      run_arm64:
+        description: 'Run tests on ARM64 architecture'
+        required: false
+        default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
+
+  workflow_call:
+    inputs:
+      build_type:
+        type: string
+        default: 'Release'
+        required: false
+        description: 'Build type'
+      werror:
+        type: string
+        default: 'OFF'
+        required: false
+        description: 'Enable -Werror'
+      use_cache:
+        type: string
+        default: 'true'
+        required: false
+        description: 'Use cache for build'
+      builder_latest_tag:
+        type: string
+        default: 'latest'
+        required: false
+        description: 'Custom Builder tag'
+      zombie_tester_latest_tag:
+        type: string
+        default: 'latest'
+        required: false
+        description: 'Custom Zombie Tester tag'
+      runtime_package_version:
+        type: string
+        default: '25.03.02-0.14.1-3fbf6c6'
+        required: false
+        description: 'Custom runtime package version'
+      run_amd64:
+        type: string
+        default: 'true'
+        required: false
+        description: 'Run tests on AMD64 architecture'
+      run_arm64:
+        type: string
+        default: 'true'
+        required: false
+        description: 'Run tests on ARM64 architecture'
+    secrets:
+      GCP_SERVICE_ACCOUNT_KEY:
+        required: true
+      GCP_REGISTRY:
+        required: true
+      GCP_PROJECT:
+        required: true
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
@@ -61,6 +127,8 @@ env:
   BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || 'latest' }}
   TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
   RUNTIME_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.runtime_package_version || '25.03.02-0.14.1-3fbf6c6' }}
+  RUN_AMD64: ${{ github.event.inputs.run_amd64 || 'true' }}
+  RUN_ARM64: ${{ github.event.inputs.run_arm64 || 'true' }}
 
   BUILD_TYPE: ${{ github.event.inputs.build_type }}
 
@@ -99,38 +167,52 @@ jobs:
       build_debug: ${{ github.event.inputs.build_type == 'Debug' }}
       build_release: ${{ github.event.inputs.build_type == 'Release' }}
       build_relwithdebinfo: ${{ github.event.inputs.build_type == 'RelWithDebInfo' }}
-      build_amd64: true
-      build_arm64: true
+      build_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
+      build_arm64: ${{ github.event.inputs.run_arm64 || 'true' }}
       use_cache: ${{ github.event.inputs.use_cache }}
       builder_latest_tag: ${{ github.event.inputs.builder_latest_tag }}
       cache_upload_allowed: false
     secrets: inherit
 
+  setup_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Generate matrix"
+        id: matrix
+        uses: ./.github/actions/matrix
+        with:
+          run_amd64: ${{ env.RUN_AMD64 }}
+          run_arm64: ${{ env.RUN_ARM64 }}
+
   zombie_tests:
     timeout-minutes: 60
-    needs: [check_package_exists, kagome_dev_docker_build]
+    needs: [check_package_exists, kagome_dev_docker_build, setup_matrix]
     if: always() && (needs.check_package_exists.outputs.package_exists == 'true' || needs.kagome_dev_docker_build.result == 'success')
     strategy:
       fail-fast: false
-      matrix:
-        platform: ["linux/amd64", "linux/arm64"]
-        options:
-          - name: "0001 PVF preparation & execution time"
-            test: "test-polkadot-functional-0001-parachains-pvf"
-          - name: "0003 BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
-            test: "test-polkadot-functional-0003-beefy-and-mmr"
-          - name: "0007 Test if disputes triggered on finalized blocks within scope always end as valid"
-            test: "test-polkadot-functional-0007-dispute-freshly-finalized"
-          - name: "0008 Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
-            test: "test-polkadot-functional-0008-dispute-old-finalized"
-          - name: "0009 Approval voting coalescing does not lag finality"
-            test: "test-polkadot-functional-0009-approval-voting-coalescing"
-          - name: "0011 Test we are producing blocks at 6 seconds clip"
-            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
-          - name: "0013 Systematic chunk recovery is used if the chunk mapping feature is enabled."
-            test: "test-polkadot-functional-0013-systematic-chunk-recovery"
-          - name: "c0001 Warp sync from polkadot node"
-            test: "test-custom-0001-validators-warp-sync"
+      matrix: ${{ fromJSON(needs.setup_matrix.outputs.matrix) }}
+      options:
+        - name: "0001 PVF preparation & execution time"
+          test: "test-polkadot-functional-0001-parachains-pvf"
+        - name: "0003 BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
+          test: "test-polkadot-functional-0003-beefy-and-mmr"
+        - name: "0007 Test if disputes triggered on finalized blocks within scope always end as valid"
+          test: "test-polkadot-functional-0007-dispute-freshly-finalized"
+        - name: "0008 Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
+          test: "test-polkadot-functional-0008-dispute-old-finalized"
+        - name: "0009 Approval voting coalescing does not lag finality"
+          test: "test-polkadot-functional-0009-approval-voting-coalescing"
+        - name: "0011 Test we are producing blocks at 6 seconds clip"
+          test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
+        - name: "0013 Systematic chunk recovery is used if the chunk mapping feature is enabled."
+          test: "test-polkadot-functional-0013-systematic-chunk-recovery"
+        - name: "c0001 Warp sync from polkadot node"
+          test: "test-custom-0001-validators-warp-sync"
 ##          - name: "Disputes initiation, conclusion and lag"
 ##            test: "test-polkadot-functional-0002-parachains-disputes"
 ##          - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
@@ -170,7 +252,7 @@ jobs:
 #          sudo swapon --show
 #          free -h
 #          df -h
-        
+
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
         with:
