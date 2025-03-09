@@ -195,34 +195,35 @@ jobs:
     if: always() && (needs.check_package_exists.outputs.package_exists == 'true' || needs.kagome_dev_docker_build.result == 'success')
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.setup_matrix.outputs.matrix) }}
-      options:
-        - name: "0001 PVF preparation & execution time"
-          test: "test-polkadot-functional-0001-parachains-pvf"
-        - name: "0003 BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
-          test: "test-polkadot-functional-0003-beefy-and-mmr"
-        - name: "0007 Test if disputes triggered on finalized blocks within scope always end as valid"
-          test: "test-polkadot-functional-0007-dispute-freshly-finalized"
-        - name: "0008 Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
-          test: "test-polkadot-functional-0008-dispute-old-finalized"
-        - name: "0009 Approval voting coalescing does not lag finality"
-          test: "test-polkadot-functional-0009-approval-voting-coalescing"
-        - name: "0011 Test we are producing blocks at 6 seconds clip"
-          test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
-        - name: "0013 Systematic chunk recovery is used if the chunk mapping feature is enabled."
-          test: "test-polkadot-functional-0013-systematic-chunk-recovery"
-        - name: "c0001 Warp sync from polkadot node"
-          test: "test-custom-0001-validators-warp-sync"
-##          - name: "Disputes initiation, conclusion and lag"
-##            test: "test-polkadot-functional-0002-parachains-disputes"
-##          - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
-##            test: "test-polkadot-functional-0004-parachains-garbage-candidate"
-##          - name: "Past-session dispute slashing"
-##            test: "test-polkadot-functional-0005-parachains-disputes-past-session"
-##          - name: "Test if parachains make progress with most of approvals being tranch0"
-##            test: "test-polkadot-functional-0006-parachains-max-tranche0"
-##          - name: "Test validator disabling effects"
-##            test: "test-polkadot-functional-0010-validator-disabling"
+      matrix:
+        platform: ${{ fromJSON(needs.setup_matrix.outputs.matrix).platform }}
+        scenario:
+          - name: "0001 PVF preparation & execution time"
+            test: "test-polkadot-functional-0001-parachains-pvf"
+          - name: "0003 BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
+            test: "test-polkadot-functional-0003-beefy-and-mmr"
+          - name: "0007 Test if disputes triggered on finalized blocks within scope always end as valid"
+            test: "test-polkadot-functional-0007-dispute-freshly-finalized"
+          - name: "0008 Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
+            test: "test-polkadot-functional-0008-dispute-old-finalized"
+          - name: "0009 Approval voting coalescing does not lag finality"
+            test: "test-polkadot-functional-0009-approval-voting-coalescing"
+          - name: "0011 Test we are producing blocks at 6 seconds clip"
+            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
+          - name: "0013 Systematic chunk recovery is used if the chunk mapping feature is enabled."
+            test: "test-polkadot-functional-0013-systematic-chunk-recovery"
+          - name: "c0001 Warp sync from polkadot node"
+            test: "test-custom-0001-validators-warp-sync"
+          ##          - name: "Disputes initiation, conclusion and lag"
+          ##            test: "test-polkadot-functional-0002-parachains-disputes"
+          ##          - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
+          ##            test: "test-polkadot-functional-0004-parachains-garbage-candidate"
+          ##          - name: "Past-session dispute slashing"
+          ##            test: "test-polkadot-functional-0005-parachains-disputes-past-session"
+          ##          - name: "Test if parachains make progress with most of approvals being tranch0"
+          ##            test: "test-polkadot-functional-0006-parachains-max-tranche0"
+          ##          - name: "Test validator disabling effects"
+          ##            test: "test-polkadot-functional-0010-validator-disabling"
         include:
           - platform: "linux/amd64"
             runs_on: [ "actions-runner-controller" ]
@@ -231,7 +232,7 @@ jobs:
             runs_on: [ "self-hosted", "qdrvm-arm64" ]
             #runs_on: ubuntu-24.04-arm
 
-    runs-on: ${{ matrix.runs_on }}
+    runs-on: ${{ matrix.platform == 'linux/amd64' && 'actions-runner-controller' || 'self-hosted' }}
     
     env:
       PLATFORM: ${{ matrix.platform }}
@@ -284,14 +285,14 @@ jobs:
       - name: "Run test"
         working-directory: ./zombienet/docker
         run: |
-          make ${{ matrix.options.test }} \
+          make ${{ matrix.scenario.test }} \
             KAGOME_PACKAGE_VERSION=${{ env.kagome_package_version }}
         
       - name: "Upload test logs as artifact"
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logs-${{ env.ARCH }}-${{ matrix.options.test }}
+          name: logs-${{ env.ARCH }}-${{ matrix.scenario.test }}
           path: /tmp/test_logs
 
       - name: "Clean Logs"
