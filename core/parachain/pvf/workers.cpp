@@ -10,21 +10,35 @@
 #include <boost/process.hpp>
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/asio_buffer.hpp>
+#include <libp2p/common/final_action.hpp>
 #include <qtils/option_take.hpp>
 
 #include "application/app_configuration.hpp"
 #include "common/main_thread_pool.hpp"
+#include "coro/asio.hpp"
+#include "coro/spawn.hpp"
 #include "filesystem/common.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "utils/get_exe_path.hpp"
 #include "utils/weak_macro.hpp"
+
+// NOLINTBEGIN(cppcoreguidelines-avoid-reference-coroutine-parameters)
 
 namespace kagome::parachain {
   using unix = boost::asio::local::stream_protocol;
 
   constexpr auto kMetricQueueSize = "kagome_pvf_queue_size";
 
-  struct ProcessAndPipes : std::enable_shared_from_this<ProcessAndPipes> {
+  inline outcome::result<void> tryRemove(const std::filesystem::path &path) {
+    std::error_code ec;
+    std::filesystem::remove(path, ec);
+    if (ec) {
+      return ec;
+    }
+    return outcome::success();
+  }
+
+  struct ProcessAndPipes {
     boost::process::child process;
     std::optional<unix::socket> socket;
     std::shared_ptr<Buffer> writing = std::make_shared<Buffer>();
@@ -50,62 +64,32 @@ namespace kagome::parachain {
           } {
     }
 
-    void write(Buffer data, auto cb) {
-      auto len = std::make_shared<common::Buffer>(
-          scale::encode<uint32_t>(data.size()).value());
-      *writing = std::move(data);
-      boost::asio::async_write(
-          *socket,
-          libp2p::asioBuffer(*len),
-          [WEAK_SELF, cb, len](boost::system::error_code ec, size_t) mutable {
-            WEAK_LOCK(self);
-            if (ec) {
-              return cb(ec);
-            }
-            boost::asio::async_write(
-                *self->socket,
-                libp2p::asioBuffer(*self->writing),
-                [weak_self, cb](boost::system::error_code ec, size_t) mutable {
-                  WEAK_LOCK(self);
-                  if (ec) {
-                    return cb(ec);
-                  }
-                  cb(outcome::success());
-                });
-          });
+    void close() {
+      boost::system::error_code ec;
+      process.terminate(ec);
+      socket.reset();
     }
 
-    void writeScale(const auto &v, auto cb) {
-      write(scale::encode(v).value(), std::move(cb));
+    CoroOutcome<void> write(Buffer data) {
+      auto len = scale::encode<uint32_t>(data.size()).value();
+      CO_TRY(co_await coroWrite(*socket, len));
+      CO_TRY(co_await coroWrite(*socket, data));
+      co_return outcome::success();
     }
 
-    void read(auto cb) {
-      auto len = std::make_shared<common::Blob<sizeof(uint32_t)>>();
-      boost::asio::async_read(
-          *socket,
-          libp2p::asioBuffer(*len),
-          [WEAK_SELF, cb{std::move(cb)}, len](boost::system::error_code ec,
-                                              size_t) mutable {
-            WEAK_LOCK(self);
-            if (ec) {
-              return cb(ec);
-            }
-            auto len_res = scale::decode<uint32_t>(*len);
-            if (len_res.has_error()) {
-              return cb(len_res.error());
-            }
-            self->reading->resize(len_res.value());
-            boost::asio::async_read(
-                *self->socket,
-                libp2p::asioBuffer(*self->reading),
-                [cb{std::move(cb)}, reading{self->reading}](
-                    boost::system::error_code ec, size_t) mutable {
-                  if (ec) {
-                    return cb(ec);
-                  }
-                  cb(std::move(*reading));
-                });
-          });
+    CoroOutcome<void> writeScale(const auto &v) {
+      CO_TRY(co_await write(scale::encode(v).value()));
+      co_return outcome::success();
+    }
+
+    CoroOutcome<Buffer> read() {
+      common::Blob<sizeof(uint32_t)> len_buf;
+      CO_TRY(co_await coroRead(*socket, len_buf));
+      auto len = CO_TRY(scale::decode<uint32_t>(len_buf));
+      Buffer buf;
+      buf.resize(len);
+      CO_TRY(co_await coroRead(*socket, buf));
+      co_return buf;
     }
   };
 
@@ -138,74 +122,86 @@ namespace kagome::parachain {
   }
 
   void PvfWorkers::execute(Job &&job) {
-    REINVOKE(*main_pool_handler_, execute, std::move(job));
-    if (free_.empty()) {
-      if (used_ >= max_) {
-        auto &queue = queues_[job.kind];
-        queue.emplace_back(std::move(job));
-        metric_queue_size_.at(job.kind)->set(queue.size());
-        return;
-      }
-      auto used = std::make_shared<Used>(*this);
-      ProcessAndPipes::Config config{};
-#if defined(__linux__) && defined(KAGOME_WITH_ASAN)
-      config.disable_lsan = !worker_config_.force_disable_secure_mode;
-#endif
-      auto unix_socket_path = filesystem::unique_path(
-          std::filesystem::path{worker_config_.cache_dir}
-          / "unix_socket.%%%%%%");
-      std::error_code ec;
-      std::filesystem::remove(unix_socket_path, ec);
-      if (ec) {
-        return job.cb(ec);
-      }
-      auto acceptor = std::make_shared<unix::acceptor>(
-          *io_context_, unix_socket_path.native());
-      auto process = std::make_shared<ProcessAndPipes>(
-          *io_context_, exe_, unix_socket_path, config);
-      acceptor->async_accept([WEAK_SELF,
-                              job{std::move(job)},
-                              used,
-                              unix_socket_path,
-                              acceptor,
-                              process{std::move(process)}](
-                                 boost::system::error_code ec,
-                                 unix::socket &&socket) mutable {
-        std::error_code ec2;
-        std::filesystem::remove(unix_socket_path, ec2);
-        WEAK_LOCK(self);
-        if (ec) {
-          return job.cb(ec);
-        }
-        process->socket = std::move(socket);
-        process->writeScale(
-            self->worker_config_,
-            [weak_self, job{std::move(job)}, used{std::move(used)}, process](
-                outcome::result<void> r) mutable {
-              WEAK_LOCK(self);
-              if (not r) {
-                return job.cb(r.error());
-              }
-              self->writeCode(std::move(job),
-                              {.process = std::move(process)},
-                              std::move(used));
-            });
-      });
-      return;
-    }
-    findFree(std::move(job));
+    coroSpawn(
+        io_context_->get_executor(),
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-capturing-lambda-coroutines)
+        [self{shared_from_this()}, job{std::move(job)}]() mutable
+        -> Coro<void> { co_await self->tryExecute(std::move(job)); });
   }
 
-  void PvfWorkers::findFree(Job &&job) {
+  Coro<void> PvfWorkers::tryExecute(Job &&job) {
+    auto worker = findFree(job);
+    if (not worker and used_ >= max_) {
+      auto kind = job.kind;
+      auto &queue = queues_[kind];
+      queue.emplace_back(std::move(job));
+      metric_queue_size_.at(kind)->set(queue.size());
+      co_return;
+    }
+    auto r = co_await execute(worker, job);
+    if (not r and worker) {
+      worker->process->close();
+    }
+    job.cb(r);
+  }
+
+  CoroOutcome<Buffer> PvfWorkers::execute(std::optional<Worker> &worker,
+                                          const Job &job) {
+    Used used{*this};
+    if (not worker) {
+      worker = CO_TRY(co_await newWorker());
+    }
+    if (worker->code_params != job.code_params) {
+      worker->code_params = job.code_params;
+      CO_TRY(co_await worker->process->writeScale(
+          PvfWorkerInput{job.code_params}));
+    }
+    auto timeout = scheduler_->scheduleWithHandle(
+        [process{worker->process}]() mutable { process->close(); },
+        job.timeout);
+    CO_TRY(co_await worker->process->writeScale(PvfWorkerInput{job.args}));
+    auto output = CO_TRY(co_await worker->process->read());
+    free_.emplace_back(std::move(*worker));
+    dequeue();
+    co_return output;
+  }
+
+  std::optional<PvfWorkers::Worker> PvfWorkers::findFree(const Job &job) {
     auto it = std::ranges::find_if(free_, [&](const Worker &worker) {
       return worker.code_params == job.code_params;
     });
     if (it == free_.end()) {
       it = free_.begin();
     }
+    if (it == free_.end()) {
+      return std::nullopt;
+    }
     auto worker = std::move(*it);
     free_.erase(it);
-    writeCode(std::move(job), std::move(worker), std::make_shared<Used>(*this));
+    return std::move(worker);
+  }
+
+  CoroOutcome<PvfWorkers::Worker> PvfWorkers::newWorker() {
+    ProcessAndPipes::Config config{};
+#if defined(__linux__) && defined(KAGOME_WITH_ASAN)
+    config.disable_lsan = !worker_config_.force_disable_secure_mode;
+#endif
+    auto unix_socket_path = filesystem::unique_path(
+        std::filesystem::path{worker_config_.cache_dir} / "unix_socket.%%%%%%");
+    CO_TRY(tryRemove(unix_socket_path));
+    auto executor = co_await boost::asio::this_coro::executor;
+    unix::acceptor acceptor{executor, unix_socket_path.native()};
+    auto cleanup = std::make_optional(libp2p::common::MovableFinalAction{[&] {
+      acceptor.close();
+      std::ignore = tryRemove(unix_socket_path);
+    }});
+    auto process = std::make_shared<ProcessAndPipes>(
+        *io_context_, exe_, unix_socket_path, config);
+    process->socket =
+        CO_TRY(coroOutcome(co_await acceptor.async_accept(useCoroOutcome)));
+    cleanup.reset();
+    CO_TRY(co_await process->writeScale(worker_config_));
+    co_return Worker{.process = std::move(process)};
   }
 
   PvfWorkers::Used::Used(PvfWorkers &self) : weak_self{self.weak_from_this()} {
@@ -218,60 +214,6 @@ namespace kagome::parachain {
     }
   }
 
-  void PvfWorkers::writeCode(Job &&job,
-                             Worker &&worker,
-                             std::shared_ptr<Used> &&used) {
-    if (worker.code_params == job.code_params) {
-      call(std::move(job), std::move(worker), std::move(used));
-      return;
-    }
-    worker.code_params = job.code_params;
-    const PvfWorkerInput input = job.code_params;
-
-    worker.process->writeScale(
-        input,
-        [WEAK_SELF, job{std::move(job)}, worker, used{std::move(used)}](
-            outcome::result<void> r) mutable {
-          WEAK_LOCK(self);
-          if (not r) {
-            return job.cb(r.error());
-          }
-          self->call(std::move(job), std::move(worker), std::move(used));
-        });
-  }
-
-  void PvfWorkers::call(Job &&job,
-                        Worker &&worker,
-                        std::shared_ptr<Used> &&used) {
-    auto timeout = std::make_shared<libp2p::Cancel>();
-    auto cb_shared = std::make_shared<std::optional<Cb>>(
-        [WEAK_SELF, cb{std::move(job.cb)}, worker, used{std::move(used)}](
-            outcome::result<Buffer> r) mutable {
-          WEAK_LOCK(self);
-          cb(std::move(r));
-          if (not r) {
-            return;
-          }
-          self->free_.emplace_back(std::move(worker));
-          self->dequeue();
-        });
-    auto cb = [cb_shared, timeout](outcome::result<Buffer> r) mutable {
-      if (auto cb = qtils::optionTake(*cb_shared)) {
-        (*cb)(std::move(r));
-      }
-      timeout->reset();
-    };
-    *timeout = scheduler_->scheduleWithHandle(
-        [cb]() mutable { cb(std::errc::timed_out); }, job.timeout);
-    worker.process->writeScale(PvfWorkerInput{job.args},
-                               [cb](outcome::result<void> r) mutable {
-                                 if (not r) {
-                                   return cb(r.error());
-                                 }
-                               });
-    worker.process->read(std::move(cb));
-  }
-
   void PvfWorkers::dequeue() {
     for (auto &kind :
          {PvfExecTimeoutKind::Approval, PvfExecTimeoutKind::Backing}) {
@@ -282,7 +224,9 @@ namespace kagome::parachain {
       auto job = std::move(queue.front());
       queue.pop_front();
       metric_queue_size_.at(kind)->set(queue.size());
-      findFree(std::move(job));
+      execute(std::move(job));
     }
   }
 }  // namespace kagome::parachain
+
+// NOLINTEND(cppcoreguidelines-avoid-reference-coroutine-parameters)
