@@ -87,7 +87,6 @@ endif ()
 option(EXTERNAL_PROJECT "Build external project" ${_EXTERNAL_PROJECT_DEFAULT})
 
 set(WASM_COMPILER WasmEdge CACHE STRING "WebAssembly compiler built into Kagome: one of [WAVM, WasmEdge]")
-#set(WASM_COMPILER WAVM CACHE STRING "WebAssembly compiler built into Kagome: one of [WAVM, WasmEdge]")
 
 if (NOT ${WASM_COMPILER} MATCHES "^(WAVM|WasmEdge)$")
   fatal_error("WASM_COMPILER is set to ${WASM_COMPILER} but should be one of [WAVM, WasmEdge]")
@@ -99,7 +98,6 @@ option(LSAN "Enable leak sanitizer" OFF)
 option(MSAN "Enable memory sanitizer" OFF)
 option(TSAN "Enable thread sanitizer" OFF)
 option(UBSAN "Enable UB sanitizer" OFF)
-# cmake-format: on
 
 # useful for tests, an error message will be printed
 option(UBSAN_ABORT "Make UB sanitizer abort on error" OFF)
@@ -117,8 +115,6 @@ include(cmake/san.cmake)
 
 # setup compilation flags
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
-  # cmake-format: off
-
   # enable those flags
   add_flag(-fdiagnostics-show-template-tree)
 

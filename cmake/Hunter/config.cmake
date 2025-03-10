@@ -107,24 +107,8 @@ hunter_config(
 )
 
 hunter_config(
-    erasure_coding_crust
-    #VERSION 0.0.9
-    URL  https://github.com/qdrvm/erasure-coding-crust/archive/c975a1570fd5c947ba057e7dd8b4788c656ba3af.tar.gz
-    SHA1 a3ab8201c509b7d8397eea47b30a628c70b10bfc
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
     wabt
     URL https://github.com/qdrvm/wabt/archive/2e9d30c4a67c1b884a8162bf3f3a5a8585cfdb94.tar.gz
     SHA1 b5759660eb8ad3f074274341641e918f688868bd
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    "scale"
-    #VERSION "2.0.1"
-    URL  https://github.com/qdrvm/scale-codec-cpp/archive/888e1729bdda2eee3ba00916063728946680fb64.tar.gz
-    SHA1 7429c8a4ab692392aae946a03732f39114b75744
     KEEP_PACKAGE_SOURCES
 )
