@@ -39,15 +39,15 @@ namespace kagome::parachain {
                     const std::string &unix_socket_path,
                     const Config &config)
         : process{
-              exe,
-              boost::process::args({"pvf-worker", unix_socket_path}),
-              boost::process::env(boost::process::environment()),
+            exe,
+            boost::process::args({"pvf-worker", unix_socket_path}),
+            boost::process::env(boost::process::environment()),
 // LSAN doesn't work in secure mode
 #ifdef KAGOME_WITH_ASAN
-              boost::process::env["ASAN_OPTIONS"] =
-                  config.disable_lsan ? "detect_leaks=0" : "",
+            boost::process::env["ASAN_OPTIONS"] =
+                config.disable_lsan ? "detect_leaks=0" : "",
 #endif
-          } {
+        } {
     }
 
     void write(Buffer data, auto cb) {

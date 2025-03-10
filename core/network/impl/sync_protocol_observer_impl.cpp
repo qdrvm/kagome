@@ -189,12 +189,12 @@ namespace kagome::network {
           std::optional<primitives::BlockNumber> number;
           if (new_block.header) {
             number = new_block.header->number;
-          } else if (auto r = blocks_headers_->getNumberByHash(hash)) {
-            number = r.value();
+          } else if (auto res = blocks_headers_->getNumberByHash(hash)) {
+            number = res.value();
           }
           if (number) {
-            if (auto r = beefy_->getJustification(*number)) {
-              if (auto &opt = r.value()) {
+            if (auto res = beefy_->getJustification(*number)) {
+              if (auto &opt = res.value()) {
                 new_block.beefy_justification = primitives::Justification{
                     common::Buffer{scale::encode(*opt).value()},
                 };

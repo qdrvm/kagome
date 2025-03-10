@@ -12,6 +12,8 @@
 #include <random>
 #include <utility>
 
+#include <qtils/test/outcome.hpp>
+
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
@@ -30,7 +32,6 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::storage;
@@ -42,6 +43,7 @@ using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockInfo;
 using kagome::primitives::BlockNumber;
+using kagome::scale::encode;
 using testing::_;
 using testing::A;
 using testing::An;
@@ -177,7 +179,7 @@ class TriePrunerTest : public testing::Test {
 
     pruner_space = std::make_shared<testing::NiceMock<BufferStorageMock>>();
     trie_pruner::TriePrunerImpl::TriePrunerInfo info{.last_pruned_block = {}};
-    auto info_enc = scale::encode(info).value();
+    auto info_enc = encode(info).value();
     static auto key = ":trie_pruner:info"_buf;
     ON_CALL(*pruner_space, tryGetMock(key.view()))
         .WillByDefault(
@@ -210,7 +212,7 @@ class TriePrunerTest : public testing::Test {
     trie_pruner::TriePrunerImpl::TriePrunerInfo info{.last_pruned_block =
                                                          last_pruned};
 
-    auto info_enc = scale::encode(info).value();
+    auto info_enc = encode(info).value();
     static auto key = ":trie_pruner:info"_buf;
     ON_CALL(*pruner_space, tryGetMock(key.view()))
         .WillByDefault(
@@ -227,7 +229,7 @@ class TriePrunerTest : public testing::Test {
         std::make_shared<kagome::common::WorkerThreadPool>(
             kagome::TestThreadPool{}));
     BOOST_ASSERT(pruner->prepare());
-    ASSERT_OUTCOME_SUCCESS_TRY(pruner->recoverState(block_tree));
+    ASSERT_OUTCOME_SUCCESS(pruner->recoverState(block_tree));
   }
 
   auto makeTrie(const TrieNodeDesc &desc) const {
@@ -324,16 +326,14 @@ TEST_F(TriePrunerTest, BasicScenario) {
        "root1"_hash256,
        {{0, {NODE, "_0"_hash256, {}}}, {5, {NODE, "_5"_hash256, {}}}}});
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      pruner->addNewState(*trie, trie::StateVersion::V1));
+  ASSERT_OUTCOME_SUCCESS(pruner->addNewState(*trie, trie::StateVersion::V1));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
 
   auto trie_1 = makeTrie(
       {NODE,
        "root2"_hash256,
        {{0, {NODE, "_0"_hash256, {}}}, {5, {NODE, "_5"_hash256, {}}}}});
-  ASSERT_OUTCOME_SUCCESS_TRY(
-      pruner->addNewState(*trie_1, trie::StateVersion::V1));
+  ASSERT_OUTCOME_SUCCESS(pruner->addNewState(*trie_1, trie::StateVersion::V1));
   EXPECT_EQ(pruner->getTrackedNodesNum(), 4);
 
   EXPECT_CALL(*serializer_mock,
@@ -352,7 +352,7 @@ TEST_F(TriePrunerTest, BasicScenario) {
       .WillOnce(testing::Return(trie));
   BlockHeader header1{.number = 1, .state_root = "root1"_hash256};
   primitives::calculateBlockHash(header1, *hasher);
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  ASSERT_OUTCOME_SUCCESS(
       pruner->pruneFinalized(header1.state_root, header1.blockInfo()));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 3);
 
@@ -360,7 +360,7 @@ TEST_F(TriePrunerTest, BasicScenario) {
       .WillOnce(testing::Return(trie_1));
   BlockHeader header2{.number = 2, .state_root = "root2"_hash256};
   primitives::calculateBlockHash(header2, *hasher);
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  ASSERT_OUTCOME_SUCCESS(
       pruner->pruneFinalized(header2.state_root, header2.blockInfo()));
   ASSERT_EQ(pruner->getTrackedNodesNum(), 0);
 }
@@ -418,7 +418,7 @@ void generateRandomTrie(size_t inserts,
   for (unsigned j = 0; j < inserts; j++) {
     auto key = randomBuffer(rand);
     inserted_keys.insert(key);
-    ASSERT_OUTCOME_SUCCESS_TRY(trie.put(key, randomBuffer(rand)));
+    ASSERT_OUTCOME_SUCCESS(trie.put(key, randomBuffer(rand)));
   }
 }
 
@@ -431,13 +431,13 @@ void makeRandomTrieChanges(size_t inserts,
   for (unsigned j = 0; j < inserts; j++) {
     auto key = randomBuffer(rand);
     inserted_keys.insert(key);
-    ASSERT_OUTCOME_SUCCESS_TRY(trie.put(key, randomBuffer(rand)));
+    ASSERT_OUTCOME_SUCCESS(trie.put(key, randomBuffer(rand)));
   }
   for (unsigned j = 0; j < removes; j++) {
     auto it = inserted_keys.begin();
     std::advance(it, rand() % inserted_keys.size());
     const auto &key = *it;
-    ASSERT_OUTCOME_SUCCESS_TRY(trie.remove(key));
+    ASSERT_OUTCOME_SUCCESS(trie.remove(key));
     inserted_keys.erase(key);
   }
 }
@@ -502,16 +502,16 @@ TEST_F(TriePrunerTest, RandomTree) {
     for (unsigned j = 0; j < INSERT_PER_STATE; j++) {
       auto k = randomBuffer(rand);
       inserted_keys.insert(k);
-      ASSERT_OUTCOME_SUCCESS_TRY(trie->put(k, randomBuffer(rand)));
+      ASSERT_OUTCOME_SUCCESS(trie->put(k, randomBuffer(rand)));
     }
     for (unsigned j = 0; j < REMOVES_PER_STATE; j++) {
       auto it = inserted_keys.begin();
       std::advance(it, rand() % inserted_keys.size());
       const auto &key = *it;
-      ASSERT_OUTCOME_SUCCESS_TRY(trie->remove(key));
+      ASSERT_OUTCOME_SUCCESS(trie->remove(key));
       inserted_keys.erase(key);
     }
-    ASSERT_OUTCOME_SUCCESS_TRY(
+    ASSERT_OUTCOME_SUCCESS(
         trie->clearPrefix(Buffer(static_cast<uint8_t>(rand() % 256)),
                           std::nullopt,
                           [](auto &, auto) -> outcome::result<void> {
@@ -519,8 +519,7 @@ TEST_F(TriePrunerTest, RandomTree) {
                           }));
     auto new_set = collectReferencedNodes(*trie, *codec);
     total_set.merge(new_set);
-    ASSERT_OUTCOME_SUCCESS_TRY(
-        pruner->addNewState(*trie, trie::StateVersion::V0));
+    ASSERT_OUTCOME_SUCCESS(pruner->addNewState(*trie, trie::StateVersion::V0));
     std::set<Hash256> tracked_set;
     pruner->forRefCounts(
         [&](auto &node, auto count) { tracked_set.insert(node); });
@@ -554,7 +553,7 @@ TEST_F(TriePrunerTest, RandomTree) {
 
       BlockHeader header{.number = i - 16, .state_root = root};
       primitives::calculateBlockHash(header, *hasher);
-      ASSERT_OUTCOME_SUCCESS_TRY(
+      ASSERT_OUTCOME_SUCCESS(
           pruner->pruneFinalized(header.state_root, header.blockInfo()));
     }
   }
@@ -574,7 +573,7 @@ TEST_F(TriePrunerTest, RandomTree) {
     auto &root = roots[i];
     BlockHeader header{.number = i, .state_root = root};
     primitives::calculateBlockHash(header, *hasher);
-    ASSERT_OUTCOME_SUCCESS_TRY(
+    ASSERT_OUTCOME_SUCCESS(
         pruner->pruneFinalized(header.state_root, header.blockInfo()));
   }
   for (auto &[hash, node] : node_storage) {
@@ -661,7 +660,7 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
 
   trie_pruner::TriePrunerImpl::TriePrunerInfo info{
       .last_pruned_block = BlockInfo{3, hash_from_header(headers.at(3))}};
-  auto info_enc = scale::encode(info).value();
+  auto info_enc = encode(info).value();
   static auto key = ":trie_pruner:info"_buf;
   ON_CALL(*pruner_space, tryGetMock(key.view()))
       .WillByDefault(
@@ -679,11 +678,11 @@ TEST_F(TriePrunerTest, RestoreStateFromGenesis) {
 std::shared_ptr<trie::PolkadotTrie> clone(const trie::PolkadotTrie &trie) {
   auto new_trie = trie::PolkadotTrieImpl::createEmpty();
   auto cursor = trie.trieCursor();
-  EXPECT_OUTCOME_TRUE_1(cursor->next());
+  EXPECT_OUTCOME_SUCCESS(cursor->next());
   while (cursor->isValid()) {
-    EXPECT_OUTCOME_TRUE_1(
+    EXPECT_OUTCOME_SUCCESS(
         new_trie->put(cursor->key().value(), cursor->value().value()));
-    EXPECT_OUTCOME_TRUE_1(cursor->next());
+    EXPECT_OUTCOME_SUCCESS(cursor->next());
   }
   return new_trie;
 }
@@ -750,7 +749,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
         return serializer.storeTrie(trie, version);
       }));
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  ASSERT_OUTCOME_SUCCESS(
       serializer_mock->storeTrie(*genesis_trie, trie::StateVersion::V0));
 
   BlockHeader genesis_header{.number = 0, .state_root = genesis_state_root};
@@ -804,7 +803,7 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
 
   auto mock_full_block = [&](BlockNumber n) {
     mock_header_only(n);
-    ASSERT_OUTCOME_SUCCESS_TRY(
+    ASSERT_OUTCOME_SUCCESS(
         serializer_mock->storeTrie(*tries[n], trie::StateVersion::V0));
     EXPECT_CALL(*serializer_mock, retrieveTrie(headers[n].state_root, _))
         .WillRepeatedly(Return(tries[n]));
@@ -820,11 +819,11 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
   }
 
   EXPECT_CALL(*block_tree, bestBlock()).WillOnce(Return(BlockInfo{1, {}}));
-  ASSERT_OUTCOME_SUCCESS_TRY(pruner->recoverState(*block_tree));
+  ASSERT_OUTCOME_SUCCESS(pruner->recoverState(*block_tree));
 
   for (BlockNumber n = 80; n < LAST_BLOCK_NUMBER; n++) {
     mock_full_block(n);
-    ASSERT_OUTCOME_SUCCESS_TRY(
+    ASSERT_OUTCOME_SUCCESS(
         pruner->addNewState(*tries[n], trie::StateVersion::V0));
   }
   ASSERT_NE(node_storage.size(), 0);
@@ -836,14 +835,14 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
         trie_res.has_value()) {
       auto &trie = trie_res.value();
       auto cursor = trie->cursor();
-      ASSERT_OUTCOME_SUCCESS_TRY(cursor->next());
+      ASSERT_OUTCOME_SUCCESS(cursor->next());
       while (cursor->isValid()) {
         ASSERT_TRUE(cursor->value().has_value());
-        ASSERT_OUTCOME_SUCCESS_TRY(cursor->next());
+        ASSERT_OUTCOME_SUCCESS(cursor->next());
       }
     }
 
-    ASSERT_OUTCOME_SUCCESS_TRY(
+    ASSERT_OUTCOME_SUCCESS(
         pruner->pruneFinalized(headers[n].state_root, headers[n].blockInfo()));
   }
 }

@@ -8,15 +8,12 @@
 
 #include "common/buffer.hpp"
 #include "primitives/common.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::network {
   /**
    * Request for state to another peer
    */
   struct StateRequest {
-    SCALE_TIE(3);
-
     /// Block header hash.
     primitives::BlockHash hash;
 

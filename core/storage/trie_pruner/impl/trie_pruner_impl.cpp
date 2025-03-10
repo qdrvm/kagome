@@ -674,10 +674,10 @@ namespace kagome::storage::trie_pruner {
       return;
     }
     auto &header = header_res.value();
-    if (auto r = restoreStateAt(header, block_tree); r.has_error()) {
+    if (auto res = restoreStateAt(header, block_tree); res.has_error()) {
       SL_ERROR(logger_,
                "restoreStateAtFinalized(): restoreStateAt(): {}",
-               r.error());
+               res.error());
     }
   }
 }  // namespace kagome::storage::trie_pruner

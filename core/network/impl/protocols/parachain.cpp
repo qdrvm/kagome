@@ -66,7 +66,7 @@ namespace kagome::network {
       size_t limit_in,
       size_t limit_out)
       : notifications_{inject.notifications_factory->make(
-            std::move(protocols_groups), limit_in, limit_out)},
+          std::move(protocols_groups), limit_in, limit_out)},
         collation_versions_{CollationVersion::VStaging, CollationVersion::V1},
         roles_{inject.roles},
         peer_manager_{inject.peer_manager},

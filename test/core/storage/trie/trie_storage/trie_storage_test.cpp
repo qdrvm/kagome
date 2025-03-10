@@ -8,9 +8,10 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "filesystem/common.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
-#include "outcome/outcome.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
@@ -18,7 +19,6 @@
 #include "storage/trie/serialization/trie_serializer_impl.hpp"
 #include "subscription/subscriber.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::common::Buffer;
@@ -52,7 +52,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
   {
     rocksdb::Options options;
     options.create_if_missing = true;  // intentionally
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         rocks_db,
         RocksDb::create("/tmp/kagome_rocksdb_persistency_test", options));
 
@@ -73,14 +73,14 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
         storage
             ->getPersistentBatchAt(serializer->getEmptyRootHash(), std::nullopt)
             .value();
-    EXPECT_OUTCOME_TRUE_1(batch->put("123"_buf, "abc"_buf));
-    EXPECT_OUTCOME_TRUE_1(batch->put("345"_buf, "def"_buf));
-    EXPECT_OUTCOME_TRUE_1(batch->put("678"_buf, "xyz"_buf));
-    EXPECT_OUTCOME_TRUE(root_, batch->commit(StateVersion::V0));
+    EXPECT_OUTCOME_SUCCESS(batch->put("123"_buf, "abc"_buf));
+    EXPECT_OUTCOME_SUCCESS(batch->put("345"_buf, "def"_buf));
+    EXPECT_OUTCOME_SUCCESS(batch->put("678"_buf, "xyz"_buf));
+    ASSERT_OUTCOME_SUCCESS(root_, batch->commit(StateVersion::V0));
     root = root_;
   }
-  EXPECT_OUTCOME_TRUE(new_rocks_db,
-                      RocksDb::create("/tmp/kagome_rocksdb_persistency_test"));
+  ASSERT_OUTCOME_SUCCESS(
+      new_rocks_db, RocksDb::create("/tmp/kagome_rocksdb_persistency_test"));
   auto serializer = std::make_shared<TrieSerializerImpl>(
       factory, codec, std::make_shared<TrieStorageBackendImpl>(new_rocks_db));
   auto state_pruner = std::make_shared<TriePrunerMock>();
@@ -88,11 +88,11 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
       TrieStorageImpl::createFromStorage(codec, serializer, state_pruner)
           .value();
   auto batch = storage->getPersistentBatchAt(root, std::nullopt).value();
-  EXPECT_OUTCOME_TRUE(v1, batch->get("123"_buf));
+  ASSERT_OUTCOME_SUCCESS(v1, batch->get("123"_buf));
   ASSERT_EQ(v1, "abc"_buf);
-  EXPECT_OUTCOME_TRUE(v2, batch->get("345"_buf));
+  ASSERT_OUTCOME_SUCCESS(v2, batch->get("345"_buf));
   ASSERT_EQ(v2, "def"_buf);
-  EXPECT_OUTCOME_TRUE(v3, batch->get("678"_buf));
+  ASSERT_OUTCOME_SUCCESS(v3, batch->get("678"_buf));
   ASSERT_EQ(v3, "xyz"_buf);
 
   kagome::filesystem::remove_all("/tmp/kagome_rocksdb_persistency_test");

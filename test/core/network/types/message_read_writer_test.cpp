@@ -7,8 +7,9 @@
 
 #include <gmock/gmock.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "mock/core/network/adapter_mock.hpp"
-#include "testutil/outcome.hpp"
 
 using AdapterType_0 = kagome::network::AdapterMock;
 using AdapterMockPtrType = std::shared_ptr<AdapterType_0>;
