@@ -118,3 +118,13 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+if (ASAN)
+  set(SCALE_CXX_FLAGS "-fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer")
+  hunter_config(
+    "scale"
+    VERSION "1.1.5"
+    CMAKE_ARGS 
+    CMAKE_CXX_FLAGS=${SCALE_CXX_FLAGS}
+    CMAKE_C_FLAGS=${SCALE_CXX_FLAGS}
+  )
+endif()
