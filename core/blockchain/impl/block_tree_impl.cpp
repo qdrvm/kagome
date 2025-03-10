@@ -272,9 +272,9 @@ namespace kagome::blockchain {
                           state_pruner,
                           main_thread_pool));
     // Add non-finalized block to the block tree
-    for (auto &e : collected) {
-      const auto &block = e.first;
-      const auto header = std::move(e.second);
+    for (auto &item : collected) {
+      const auto &block = item.first;
+      const auto header = std::move(item.second);
 
       auto res = block_tree->addExistingBlock(block.hash, header);
       if (res.has_error()) {

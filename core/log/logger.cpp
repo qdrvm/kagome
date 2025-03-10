@@ -43,7 +43,7 @@ namespace kagome::log {
           std::cerr << '{';
           bool first = true;
           ((std::cerr << (first ? "" : ", ") << args, first = false), ...);
-          std::cerr << '}' << std::endl;
+          std::cerr << '}' << std::endl;  // NOLINT(performance-avoid-endl)
         }
         std::abort();
       }

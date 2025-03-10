@@ -15,6 +15,7 @@
 namespace kagome::runtime::wavm {
 
   static thread_local std::stack<std::shared_ptr<ModuleInstance>>
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
       global_instances;
 
   void pushBorrowedRuntimeInstance(

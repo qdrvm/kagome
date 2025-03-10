@@ -932,8 +932,8 @@ namespace kagome::dispute {
     });
 
     // Cleanup obsolete senders
-    sending_disputes_.remove_if([&](const auto &x) {
-      const auto &candidate_hash = std::get<0>(x);
+    sending_disputes_.remove_if([&](const auto &item) {
+      const auto &candidate_hash = std::get<0>(item);
       return candidates.find(candidate_hash) == candidates.end();
     });
 
@@ -2065,9 +2065,10 @@ namespace kagome::dispute {
     std::ranges::transform(
         recent_disputes,
         std::back_inserter(output),
-        [](const auto &p)
+        [](const auto &item)
             -> std::tuple<SessionIndex, CandidateHash, DisputeStatus> {
-          return {std::get<0>(p.first), std::get<1>(p.first), p.second};
+          return {
+              std::get<0>(item.first), std::get<1>(item.first), item.second};
         });
 
     cb(std::move(output));

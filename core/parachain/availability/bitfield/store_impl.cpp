@@ -40,29 +40,29 @@ namespace kagome::parachain {
       return {};
     }
 
-    auto c = parachain_api_->availability_cores(relay_parent);
-    if (c.has_error()) {
+    auto cores_res = parachain_api_->availability_cores(relay_parent);
+    if (cores_res.has_error()) {
       logger_->warn(
           "Availability cores not present.(relay parent={}, error={})",
           relay_parent,
-          c.error());
+          cores_res.error());
       return {};
     }
-    auto &cores = c.value();
+    auto &cores = cores_res.value();
 
     std::map<ValidatorIndex, SignedBitfield> selected;
-    for (const auto &bf : it->second) {
-      if (bf.payload.payload.size() != cores.size()) {
+    for (const auto &bitfield : it->second) {
+      if (bitfield.payload.payload.size() != cores.size()) {
         logger_->warn(
             "dropping bitfield due to length mismatch.(relay parent={})",
             relay_parent);
         continue;
       }
 
-      auto it_selected = selected.find(bf.payload.ix);
+      auto it_selected = selected.find(bitfield.payload.ix);
       if (it_selected == selected.end()
           || approval::count_ones(it_selected->second.payload.payload)
-                 < approval::count_ones(bf.payload.payload)) {
+                 < approval::count_ones(bitfield.payload.payload)) {
         bool skip = false;
         for (size_t ix = 0; ix < cores.size(); ++ix) {
           auto &core = cores[ix];
@@ -70,7 +70,7 @@ namespace kagome::parachain {
             continue;
           }
 
-          if (bf.payload.payload[ix]) {
+          if (bitfield.payload.payload[ix]) {
             SL_INFO(logger_,
                     "dropping invalid bitfield - bit is set for an unoccupied "
                     "core.(relay_parent={})",
@@ -81,15 +81,15 @@ namespace kagome::parachain {
         }
 
         if (!skip) {
-          selected[bf.payload.ix] = bf;
+          selected[bitfield.payload.ix] = bitfield;
         }
       }
     }
 
     std::vector<SignedBitfield> bitfields;
     bitfields.reserve(selected.size());
-    for (auto &bf : selected) {
-      bitfields.push_back(bf.second);
+    for (auto &bitfield : selected) {
+      bitfields.push_back(bitfield.second);
     }
     return bitfields;
   }

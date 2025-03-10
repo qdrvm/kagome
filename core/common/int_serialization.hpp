@@ -23,16 +23,16 @@ namespace kagome::common {
   std::array<uint8_t, 8> uint64_to_be_bytes(uint64_t number);
   uint64_t be_bytes_to_uint64(BufferView bytes);
 
-  std::array<uint8_t, 16> uint128_to_le_bytes(const uint128_t &i);
+  std::array<uint8_t, 16> uint128_to_le_bytes(const uint128_t &number);
   uint128_t le_bytes_to_uint128(BufferView bytes);
 
-  std::array<uint8_t, 16> uint128_to_be_bytes(const uint128_t &i);
+  std::array<uint8_t, 16> uint128_to_be_bytes(const uint128_t &number);
   uint128_t be_bytes_to_uint128(BufferView bytes);
 
-  std::array<uint8_t, 32> uint256_to_le_bytes(const uint256_t &i);
+  std::array<uint8_t, 32> uint256_to_le_bytes(const uint256_t &number);
   uint256_t le_bytes_to_uint256(BufferView bytes);
 
-  std::array<uint8_t, 32> uint256_to_be_bytes(const uint256_t &i);
+  std::array<uint8_t, 32> uint256_to_be_bytes(const uint256_t &number);
   uint256_t be_bytes_to_uint256(BufferView bytes);
 
 }  // namespace kagome::common

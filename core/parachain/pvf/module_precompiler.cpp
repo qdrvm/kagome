@@ -96,7 +96,7 @@ namespace kagome::parachain {
         while (true) {
           runtime::CoreState core;
           {
-            std::scoped_lock l{cores_queue_mutex};
+            std::scoped_lock lock{cores_queue_mutex};
             if (cores.empty()) {
               break;
             }
@@ -123,8 +123,8 @@ namespace kagome::parachain {
       threads.emplace_back(compilation_worker);
     }
 
-    for (auto &t : threads) {
-      t.join();
+    for (auto &thread : threads) {
+      thread.join();
     }
 
     auto end = std::chrono::steady_clock::now();

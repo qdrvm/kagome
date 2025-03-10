@@ -108,7 +108,9 @@ hunter_config(
 
 hunter_config(
     erasure_coding_crust
-    VERSION 0.0.9
+    #VERSION 0.0.9
+    URL  https://github.com/qdrvm/erasure-coding-crust/archive/c975a1570fd5c947ba057e7dd8b4788c656ba3af.tar.gz
+    SHA1 a3ab8201c509b7d8397eea47b30a628c70b10bfc
     KEEP_PACKAGE_SOURCES
 )
 
