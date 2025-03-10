@@ -167,7 +167,7 @@ namespace kagome::parachain {
     auto abi = ::syscall(
         SYS_landlock_create_ruleset, NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
     auto logger = log::createLogger("Landlock", "parachain");
-    SL_INFO(logger(), "Landlock ABI version: {} ", abi);
+    SL_INFO(logger, "Landlock ABI version: {} ", abi);
     if (abi < 0) {
       return getLastErr("landlock_create_ruleset");
     }
