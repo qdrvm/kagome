@@ -1343,14 +1343,14 @@ TEST_F(BackingTest, occupied_core_assignment) {
   candidate_descriptor.para_id = previous_para_id;
 
   test_state.availability_cores[0] = runtime::OccupiedCore{
-      .group_responsible = 0,
       .next_up_on_available = network::ScheduledCore{para_id, std::nullopt},
       .occupied_since = 100,
       .time_out_at = 200,
       .next_up_on_time_out = std::nullopt,
       .availability = {},
-      .candidate_descriptor = candidate_descriptor,
+      .group_responsible = 0,
       .candidate_hash = {},
+      .candidate_descriptor = candidate_descriptor,
   };
 
   const auto leaf_a_hash = fromNumber(130);
