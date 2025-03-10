@@ -2427,7 +2427,7 @@ namespace kagome::parachain::statement_distribution {
              relay_parent,
              statement);
 
-    auto per_relay_parent = tryGetStateByRelayParent(relay_parent);
+    TRY_GET_OR_RET(per_relay_parent, tryGetStateByRelayParent(relay_parent));
     const CandidateHash candidate_hash =
         candidateHashFrom(getPayload(statement), hasher);
 
