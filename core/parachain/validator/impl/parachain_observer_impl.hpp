@@ -21,7 +21,8 @@ namespace kagome::crypto {
 }
 
 namespace kagome::parachain {
-  class ParachainProcessorImpl;
+  class ParachainProcessor;
+  class ParachainStorage;
   class ApprovalDistribution;
 }  // namespace kagome::parachain
 
@@ -32,7 +33,8 @@ namespace kagome::parachain {
     ParachainObserverImpl(
         std::shared_ptr<network::PeerManager> pm,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
-        std::shared_ptr<parachain::ParachainProcessorImpl> processor,
+        std::shared_ptr<parachain::ParachainProcessor> processor,
+        std::shared_ptr<parachain::ParachainStorage> parachain_storage,
         std::shared_ptr<network::PeerView> peer_view,
         std::shared_ptr<parachain::ApprovalDistribution> approval_distribution);
 
@@ -71,7 +73,8 @@ namespace kagome::parachain {
 
     std::shared_ptr<network::PeerManager> pm_;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
-    std::shared_ptr<parachain::ParachainProcessorImpl> processor_;
+    std::shared_ptr<parachain::ParachainProcessor> processor_;
+    std::shared_ptr<parachain::ParachainStorage> parachain_storage_;
     std::shared_ptr<network::PeerView> peer_view_;
     std::shared_ptr<parachain::ApprovalDistribution> approval_distribution_;
 
