@@ -1,2 +1,0 @@
-# something going on in LLVM static debug counters on ARM
-fun:_GLOBAL__sub_I_SIInsertWaitcnts.cpp

@@ -17,11 +17,6 @@ set(FLAGS
     -O0
     -DNDEBUG
     )
-if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
-  list(APPEND FLAGS -fsanitize-ignorelist="${CMAKE_CURRENT_LIST_DIR}/asan_ignore.txt")
-else()
-  message(WARNING "Non-Clang compilers do not support -fsanitize-ignorelist flag, some known false positives are expected.")
-endif()
   
 foreach(FLAG IN LISTS FLAGS)
   add_cache_flag(CMAKE_CXX_FLAGS ${FLAG})
