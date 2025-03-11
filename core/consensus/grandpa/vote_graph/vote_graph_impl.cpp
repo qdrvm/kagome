@@ -36,7 +36,8 @@ namespace kagome::consensus::grandpa {
   VoteGraphImpl::VoteGraphImpl(const BlockInfo &base,
                                std::shared_ptr<VoterSet> voter_set,
                                std::shared_ptr<Chain> chain)
-      : base_(base),
+      : logger_(log::createLogger("VoteGrap", "grandpa")),
+        base_(base),
         voter_set_(std::move(voter_set)),
         chain_(std::move(chain)) {
     entries_[base.hash].number = base.number;
@@ -151,8 +152,8 @@ namespace kagome::consensus::grandpa {
 
     auto entry_it = entries_.end();
 
-    // Find first (best) ancestor among those presented in the entries,
-    // and take corresponding entry
+    // Find the first (best) ancestor among those presented in the entries,
+    // and take a corresponding entry
     auto ancestry_it = std::ranges::find_if(
         ancestry.begin() + 1,
         ancestry.end(),
@@ -170,7 +171,8 @@ namespace kagome::consensus::grandpa {
 
     // Needed ancestries is ancestries from parent to ancestor represented in
     // found entry
-    std::vector<BlockHash> ancestors(ancestry.begin() + 1, ancestry_it + 1);
+    std::vector<BlockHash> ancestors(std::next(ancestry.begin()),
+                                     std::next(ancestry_it));
 
     // Block will become a head instead his oldest ancestor
     if (!ancestors.empty()) {
@@ -282,15 +284,17 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    const Entry *active_node = &entries_.at(node_key);
-    if (not condition(active_node->cumulative_vote)) {
+    const auto &start_node = entries_.at(node_key);
+    if (not condition(start_node.cumulative_vote)) {
       return std::nullopt;
     }
 
     /// entries to be processed
     std::stack<const Entry *> nodes;
 
-    nodes.emplace(active_node);
+    auto active_node = start_node;
+
+    nodes.emplace(start_node);
     while (not nodes.empty()) {
       const auto &node = *nodes.top();
       nodes.pop();

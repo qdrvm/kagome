@@ -14,11 +14,12 @@
 #include "parachain/approval/approval.hpp"
 #include "parachain/approval/state.hpp"
 #include "parachain/types.hpp"
+#include "scale/kagome_scale.hpp"
 
 template <>
-struct std::hash<scale::BitVec> {
-  auto operator()(const scale::BitVec &v) const {
-    auto s = scale::encode(v).value();
+struct std::hash<scale::BitVector> {
+  auto operator()(const scale::BitVector &v) const {
+    auto s = kagome::scale::encode(v).value();
     return boost::hash_range(s.begin(), s.end());
   }
 };
@@ -26,7 +27,7 @@ struct std::hash<scale::BitVec> {
 namespace kagome::parachain::approval {
 
   enum struct MessageKind { Assignment, Approval };
-  using MessageSubject = std::tuple<Hash, scale::BitVec, ValidatorIndex>;
+  using MessageSubject = std::tuple<Hash, scale::BitVector, ValidatorIndex>;
 
   struct MessageSubjectHash {
     auto operator()(const MessageSubject &obj) const {
@@ -34,7 +35,7 @@ namespace kagome::parachain::approval {
       boost::hash_range(
           value, std::get<0>(obj).begin(), std::get<0>(obj).end());
       boost::hash_range(
-          value, std::get<1>(obj).bits.begin(), std::get<1>(obj).bits.end());
+          value, std::get<1>(obj).begin(), std::get<1>(obj).end());
       boost::hash_combine(value, std::get<2>(obj));
       return value;
     }

@@ -97,7 +97,8 @@ namespace kagome::runtime {
   }
 
   WabtOutcome<common::Buffer> WasmInstrumenter::instrument(
-      common::BufferView code, const RuntimeContext::ContextParams &config) const {
+      common::BufferView code,
+      const RuntimeContext::ContextParams &config) const {
     return instrumentCodeForCompilation(code, config);
   }
 }  // namespace kagome::runtime

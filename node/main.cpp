@@ -145,10 +145,10 @@ int main(int argc, const char **argv, const char **env) {
     auto kagome_log_configurator =
         custom_log_config_path.has_value()
             ? std::make_shared<kagome::log::Configurator>(
-                  std::move(libp2p_log_configurator),
-                  custom_log_config_path.value())
+                std::move(libp2p_log_configurator),
+                custom_log_config_path.value())
             : std::make_shared<kagome::log::Configurator>(
-                  std::move(libp2p_log_configurator));
+                std::move(libp2p_log_configurator));
 
     return std::make_shared<soralog::LoggingSystem>(
         std::move(kagome_log_configurator));

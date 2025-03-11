@@ -21,13 +21,17 @@ namespace kagome::network {
    * posibility of the correct communication with it.
    */
   struct BlockAnnounceHandshake {
-    SCALE_TIE_ONLY(roles, best_block.number, best_block.hash, genesis_hash);
-
     Roles roles;  //!< Supported roles.
 
     primitives::BlockInfo best_block;  //!< Best block.
 
     BlockHash genesis_hash;  //!< Genesis block hash.
+
+    SCALE_CUSTOM_DECOMPOSITION(BlockAnnounceHandshake,
+                               roles,
+                               best_block.number,
+                               best_block.hash,
+                               genesis_hash);
   };
 
 }  // namespace kagome::network

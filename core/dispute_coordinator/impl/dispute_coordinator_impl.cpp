@@ -932,8 +932,8 @@ namespace kagome::dispute {
     });
 
     // Cleanup obsolete senders
-    sending_disputes_.remove_if([&](const auto &x) {
-      const auto &candidate_hash = std::get<0>(x);
+    sending_disputes_.remove_if([&](const auto &item) {
+      const auto &candidate_hash = std::get<0>(item);
       return candidates.find(candidate_hash) == candidates.end();
     });
 
@@ -1227,12 +1227,12 @@ namespace kagome::dispute {
     auto is_old_concluded_for =
         intermediate_result.old_state.dispute_status.has_value()
             ? is_type<ConcludedFor>(
-                  intermediate_result.old_state.dispute_status.value())
+                intermediate_result.old_state.dispute_status.value())
             : false;
     auto is_new_concluded_for =
         intermediate_result.new_state.dispute_status.has_value()
             ? is_type<ConcludedFor>(
-                  intermediate_result.new_state.dispute_status.value())
+                intermediate_result.new_state.dispute_status.value())
             : false;
     auto is_freshly_concluded_for =
         not is_old_concluded_for and is_new_concluded_for;
@@ -1240,12 +1240,12 @@ namespace kagome::dispute {
     auto is_old_concluded_against =
         intermediate_result.old_state.dispute_status.has_value()
             ? is_type<ConcludedAgainst>(
-                  intermediate_result.old_state.dispute_status.value())
+                intermediate_result.old_state.dispute_status.value())
             : false;
     auto is_new_concluded_against =
         intermediate_result.new_state.dispute_status.has_value()
             ? is_type<ConcludedAgainst>(
-                  intermediate_result.new_state.dispute_status.value())
+                intermediate_result.new_state.dispute_status.value())
             : false;
     auto is_freshly_concluded_against =
         not is_old_concluded_against and is_new_concluded_against;
@@ -1256,12 +1256,12 @@ namespace kagome::dispute {
     auto is_old_confirmed_concluded =
         intermediate_result.old_state.dispute_status.has_value()
             ? not is_type<Active>(
-                  intermediate_result.old_state.dispute_status.value())
+                intermediate_result.old_state.dispute_status.value())
             : false;
     auto is_new_confirmed_concluded =
         intermediate_result.new_state.dispute_status.has_value()
             ? not is_type<Active>(
-                  intermediate_result.new_state.dispute_status.value())
+                intermediate_result.new_state.dispute_status.value())
             : false;
     auto is_freshly_confirmed =
         not is_old_confirmed_concluded and is_new_confirmed_concluded;
@@ -2065,9 +2065,10 @@ namespace kagome::dispute {
     std::ranges::transform(
         recent_disputes,
         std::back_inserter(output),
-        [](const auto &p)
+        [](const auto &item)
             -> std::tuple<SessionIndex, CandidateHash, DisputeStatus> {
-          return {std::get<0>(p.first), std::get<1>(p.first), p.second};
+          return {
+              std::get<0>(item.first), std::get<1>(item.first), item.second};
         });
 
     cb(std::move(output));

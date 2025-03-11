@@ -12,18 +12,18 @@ namespace kagome::common {
 
   namespace {
     template <size_t size, typename uint>
-    inline std::array<uint8_t, size> uint_to_le_bytes(uint &&i) {
+    inline std::array<uint8_t, size> uint_to_le_bytes(uint &&number) {
       std::array<uint8_t, size> res{};
       res.fill(0);
-      export_bits(std::forward<uint>(i), res.begin(), 8, false);
+      export_bits(std::forward<uint>(number), res.begin(), 8, false);
       return res;
     }
 
     template <size_t size, typename uint>
-    inline std::array<uint8_t, size> uint_to_be_bytes(uint &&i) {
+    inline std::array<uint8_t, size> uint_to_be_bytes(uint &&number) {
       std::array<uint8_t, size> res{};
       res.fill(0);
-      export_bits(std::forward<uint>(i), res.rbegin(), 8, false);
+      export_bits(std::forward<uint>(number), res.rbegin(), 8, false);
       return res;
     }
 
@@ -73,8 +73,8 @@ namespace kagome::common {
   }
 
   std::array<uint8_t, 16> uint128_to_le_bytes(
-      const boost::multiprecision::uint128_t &i) {
-    return uint_to_le_bytes<16>(i);
+      const boost::multiprecision::uint128_t &number) {
+    return uint_to_le_bytes<16>(number);
   }
 
   boost::multiprecision::uint128_t le_bytes_to_uint128(BufferView bytes) {
@@ -83,8 +83,8 @@ namespace kagome::common {
   }
 
   std::array<uint8_t, 16> uint128_to_be_bytes(
-      const boost::multiprecision::uint128_t &i) {
-    return uint_to_be_bytes<16>(i);
+      const boost::multiprecision::uint128_t &number) {
+    return uint_to_be_bytes<16>(number);
   }
 
   boost::multiprecision::uint128_t be_bytes_to_uint128(BufferView bytes) {
@@ -93,8 +93,8 @@ namespace kagome::common {
   }
 
   std::array<uint8_t, 32> uint256_to_le_bytes(
-      const boost::multiprecision::uint256_t &i) {
-    return uint_to_le_bytes<32>(i);
+      const boost::multiprecision::uint256_t &number) {
+    return uint_to_le_bytes<32>(number);
   }
 
   boost::multiprecision::uint256_t le_bytes_to_uint256(BufferView bytes) {
@@ -103,8 +103,8 @@ namespace kagome::common {
   }
 
   std::array<uint8_t, 32> uint256_to_be_bytes(
-      const boost::multiprecision::uint256_t &i) {
-    return uint_to_be_bytes<32>(i);
+      const boost::multiprecision::uint256_t &number) {
+    return uint_to_be_bytes<32>(number);
   }
 
   boost::multiprecision::uint256_t be_bytes_to_uint256(BufferView bytes) {

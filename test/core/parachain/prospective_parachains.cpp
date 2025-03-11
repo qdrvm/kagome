@@ -241,7 +241,7 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
       }
     }
 
-    ASSERT_OUTCOME_SUCCESS_TRY(
+    ASSERT_OUTCOME_SUCCESS(
         prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
             .new_head = {update.new_head},
             .lost = update.lost,
@@ -261,7 +261,7 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
 
   void deactivate_leaf(const Hash &hash) {
     std::vector<Hash> lost = {hash};
-    ASSERT_OUTCOME_SUCCESS_TRY(
+    ASSERT_OUTCOME_SUCCESS(
         prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
             .new_head = {},
             .lost = lost,
@@ -1365,7 +1365,7 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
   activate_leaf(leaf_b, test_state, ASYNC_BACKING_PARAMETERS);
 
   // Pass in an empty update.
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  ASSERT_OUTCOME_SUCCESS(
       prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
           .new_head = std::nullopt,
           .lost = {},
@@ -1388,7 +1388,7 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
     };
 
     update.new_head.hash_opt = leaf_c.hash;
-    // ASSERT_OUTCOME_SUCCESS_TRY(
+    // ASSERT_OUTCOME_SUCCESS(
     //     prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
     //         .new_head = {update.new_head},
     //         .lost = update.lost,
@@ -1398,7 +1398,7 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
   }
 
   // Remove all remaining leaves.
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  ASSERT_OUTCOME_SUCCESS(
       prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
           .new_head = {},
           .lost = {leaf_a.hash, leaf_c.hash},
@@ -1421,7 +1421,7 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
     };
 
     update.new_head.hash_opt = leaf_a.hash;
-    ASSERT_OUTCOME_SUCCESS_TRY(
+    ASSERT_OUTCOME_SUCCESS(
         prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
             .new_head = {update.new_head},
             .lost = update.lost,
@@ -1430,7 +1430,7 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
 
   // Remove the leaf again. Send some unnecessary hashes.
   {
-    ASSERT_OUTCOME_SUCCESS_TRY(
+    ASSERT_OUTCOME_SUCCESS(
         prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
             .new_head = {},
             .lost = {leaf_a.hash, leaf_b.hash, leaf_c.hash},
@@ -1924,7 +1924,7 @@ TEST_F(ProspectiveParachainsTest, uses_ancestry_only_within_session) {
   };
   update.new_head.hash_opt = hash;
 
-  ASSERT_OUTCOME_SUCCESS_TRY(
+  ASSERT_OUTCOME_SUCCESS(
       prospective_parachain_->onActiveLeavesUpdate(network::ExViewRef{
           .new_head = {update.new_head},
           .lost = update.lost,

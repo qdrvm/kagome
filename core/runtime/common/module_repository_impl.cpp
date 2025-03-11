@@ -54,7 +54,7 @@ namespace kagome::runtime {
       const storage::trie::RootHash &storage_state) {
     OUTCOME_TRY(item, codeAt(block, storage_state));
     return runtime_instances_pool_->instantiateFromCode(
-        item.hash, [&] { return item.code; }, {item.config});
+        item.hash, [&] { return item.code; }, {.memory_limits = item.config});
   }
 
   outcome::result<std::optional<primitives::Version>>

@@ -11,8 +11,9 @@
 namespace kagome::authority_discovery {
 
   AudiStoreImpl::AudiStoreImpl(std::shared_ptr<storage::SpacedStorage> storage)
-      : space_{storage->getSpace(storage::Space::kAudiPeers)},
-        log_{log::createLogger("AudiStore", "authority_discovery")} {
+      : log_(
+          log::createLogger("AuthorityDiscoveryStore", "authority_discovery")),
+        space_{storage->getSpace(storage::Space::kAudiPeers)} {
     BOOST_ASSERT(space_ != nullptr);
   }
 
@@ -20,8 +21,8 @@ namespace kagome::authority_discovery {
                             const AuthorityPeerInfo &data) {
     auto encoded = scale::encode(data);
 
-    if (not encoded) {
-      SL_ERROR(log_, "Failed to encode PeerInfo");
+    if (encoded.has_error()) {
+      SL_ERROR(log_, "Failed to encode AuthorityPeerInfo: {}", encoded.error());
       return;
     }
 
@@ -52,8 +53,8 @@ namespace kagome::authority_discovery {
 
     auto decoded = scale::decode<AuthorityPeerInfo>(res.value().value());
 
-    if (not decoded) {
-      SL_ERROR(log_, "Failed to decode PeerInfo");
+    if (decoded.has_error()) {
+      SL_ERROR(log_, "Failed to decode AuthorityPeerInfo: {}", decoded.error());
       return std::nullopt;
     }
 

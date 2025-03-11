@@ -10,9 +10,7 @@
 #include <optional>
 #include <utility>
 
-#include "outcome/outcome.hpp"
 #include "runtime/heap_alloc_strategy.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::runtime {
   /**
@@ -52,10 +50,9 @@ namespace kagome::runtime {
   using WasmI64 = int64_t;
 
   struct MemoryLimits {
-    SCALE_TIE(2);
-
     std::optional<uint32_t> max_stack_values_num{};
     HeapAllocStrategy heap_alloc_strategy;
+    bool operator==(const MemoryLimits &) const = default;
   };
 
   struct MemoryConfig {

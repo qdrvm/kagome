@@ -11,6 +11,7 @@
 #include "network/adapters/protobuf.hpp"
 #include "network/protobuf/light.v1.pb.h"
 #include "primitives/common.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::network {
   struct LightProtocolRequest {

@@ -125,7 +125,7 @@ static void registerStateBenchmark(benchmark::State &state) {
   auto trie = createRandomTrie(*benchmark.trie_factory, 10000, 70);
   auto logger = kagome::log::createLogger("Benchmark");
 
-  for (auto _ : state) {
+  for (const auto &_ : state) {
     auto pruner = benchmark.createPruner();
     pruner->addNewState(*trie, kagome::storage::trie::StateVersion::V1).value();
   }
@@ -136,7 +136,7 @@ static void pruneStateBenchmark(benchmark::State &state) {
 
   auto trie = createRandomTrie(*benchmark.trie_factory, 10000, 70);
 
-  for (auto _ : state) {
+  for (const auto &_ : state) {
     auto pruner = benchmark.createPruner();
     pruner->addNewState(*trie, trie::StateVersion::V1).value();
     auto [root, batch] =

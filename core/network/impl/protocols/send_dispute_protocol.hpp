@@ -49,17 +49,16 @@ namespace kagome::network {
                             std::shared_ptr<network::DisputeRequestObserver>
                                 dispute_request_observer)
         : RequestResponseProtocolImpl<
-              DisputeRequest,
-              DisputeResponse,
-              ScaleMessageReadWriter>{kSendDisputeProtocolName,
-                                      std::move(inject),
-                                      make_protocols(kSendDisputeProtocol,
-                                                     genesis_hash,
-                                                     kProtocolPrefixPolkadot),
-                                      log::createLogger(
-                                          kSendDisputeProtocolName,
-                                          "dispute_protocol"),
-                                      kRequestTimeout},
+            DisputeRequest,
+            DisputeResponse,
+            ScaleMessageReadWriter>{kSendDisputeProtocolName,
+                                    std::move(inject),
+                                    make_protocols(kSendDisputeProtocol,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(kSendDisputeProtocolName,
+                                                      "dispute_protocol"),
+                                    kRequestTimeout},
           dispute_request_observer_{std::move(dispute_request_observer)} {
       BOOST_ASSERT(dispute_request_observer_);
     }

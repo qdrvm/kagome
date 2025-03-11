@@ -7,12 +7,10 @@
 #pragma once
 
 #include <functional>
-#include <memory>
 
 #include <libp2p/basic/message_read_writer_uvarint.hpp>
-#include <outcome/outcome.hpp>
 
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::network {
   /**
@@ -49,7 +47,7 @@ namespace kagome::network {
               static auto empty = std::make_shared<std::vector<uint8_t>>();
               raw = empty;
             }
-            auto msg_res = ::scale::decode<MsgType>(*raw);
+            auto msg_res = scale::decode<MsgType>(*raw);
             if (!msg_res) {
               return cb(outcome::failure(msg_res.error()));
             }
