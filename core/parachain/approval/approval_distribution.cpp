@@ -458,21 +458,7 @@ namespace {
   kagome::primitives::Transcript assigned_core_transcript(
       const kagome::parachain::CoreIndex &core_index) {
     kagome::primitives::Transcript t;
-    t.initialize({'A',
-                  '&',
-                  'V',
-                  ' ',
-                  'A',
-                  'S',
-                  'S',
-                  'I',
-                  'G',
-                  'N',
-                  'E',
-                  'D',
-                  ' ',
-                  'v',
-                  '2'});
+    t.initialize({'A', '&', 'V', ' ', 'A', 'S', 'S', 'I', 'G', 'N', 'E', 'D'});
 
     t.append_message({'c', 'o', 'r', 'e'}, core_index);
 
@@ -675,7 +661,7 @@ namespace kagome::parachain {
           }
           primitives::Transcript modulo_transcript =
               relay_vrf_modulo_transcript_v1(relay_vrf_story, sample);
-          primitives::Transcript transcript =
+          primitives::Transcript core_transcript =
               assigned_core_transcript(first_claimed_core_index);
           auto res = sr25519_vrf_verify_extra(
               validator_public.data(),
@@ -685,7 +671,14 @@ namespace kagome::parachain {
               reinterpret_cast<const Strobe128 *>(
                   modulo_transcript.data().data()),
               // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-              reinterpret_cast<const Strobe128 *>(transcript.data().data()));
+              reinterpret_cast<const Strobe128 *>(
+                  core_transcript.data().data()));
+          if (SR25519_SIGNATURE_RESULT_OK != res.result) {
+            SL_DEBUG(log_,
+                     "VRF verification failed. (result={})",
+                     (size_t)res.result);
+            return ApprovalDistributionError::VRF_VERIFY_AND_GET_TRANCHE;
+          }
 
           auto core = sr25519_relay_vrf_modulo_core(
               &res.input_bytes, &res.output_bytes, config.n_cores);
