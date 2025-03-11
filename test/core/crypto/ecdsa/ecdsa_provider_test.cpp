@@ -9,12 +9,13 @@
 #include <mock/libp2p/crypto/random_generator_mock.hpp>
 #include <span>
 
+#include <qtils/test/outcome.hpp>
+
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
 #include "crypto/ecdsa/ecdsa_provider_impl.hpp"
 #include "crypto/hasher/hasher_impl.hpp"
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::crypto::Bip39ProviderImpl;
@@ -77,9 +78,9 @@ TEST_F(EcdsaProviderTest, GenerateKeysNotEqual) {
  */
 TEST_F(EcdsaProviderTest, SignVerifySuccess) {
   auto key_pair = generate();
-  EXPECT_OUTCOME_TRUE(signature,
-                      ecdsa_provider_->sign(message, key_pair.secret_key));
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(signature,
+                         ecdsa_provider_->sign(message, key_pair.secret_key));
+  ASSERT_OUTCOME_SUCCESS(
       verify_res,
       ecdsa_provider_->verify(message, signature, key_pair.public_key, false));
   ASSERT_EQ(verify_res, true);
@@ -93,11 +94,11 @@ TEST_F(EcdsaProviderTest, SignVerifySuccess) {
  */
 TEST_F(EcdsaProviderTest, VerifyWrongKeyFail) {
   auto key_pair = generate();
-  EXPECT_OUTCOME_TRUE(signature,
-                      ecdsa_provider_->sign(message, key_pair.secret_key));
+  ASSERT_OUTCOME_SUCCESS(signature,
+                         ecdsa_provider_->sign(message, key_pair.secret_key));
   // generate another valid key pair and take public one
   auto another_keypair = generate();
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       ver_res,
       ecdsa_provider_->verify(
           message, signature, another_keypair.public_key, false));

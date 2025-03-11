@@ -28,7 +28,7 @@ struct SessionKeysTest : public ::testing::Test {
 
   void SetUp() override {
     store = std::make_shared<KeyStoreMock>();
-    role.flags.authority = 1;
+    role = network::Roles::Authority;
     EXPECT_CALL(*config, roles()).WillOnce(Return(role));
     session_keys = std::make_shared<SessionKeysImpl>(store, *config);
   }

@@ -138,11 +138,6 @@ namespace kagome {
     return boost::get<Type>(&variant) != nullptr;
   }
 
-  template <typename T, typename Tag, typename TVariant>
-  constexpr bool is_tagged_by(TVariant &&variant) {
-    return is_type<Tagged<T, Tag>>(&variant);
-  }
-
   /// apply Matcher to optional T
   template <typename T, typename Matcher>
   constexpr decltype(auto) match(T &&t, Matcher &&m) {

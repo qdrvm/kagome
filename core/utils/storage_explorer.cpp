@@ -329,9 +329,9 @@ namespace kagome {
                   "search "
                   "the finalized chain for the target entity. Currently, "
                   "'justification' or 'authority-update' are supported "},
-          block_storage{block_storage},
-          trie_storage{trie_storage},
-          hasher{hasher} {
+          block_storage{std::move(block_storage)},
+          trie_storage{std::move(trie_storage)},
+          hasher{std::move(hasher)} {
       BOOST_ASSERT(block_storage != nullptr);
       BOOST_ASSERT(trie_storage != nullptr);
       BOOST_ASSERT(authority_manager != nullptr);
@@ -467,8 +467,9 @@ namespace kagome {
         auto *consensus_digest =
             std::get_if<kagome::primitives::Consensus>(&digest_item);
         if (consensus_digest) {
-          auto decoded = unwrapResult("Decoding consensus digest",
-                                      consensus_digest->decode());
+          auto decoded =
+              unwrapResult("Decoding consensus digest",
+                           consensus_digest->decodeConsensusMessage());
           if (decoded.consensus_engine_id
               == kagome::primitives::kGrandpaEngineId) {
             reportAuthorityUpdate(

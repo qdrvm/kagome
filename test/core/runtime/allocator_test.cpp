@@ -6,7 +6,6 @@
 #include <gtest/gtest.h>
 
 #include "runtime/common/memory_allocator.hpp"
-#include "scale/tie.hpp"
 #include "testutil/runtime/memory.hpp"
 
 using kagome::common::unhex;
@@ -14,18 +13,13 @@ using kagome::runtime::MemoryAllocator;
 using kagome::runtime::MemoryAllocatorImpl;
 using kagome::runtime::MemoryConfig;
 using kagome::runtime::TestMemory;
+using kagome::scale::decode;
 
 struct Replay {
-  SCALE_TIE(3);
-
   struct OpAllocate {
-    SCALE_TIE(2);
-
     uint32_t size, ptr;
   };
   struct OpDeallocate {
-    SCALE_TIE(1);
-
     uint32_t ptr;
   };
   using Op = boost::variant<OpAllocate, OpDeallocate>;
@@ -35,7 +29,7 @@ struct Replay {
 };
 
 void test(std::string_view hex) {
-  auto replay = scale::decode<Replay>(unhex(hex).value()).value();
+  auto replay = decode<Replay>(unhex(hex).value()).value();
 
   TestMemory memory;
   memory.handle->resize(replay.size);

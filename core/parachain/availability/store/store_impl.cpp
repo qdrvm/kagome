@@ -166,8 +166,8 @@ namespace kagome::parachain {
       std::vector<AvailabilityStore::ErasureChunk> chunks;
       auto it = state.per_candidate_.find(candidate_hash);
       if (it != state.per_candidate_.end()) {
-        for (auto &p : it->second.chunks) {
-          chunks.emplace_back(p.second);
+        for (auto &chunk : it->second.chunks | std::views::values) {
+          chunks.emplace_back(chunk);
         }
       }
       return chunks;
