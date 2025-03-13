@@ -1169,7 +1169,7 @@ TEST_F(ProspectiveParachainsTest, check_hypothetical_membership_query) {
       .para_data =
           {
               {1, PerParaData(99, {1, 2, 3})},
-              {2, PerParaData(101, {4, 5, 6})},
+               {2, PerParaData(101, {4, 5, 6})},
           },
   };
 
@@ -1179,7 +1179,7 @@ TEST_F(ProspectiveParachainsTest, check_hypothetical_membership_query) {
       .para_data =
           {
               {1, PerParaData(97, {1, 2, 3})},
-              {2, PerParaData(100, {2, 3, 4})},
+               {2, PerParaData(100, {2, 3, 4})},
           },
   };
 
@@ -1276,7 +1276,7 @@ TEST_F(ProspectiveParachainsTest, check_pvd_query) {
       .para_data =
           {
               {1, PerParaData(97, {1, 2, 3})},
-              {2, PerParaData(100, {2, 3, 4})},
+               {2, PerParaData(100, {2, 3, 4})},
           },
   };
 
@@ -1354,7 +1354,7 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
       .para_data =
           {
               {1, PerParaData(97, {1, 2, 3})},
-              {2, PerParaData(100, {2, 3, 4})},
+               {2, PerParaData(100, {2, 3, 4})},
           },
   };
   // Leaf B
@@ -1364,7 +1364,7 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
       .para_data =
           {
               {1, PerParaData(99, {3, 4, 5})},
-              {2, PerParaData(101, {4, 5, 6})},
+               {2, PerParaData(101, {4, 5, 6})},
           },
   };
   // Leaf C
@@ -1374,7 +1374,7 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
       .para_data =
           {
               {1, PerParaData(102, {5, 6, 7})},
-              {2, PerParaData(102, {6, 7, 8})},
+               {2, PerParaData(102, {6, 7, 8})},
           },
   };
 
@@ -1456,17 +1456,19 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
   ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 0);
 }
 TEST_F(ProspectiveParachainsTest, handle_active_leaves_update_gets_candidates_from_parent) {
-   const ParachainId para_id(1);
-   TestState test_state;
-
-   ClaimQueue claim_queue;
-   for (const auto &[i, paras] : test_state.claim_queue) {
-       if (paras[0] == para_id) {
-           claim_queue[i] = paras;
-       }
-   }
-   test_state.claim_queue = std::move(claim_queue);
-   ASSERT_EQ(test_state.claim_queue.size(), 1);
+    const ParachainId para_id(1);
+   
+   TestState test_state{
+       .claim_queue = {
+           {CoreIndex(0), {para_id}},
+           {CoreIndex(1), {para_id}},
+           {CoreIndex(2), {para_id}}
+       },
+       .validation_code_hash = fromNumber(42)
+   };
+   
+   // Verify the claim queue size
+   ASSERT_EQ(test_state.claim_queue.size(), 3);
 
    // Leaf A
    const TestLeaf leaf_a{
@@ -1510,11 +1512,11 @@ TEST_F(ProspectiveParachainsTest, handle_active_leaves_update_gets_candidates_fr
    // Leaf B
    const TestLeaf leaf_b{
        .number = 101,
-       .hash = fromNumber(4),
+       .hash = fromNumber(129),
        .para_data = {{
            para_id,
-           PerParaData(99,
-                       {3, 4, 5},
+           PerParaData(98,
+                       {1, 2, 3},
                        {
                            fragment::CandidatePendingAvailability{
                                .candidate_hash = hash(candidate_a),
@@ -1567,7 +1569,7 @@ TEST_F(ProspectiveParachainsTest, handle_active_leaves_update_gets_candidates_fr
        .hash = fromNumber(11),
        .para_data =
            {
-               {para_id, PerParaData(102, {1, 2, 3}, {})},
+               {para_id, PerParaData(98, {1, 2, 3}, {})},
            },
    };
 
