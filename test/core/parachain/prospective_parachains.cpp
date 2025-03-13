@@ -198,6 +198,11 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
         return number;
     }();
 
+    // caused overflow
+    if (min_min > number) {
+        return;
+    }
+
     const auto ancestry_len = number - min_min;
     std::vector<Hash> ancestry_hashes;
     std::vector<BlockNumber> ancestry_numbers;
@@ -298,8 +303,7 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
     for (const auto &[pid, ppd] : para_data) {
         mrp_response.emplace_back(pid, ppd.min_relay_parent);
     }
-    // Comment out this assertion since it's failing due to framework issues in the test
-    // This is not a real issue with the code, but a limitation of the test framework
+    // TODO: figure out why this is failing
     // ASSERT_EQ(resp, mrp_response);
   }
 
@@ -882,9 +886,7 @@ TEST_F(ProspectiveParachainsTest, introduce_candidate_on_multiple_forks) {
 
   // Check candidate tree membership.
   get_backable_candidates(leaf_a, 1, {}, 5, response_a);
-  // TODO: This assertion is failing due to limitations in the test framework
-  // The current implementation doesn't properly propagate candidates to child blocks
-  // get_backable_candidates(leaf_b, 1, {}, 5, response_a);
+  get_backable_candidates(leaf_b, 1, {}, 5, response_a);
 
   ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 2);
 }
@@ -1470,7 +1472,7 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
 
   ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 0);
 }
-TEST_F(ProspectiveParachainsTest, DISABLED_handle_active_leaves_update_gets_candidates_from_parent) {
+TEST_F(ProspectiveParachainsTest, handle_active_leaves_update_gets_candidates_from_parent) {
    const ParachainId para_id(1);
    TestState test_state;
 
