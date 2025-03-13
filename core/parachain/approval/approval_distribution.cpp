@@ -29,6 +29,7 @@
 #include "parachain/approval/approval_distribution_error.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/approval/state.hpp"
+#include "parachain/approval/transcript_utils.hpp"
 #include "parachain/pvf/pvf.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "primitives/math.hpp"
@@ -453,60 +454,6 @@ namespace {
     }
     UNREACHABLE;
   }
-
-  // // Implement the assigned_core_transcript function
-  kagome::primitives::Transcript assigned_core_transcript(
-      const kagome::parachain::CoreIndex &core_index) {
-    kagome::primitives::Transcript t;
-    t.initialize({'A', '&', 'V', ' ', 'A', 'S', 'S', 'I', 'G', 'N', 'E', 'D'});
-
-    t.append_message({'c', 'o', 'r', 'e'}, core_index);
-
-    return {t};
-  }
-
-  kagome::primitives::Transcript assigned_cores_transcript(
-      const scale::BitVec &core_indices) {
-    kagome::primitives::Transcript t;
-    t.initialize({'A',
-                  '&',
-                  'V',
-                  ' ',
-                  'A',
-                  'S',
-                  'S',
-                  'I',
-                  'G',
-                  'N',
-                  'E',
-                  'D',
-                  ' ',
-                  'v',
-                  '2'});
-    t.append_message({'c', 'o', 'r', 'e', 's'},
-                     scale::encode(core_indices).value());
-    return {t};
-  }
-
-  kagome::primitives::Transcript relay_vrf_modulo_transcript_v1(
-      const RelayVRFStory &relay_vrf_story, uint32_t sample) {
-    kagome::primitives::Transcript transcript;
-    transcript.initialize({'A', '&', 'V', ' ', 'M', 'O', 'D'});
-    transcript.append_message({'R', 'C', '-', 'V', 'R', 'F'},
-                              relay_vrf_story.data);
-    transcript.append_message({'s', 'a', 'm', 'p', 'l', 'e'}, sample);
-    return {transcript};
-  }
-
-  kagome::primitives::Transcript relay_vrf_modulo_transcript_v2(
-      const RelayVRFStory &relay_vrf_story) {
-    kagome::primitives::Transcript transcript;
-    transcript.initialize({'A', '&', 'V', ' ', 'M', 'O', 'D', ' ', 'v', '2'});
-    transcript.append_message({'R', 'C', '-', 'V', 'R', 'F'},
-                              relay_vrf_story.data);
-    return {transcript};
-  }
-
 }  // namespace
 
 namespace kagome::parachain {
