@@ -77,8 +77,11 @@ namespace kagome::primitives {
       strobe_.ad<false>(msg.data(), msg.size());
     }
 
-    template <typename T, size_t N>
-    void append_message(const T (&label)[N], const uint64_t value) {
+    template <typename T, size_t N, typename IntType>
+      requires std::integral<IntType>
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
+    void append_message(const T (&label)[N], const IntType value) {
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
       uint8_t tmp[sizeof(value)];
       decompose(value, tmp);
       append_message(label, tmp);
