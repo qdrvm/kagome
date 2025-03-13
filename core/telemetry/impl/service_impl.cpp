@@ -55,17 +55,15 @@ namespace {
     SysInfo sysinfo;
 
     // Get the number of CPU cores
-    int mib[2];
-    mib[0] = CTL_HW;
-    mib[1] = HW_NCPU;
-    int core_count;
+    int mib[2] = {CTL_HW, HW_NCPU};  // NOLINT(*-avoid-c-arrays)
+    int core_count;                  // NOLINT(cppcoreguidelines-init-variables)
     size_t len = sizeof(core_count);
     if (sysctl(mib, 2, &core_count, &len, nullptr, 0) == 0) {
       sysinfo.core_count = core_count;
     }
 
     // Get the CPU brand string
-    char cpu_brand[256];
+    char cpu_brand[256];  // NOLINT(*-avoid-c-arrays)
     len = sizeof(cpu_brand);
     mib[0] = CTL_HW;
     mib[1] = HW_MACHINE;
@@ -75,7 +73,7 @@ namespace {
     }
 
     // Get the memory size
-    uint64_t memory;
+    uint64_t memory;  // NOLINT(cppcoreguidelines-init-variables)
     len = sizeof(memory);
     mib[1] = HW_MEMSIZE;
     if (sysctl(mib, 2, &memory, &len, nullptr, 0) == 0) {
@@ -83,7 +81,7 @@ namespace {
     }
 
     // Get the macOS version name
-    std::array<char, 128> buffer;
+    std::array<char, 128> buffer;  // NOLINT(*-member-init)
     std::string result;
     std::unique_ptr<FILE, decltype(&pclose)> pipe(
         popen("sw_vers -productVersion", "r"), pclose);
@@ -95,7 +93,7 @@ namespace {
     }
 
     // Check if running on a virtual machine
-    char hw_target[256];
+    char hw_target[256];  // NOLINT(*-avoid-c-arrays)
     len = sizeof(hw_target);
     mib[1] = HW_TARGET;
     if (sysctl(mib, 2, &hw_target, &len, nullptr, 0) == 0) {
@@ -473,8 +471,8 @@ namespace kagome::telemetry {
     // UTC time works just fine.
     // The approach allows us just to append zero offset and avoid computation
     // of actual offset and modifying the offset string and timestamp itself.
-    auto t = boost::posix_time::microsec_clock::universal_time();
-    return boost::posix_time::to_iso_extended_string(t) + "+00:00";
+    auto time = boost::posix_time::microsec_clock::universal_time();
+    return boost::posix_time::to_iso_extended_string(time) + "+00:00";
   }
 
   std::string TelemetryServiceImpl::connectedMessage() {

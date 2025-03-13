@@ -31,13 +31,20 @@ namespace kagome::log {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     std::weak_ptr<soralog::LoggingSystem> logging_system_;
 
-    std::shared_ptr<soralog::LoggingSystem>
-    ensure_logger_system_is_initialized() {
+    template <typename... Args>
+    std::shared_ptr<soralog::LoggingSystem> ensure_logger_system_is_initialized(
+        const Args &...args) {
       auto logging_system = logging_system_.lock();
       if (logging_system == nullptr) {
         std::cerr
             << "Logging system is not ready. "
-               "kagome::log::setLoggingSystem() must be executed once before";
+               "kagome::log::setLoggingSystem() must be executed once before. ";
+        if constexpr (sizeof...(args) > 0) {
+          std::cerr << '{';
+          bool first = true;
+          ((std::cerr << (first ? "" : ", ") << args, first = false), ...);
+          std::cerr << '}' << std::endl;  // NOLINT(performance-avoid-endl)
+        }
         std::abort();
       }
       return logging_system;
@@ -75,11 +82,12 @@ namespace kagome::log {
   void setLoggingSystem(std::weak_ptr<soralog::LoggingSystem> logging_system) {
     logging_system_ = std::move(logging_system);
     libp2p::log::setLoggingSystem(logging_system_.lock());
-    profiling_logger = createLogger("Profiler", "profile");
+    profiling_logger();  // call to create logger in advance
   }
 
   void tuneLoggingSystem(const std::vector<std::string> &cfg) {
-    auto logging_system = ensure_logger_system_is_initialized();
+    auto logging_system =
+        ensure_logger_system_is_initialized("tuneLoggingSystem");
 
     if (cfg.empty()) {
       return;
@@ -128,13 +136,15 @@ namespace kagome::log {
   }
 
   Logger createLogger(const std::string &tag) {
-    auto logging_system = ensure_logger_system_is_initialized();
+    auto logging_system =
+        ensure_logger_system_is_initialized("createLogger", tag);
     return std::static_pointer_cast<soralog::LoggerFactory>(logging_system)
         ->getLogger(tag, defaultGroupName);
   }
 
   Logger createLogger(const std::string &tag, const std::string &group) {
-    auto logging_system = ensure_logger_system_is_initialized();
+    auto logging_system =
+        ensure_logger_system_is_initialized("createLogger", tag, group);
     return std::static_pointer_cast<soralog::LoggerFactory>(logging_system)
         ->getLogger(tag, group);
   }
@@ -142,26 +152,31 @@ namespace kagome::log {
   Logger createLogger(const std::string &tag,
                       const std::string &group,
                       Level level) {
-    auto logging_system = ensure_logger_system_is_initialized();
+    auto logging_system =
+        ensure_logger_system_is_initialized("createLogger", tag, group);
     return std::static_pointer_cast<soralog::LoggerFactory>(logging_system)
         ->getLogger(tag, group, level);
   }
 
   bool setLevelOfGroup(const std::string &group_name, Level level) {
-    auto logging_system = ensure_logger_system_is_initialized();
+    auto logging_system =
+        ensure_logger_system_is_initialized("setLevelOfGroup", group_name);
     return logging_system->setLevelOfGroup(group_name, level);
   }
   bool resetLevelOfGroup(const std::string &group_name) {
-    auto logging_system = ensure_logger_system_is_initialized();
+    auto logging_system =
+        ensure_logger_system_is_initialized("resetLevelOfGroup", group_name);
     return logging_system->resetLevelOfGroup(group_name);
   }
 
   bool setLevelOfLogger(const std::string &logger_name, Level level) {
-    auto logging_system = ensure_logger_system_is_initialized();
+    auto logging_system =
+        ensure_logger_system_is_initialized("setLevelOfLogger", logger_name);
     return logging_system->setLevelOfLogger(logger_name, level);
   }
   bool resetLevelOfLogger(const std::string &logger_name) {
-    auto logging_system = ensure_logger_system_is_initialized();
+    auto logging_system =
+        ensure_logger_system_is_initialized("resetLevelOfLogger", logger_name);
     return logging_system->resetLevelOfLogger(logger_name);
   }
 

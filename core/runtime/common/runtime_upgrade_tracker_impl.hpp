@@ -12,9 +12,7 @@
 
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
-#include "outcome/outcome.hpp"
 #include "primitives/event_types.hpp"
-#include "scale/tie.hpp"
 #include "storage/spaced_storage.hpp"
 #include "storage/trie/types.hpp"
 
@@ -37,15 +35,6 @@ namespace kagome::runtime {
         std::shared_ptr<blockchain::BlockTree> block_tree);
 
     struct RuntimeUpgradeData {
-      SCALE_TIE(2);
-
-      RuntimeUpgradeData() = default;
-
-      template <typename BlockInfo, typename RootHash>
-      RuntimeUpgradeData(BlockInfo &&block, RootHash &&state)
-          : block{std::forward<BlockInfo>(block)},
-            state{std::forward<RootHash>(state)} {}
-
       primitives::BlockInfo block;
       storage::trie::RootHash state;
     };

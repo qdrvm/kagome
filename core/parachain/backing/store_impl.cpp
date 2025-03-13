@@ -120,15 +120,15 @@ namespace kagome::parachain {
         new_proposal = true;
       }
     } else {
-      auto &ad = state.authority_data_[authority];
-      ad.proposals.emplace_back(digest, signature);
+      auto &authority_data = state.authority_data_[authority];
+      authority_data.proposals.emplace_back(digest, signature);
       new_proposal = true;
     }
 
     if (new_proposal) {
-      auto &cv = state.candidate_votes_[digest];
-      cv.candidate = candidate;
-      cv.group_id = group_id;
+      auto &candidate_votes = state.candidate_votes_[digest];
+      candidate_votes.candidate = candidate;
+      candidate_votes.group_id = group_id;
     }
 
     return validity_vote(

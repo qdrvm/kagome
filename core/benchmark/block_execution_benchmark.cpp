@@ -10,6 +10,7 @@
 #include <numeric>
 
 #include <fmt/chrono.h>
+#include <qtils/test/outcome.hpp>
 
 #include "blockchain/block_tree.hpp"
 #include "primitives/runtime_dispatch_info.hpp"
@@ -17,6 +18,8 @@
 #include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "utils/pretty_duration.hpp"
+
+#define OUTCOME_UNIQUE QTILS_UNIQUE_NAME(outcome)
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::benchmark,
                             BlockExecutionBenchmark::Error,
@@ -144,8 +147,6 @@ namespace kagome::benchmark {
 
   template <typename T>
   struct PerDispatchClass {
-    SCALE_TIE(3)
-
     // value for `Normal` extrinsics.
     T normal;
     // value for `Operational` extrinsics.
@@ -157,19 +158,19 @@ namespace kagome::benchmark {
   primitives::Weight totalWeight(
       const PerDispatchClass<primitives::Weight> &weight_per_class) {
     return primitives::Weight{
-        weight_per_class.normal.ref_time.number
-            + weight_per_class.operational.ref_time.number
-            + weight_per_class.mandatory.ref_time.number,
-        weight_per_class.normal.proof_size.number
-            + weight_per_class.operational.proof_size.number
-            + weight_per_class.mandatory.proof_size.number};
+        .ref_time = weight_per_class.normal.ref_time
+                  + weight_per_class.operational.ref_time
+                  + weight_per_class.mandatory.ref_time,
+        .proof_size = weight_per_class.normal.proof_size
+                    + weight_per_class.operational.proof_size
+                    + weight_per_class.mandatory.proof_size};
   }
 
   primitives::OldWeight totalWeight(
       const PerDispatchClass<primitives::OldWeight> &weight_per_class) {
-    return primitives::OldWeight{weight_per_class.normal.number
-                                 + weight_per_class.operational.number
-                                 + weight_per_class.mandatory.number};
+    return primitives::OldWeight{weight_per_class.normal
+                                 + weight_per_class.operational
+                                 + weight_per_class.mandatory};
   }
 
   using ConsumedWeight = PerDispatchClass<primitives::Weight>;
@@ -186,20 +187,20 @@ namespace kagome::benchmark {
     OUTCOME_TRY(batch, storage.getEphemeralBatchAt(state));
 
     OUTCOME_TRY(enc_block_weight, batch->get(BLOCK_WEIGHT_KEY));
-    scale::ScaleDecoderStream stream{enc_block_weight.view()};
+    scale::DecoderFromSpan decoder{enc_block_weight.view()};
     ConsumedWeight block_weight;
     try {
-      stream >> block_weight;
+      decode(block_weight, decoder);
     } catch (std::exception &e) {
       return BlockExecutionBenchmark::Error::BLOCK_WEIGHT_DECODE_FAILED;
     }
-    if (stream.hasMore(1)) {
+    if (decoder.has(1)) {
       return BlockExecutionBenchmark::Error::BLOCK_WEIGHT_DECODE_FAILED;
     }
 
-    return std::chrono::nanoseconds{static_cast<long long>(std::floor(
-        static_cast<double>(totalWeight(block_weight).ref_time.number)
-        / static_cast<double>(WEIGHT_REF_TIME_PER_NANOS)))};
+    return std::chrono::nanoseconds{static_cast<long long>(
+        std::floor(static_cast<double>(totalWeight(block_weight).ref_time)
+                   / static_cast<double>(WEIGHT_REF_TIME_PER_NANOS)))};
   }
 
   outcome::result<void> BlockExecutionBenchmark::run(const Config config) {

@@ -1,7 +1,6 @@
-build/.*
-cmake-build-debug/.*
-cmake/.*
-test/.*
-deps/.*
-.*\.pb\.h
-.*\.pb\.cc
+build/
+cmake-build-.*
+cmake/
+test/
+third_party/
+.*\.pb\.(h|cc)

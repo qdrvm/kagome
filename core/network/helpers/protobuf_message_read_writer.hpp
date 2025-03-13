@@ -16,7 +16,7 @@
 #include "network/adapters/protobuf.hpp"
 #include "network/adapters/uvar.hpp"
 #include "network/helpers/message_read_writer.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::network {
   /**

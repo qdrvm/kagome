@@ -12,7 +12,7 @@
 
 #include "blockchain/block_tree.hpp"
 #include "primitives/ss58_codec.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "transaction_pool/transaction_pool.hpp"
 
 namespace kagome::api {

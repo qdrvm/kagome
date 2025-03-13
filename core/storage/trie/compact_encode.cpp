@@ -8,6 +8,8 @@
 
 #include <unordered_set>
 
+#include "common/buffer_view.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/trie/raw_cursor.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
@@ -93,17 +95,18 @@ namespace kagome::storage::trie {
     }
 
     // encode concatenated vectors
-    scale::ScaleEncoderStream s;
+    std::vector<uint8_t> out;
+    scale::EncoderToVector encoder(out);
     try {
-      s << scale::CompactInteger{proofs[0].size() + proofs[1].size()};
+      encode(scale::as_compact(proofs[0].size() + proofs[1].size()), encoder);
       for (auto &proof : proofs) {
         for (auto &x : proof) {
-          s << x;
+          encode(x, encoder);
         }
       }
     } catch (std::system_error &e) {
       return e.code();
     }
-    return common::Buffer{s.to_vector()};
+    return common::Buffer{std::move(out)};
   }
 }  // namespace kagome::storage::trie

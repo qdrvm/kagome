@@ -9,28 +9,25 @@
 #include <fmt/format.h>
 
 #include <optional>
-#include <ranges>
-#include <string_view>
 
 #include <boost/optional.hpp>
 
 template <template <typename> class Optional, typename T>
-  requires std::is_same_v<Optional<T>, std::optional<T>>
-        or std::is_same_v<Optional<T>, boost::optional<T>>
-struct fmt::formatter<Optional<T>> {
-  constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) {
-    return ctx.begin();
+  requires requires(Optional<T> opt) {
+    { opt.has_value() } -> std::convertible_to<bool>;
+    { *opt } -> std::convertible_to<T>;
+  } and fmt::is_formattable<T>::value
+struct fmt::formatter<Optional<T>> : fmt::formatter<T> {
+  template <typename ParseContext>
+  constexpr auto parse(ParseContext &ctx) {
+    return fmt::formatter<T>::parse(ctx);
   }
 
   template <typename FormatContext>
-  auto format(const Optional<T> &opt, FormatContext &ctx) const
-      -> decltype(ctx.out()) {
-    // ctx.out() is an output iterator to write to.
-
+  auto format(const Optional<T> &opt, FormatContext &ctx) const {
     if (opt.has_value()) {
-      return fmt::format_to(ctx.out(), "{}", opt.value());
+      return fmt::formatter<T>::format(opt.value(), ctx);
     }
-    static constexpr std::string_view message("<none>");
-    return std::copy(std::begin(message), std::end(message), ctx.out());
+    return fmt::format_to(ctx.out(), "<none>");
   }
 };

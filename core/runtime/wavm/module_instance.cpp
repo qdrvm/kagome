@@ -25,6 +25,7 @@
 static WAVM::IR::Value evaluateInitializer(
     WAVM::IR::InitializerExpression expression) {
   using WAVM::IR::InitializerExpression;
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
   switch (expression.type) {
     case InitializerExpression::Type::i32_const:
       return expression.i32;
@@ -40,8 +41,8 @@ static WAVM::IR::Value evaluateInitializer(
       throw std::runtime_error{"Not implemented on WAVM yet"};
     }
     case InitializerExpression::Type::ref_null:
-      return WAVM::IR::Value(asValueType(expression.nullReferenceType),
-                             WAVM::IR::UntaggedValue());
+      return {asValueType(expression.nullReferenceType),
+              WAVM::IR::UntaggedValue()};
 
     case InitializerExpression::Type::ref_func:
       // instantiateModule delays evaluating ref.func initializers until the
@@ -51,10 +52,12 @@ static WAVM::IR::Value evaluateInitializer(
     default:
       WAVM_UNREACHABLE();
   };
+  // NOLINTEND(cppcoreguidelines-pro-type-union-access)
 }
 
 static WAVM::Uptr getIndexValue(const WAVM::IR::Value &value,
                                 WAVM::IR::IndexType indexType) {
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
   switch (indexType) {
     case WAVM::IR::IndexType::i32:
       WAVM_ASSERT(value.type == WAVM::IR::ValueType::i32);
@@ -65,6 +68,7 @@ static WAVM::Uptr getIndexValue(const WAVM::IR::Value &value,
     default:
       WAVM_UNREACHABLE();
   };
+  // NOLINTEND(cppcoreguidelines-pro-type-union-access)
 }
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime::wavm,
@@ -146,11 +150,12 @@ namespace kagome::runtime::wavm {
           std::move(invokeArgTypes));
       // Allocate an array to receive the invocation results.
       BOOST_ASSERT(invokeSig.results().size() == 1);
+      // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
       std::array<WAVM::IR::UntaggedValue, 1> untaggedInvokeResults;
       pushBorrowedRuntimeInstance(
           std::const_pointer_cast<ModuleInstanceImpl>(shared_from_this()));
       ::libp2p::common::FinalAction pop(&popBorrowedRuntimeInstance);
-      WasmSpan span;
+      WasmSpan span;  // NOLINT(cppcoreguidelines-init-variables)
       try {
         WAVM::Runtime::unwindSignalsAsExceptions(
             [&context,
@@ -167,6 +172,7 @@ namespace kagome::runtime::wavm {
                                             untaggedInvokeArgs.data(),
                                             resultsDestination);
             });
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
         span = untaggedInvokeResults[0].u64;
       } catch (WAVM::Runtime::Exception *e) {
         const auto desc = WAVM::Runtime::describeException(e);
@@ -191,6 +197,7 @@ namespace kagome::runtime::wavm {
     WAVM::Runtime::GCPointer<WAVM::Runtime::Context> context =
         WAVM::Runtime::createContext(compartment_->getCompartment());
     auto value = WAVM::Runtime::getGlobalValue(context, global);
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
     switch (value.type) {
       case WAVM::IR::ValueType::i32:
         return WasmValue{static_cast<int32_t>(value.i32)};
@@ -206,6 +213,7 @@ namespace kagome::runtime::wavm {
                  asString(value));
         return Error::WRONG_RETURN_TYPE;
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-union-access)
   }
 
   void ModuleInstanceImpl::forDataSegment(

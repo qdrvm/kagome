@@ -23,7 +23,7 @@ namespace kagome::parachain::fragment {
     // A set of the candidate hashes in the `chain`.
     HashSet<CandidateHash> candidates;
 
-    void push(FragmentNode candidate);
+    void push(const FragmentNode &candidate);
     bool contains(const CandidateHash &hash) const;
     Vec<FragmentNode> clear();
     Vec<FragmentNode> revert_to_parent_hash(const Hash &parent_head_data_hash);
