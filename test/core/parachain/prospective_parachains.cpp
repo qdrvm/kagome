@@ -67,7 +67,6 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
   struct TestState {
     ClaimQueue claim_queue = {{CoreIndex(0), {ParachainId(1)}},
                               {CoreIndex(1), {ParachainId(2)}}};
-    bool enable_claim_queue_api = true;
     ValidationCodeHash validation_code_hash = fromNumber(42);
   };
 
@@ -145,39 +144,24 @@ class ProspectiveParachainsTest : public ProspectiveParachainsTestHarness {
 
     size_t candidate_depth = 0;
 
-    if (test_state.enable_claim_queue_api) {
-        EXPECT_CALL(*parachain_api_, claim_queue(hash))
-            .WillRepeatedly(Return(ClaimQueueSnapshot{test_state.claim_queue}));
+    EXPECT_CALL(*parachain_api_, claim_queue(hash))
+        .WillRepeatedly(Return(ClaimQueueSnapshot{test_state.claim_queue}));
 
-        runtime::ClaimQueueSnapshot snapshot;
-        snapshot.claimes = test_state.claim_queue;
+    runtime::ClaimQueueSnapshot snapshot;
+    snapshot.claimes = test_state.claim_queue;
 
-        // Use a specific scheduling_lookahead value for testing
-        constexpr uint32_t test_scheduling_lookahead = 3;
-        EXPECT_CALL(*parachain_api_, scheduling_lookahead)
-            .WillRepeatedly(Return(outcome::success(test_scheduling_lookahead)));
-            
-        TransposedClaimQueue transposed_claim_queue =
-        transposeClaimQueue(snapshot, test_scheduling_lookahead);
+    // Use a specific scheduling_lookahead value for testing
+    constexpr uint32_t test_scheduling_lookahead = 3;
+    EXPECT_CALL(*parachain_api_, scheduling_lookahead)
+        .WillRepeatedly(Return(outcome::success(test_scheduling_lookahead)));
 
-        for (const auto &[core_index, claims] : transposed_claim_queue) {
-            for (const auto &[_, claim_set] : claims) {
-                candidate_depth = std::max(candidate_depth, claim_set.size() + 1);
-            }
+    TransposedClaimQueue transposed_claim_queue =
+    transposeClaimQueue(snapshot, test_scheduling_lookahead);
+
+    for (const auto &[core_index, claims] : transposed_claim_queue) {
+        for (const auto &[_, claim_set] : claims) {
+            candidate_depth = std::max(candidate_depth, claim_set.size() + 1);
         }
-    } else {
-        EXPECT_CALL(*parachain_api_, claim_queue(hash))
-            .WillRepeatedly(Return(std::nullopt));
-
-        std::vector<runtime::CoreState> cores;
-        for (const auto &[_, paras] : test_state.claim_queue) {
-        cores.emplace_back(runtime::ScheduledCore{
-            .para_id = paras[0],
-            .collator = std::nullopt,
-        });
-        }
-        EXPECT_CALL(*parachain_api_, availability_cores(hash))
-            .WillRepeatedly(Return(outcome::success(cores)));
     }
 
     EXPECT_CALL(*block_tree_, tryGetBlockHeader(hash))
@@ -1362,7 +1346,6 @@ TEST_F(ProspectiveParachainsTest, check_pvd_query) {
 
 TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
   TestState test_state;
-  test_state.enable_claim_queue_api = false;
 
   // Leaf A
   const TestLeaf leaf_a{
