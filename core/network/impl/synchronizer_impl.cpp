@@ -968,6 +968,15 @@ namespace kagome::network {
         };
 
         if (sync_method_ == application::SyncMethod::Full) {
+          // Check if body is present
+          if (not block_data.body.has_value()) {
+            SL_ERROR(log_,
+                     "Can't apply block {}: body is missing",
+                     block_info);
+            callback(Error::RESPONSE_WITHOUT_BLOCK_BODY);
+            return;
+          }
+
           // Regular syncing
           primitives::Block block{
               .header = std::move(block_data.header.value()),
