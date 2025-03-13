@@ -182,7 +182,7 @@ struct AssignmentsTest : public test::BaseFS_Test {
       size_t n_cores,
       size_t rotation_offset,
       const std::function<
-          std::optional<bool>(scale::BitVec &,
+          std::optional<bool>(scale::BitVector &,
                               kagome::parachain::approval::AssignmentCertV2 &,
                               std::vector<kagome::network::GroupIndex> &,
                               kagome::network::GroupIndex,
@@ -227,26 +227,26 @@ struct AssignmentsTest : public test::BaseFS_Test {
 
     size_t counted = 0;
     for (auto &[core, assignment] : assignments) {
-      scale::BitVec cores;
-      cores.bits.resize(n_cores);  // Pre-allocate with correct size
+      scale::BitVector cores;
+      cores.resize(n_cores);  // Pre-allocate with correct size
       kagome::visit_in_place(
           assignment.cert.kind,
           [&](const kagome::parachain::approval::RelayVRFModuloCompact
                   &compact) { cores = compact.core_bitfield; },
           [&](const kagome::parachain::approval::RelayVRFModulo &modulo) {
-            if (core < cores.bits.size()) {
-              cores.bits[core] = true;
+            if (core < cores.size()) {
+              cores[core] = true;
             }
           },
           [&](const kagome::parachain::approval::RelayVRFDelay &delay) {
-            if (delay.core_index < cores.bits.size()) {
-              cores.bits[delay.core_index] = true;
+            if (delay.core_index < cores.size()) {
+              cores[delay.core_index] = true;
             }
           });
 
       std::vector<kagome::network::GroupIndex> groups;
-      for (size_t i = 0; i < cores.bits.size(); ++i) {
-        if (cores.bits[i]) {
+      for (size_t i = 0; i < cores.size(); ++i) {
+        if (cores[i]) {
           groups.emplace_back((i + rotation_offset) % n_cores);
         }
       }
@@ -458,7 +458,7 @@ TEST_F(AssignmentsTest, check_rejects_delay_bad_vrf) {
       200,
       100,
       25,  // Match Rust test parameters
-      [&](scale::BitVec &cores,
+      [&](scale::BitVector &cores,
           kagome::parachain::approval::AssignmentCertV2 &cert,
           std::vector<kagome::network::GroupIndex> &groups,
           kagome::network::GroupIndex own_group,
@@ -486,7 +486,7 @@ TEST_F(AssignmentsTest, check_rejects_modulo_bad_vrf) {
       200,
       100,
       25,  // Match Rust test parameters
-      [&](scale::BitVec &cores,
+      [&](scale::BitVector &cores,
           kagome::parachain::approval::AssignmentCertV2 &cert,
           std::vector<kagome::network::GroupIndex> &groups,
           kagome::network::GroupIndex own_group,
@@ -521,7 +521,7 @@ TEST_F(AssignmentsTest, check_rejects_modulo_sample_out_of_bounds) {
       200,
       100,
       25,  // Match Rust test parameters
-      [&](scale::BitVec &cores,
+      [&](scale::BitVector &cores,
           kagome::parachain::approval::AssignmentCertV2 &cert,
           std::vector<kagome::network::GroupIndex> &groups,
           kagome::network::GroupIndex own_group,
@@ -554,7 +554,7 @@ TEST_F(AssignmentsTest, check_rejects_delay_claimed_core_wrong) {
       200,
       100,
       25,  // Match Rust test parameters
-      [&](scale::BitVec &cores,
+      [&](scale::BitVector &cores,
           kagome::parachain::approval::AssignmentCertV2 &cert,
           std::vector<kagome::network::GroupIndex> &groups,
           kagome::network::GroupIndex own_group,
@@ -566,10 +566,10 @@ TEST_F(AssignmentsTest, check_rejects_delay_claimed_core_wrong) {
           // Find the first set bit and increment it by 1 mod 100
           // This matches Rust's: m.cores =
           // CoreIndex((m.cores.first_one().unwrap() + 1) % 100).into();
-          for (size_t i = 0; i < cores.bits.size(); ++i) {
-            if (cores.bits[i]) {
-              cores.bits[i] = false;
-              cores.bits[(i + 1) % 100] = true;
+          for (size_t i = 0; i < cores.size(); ++i) {
+            if (cores[i]) {
+              cores[i] = false;
+              cores[(i + 1) % 100] = true;
               break;
             }
           }
@@ -592,7 +592,7 @@ TEST_F(AssignmentsTest, check_rejects_modulo_core_wrong) {
       200,
       100,
       25,  // Match Rust test parameters
-      [&](scale::BitVec &cores,
+      [&](scale::BitVector &cores,
           kagome::parachain::approval::AssignmentCertV2 &cert,
           std::vector<kagome::network::GroupIndex> &groups,
           kagome::network::GroupIndex own_group,
@@ -604,10 +604,10 @@ TEST_F(AssignmentsTest, check_rejects_modulo_core_wrong) {
                 kagome::parachain::approval::RelayVRFModuloCompact>(
                 cert.kind)) {
           // Find the first set bit and increment it by 1 mod 100
-          for (size_t i = 0; i < cores.bits.size(); ++i) {
-            if (cores.bits[i]) {
-              cores.bits[i] = false;
-              cores.bits[(i + 1) % 100] = true;
+          for (size_t i = 0; i < cores.size(); ++i) {
+            if (cores[i]) {
+              cores[i] = false;
+              cores[(i + 1) % 100] = true;
               break;
             }
           }

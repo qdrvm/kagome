@@ -6,7 +6,10 @@
 
 #pragma once
 
+#include <scale/bit_vector.hpp>
+
 #include "primitives/transcript.hpp"
+#include "parachain/types.hpp"
 
 // Polkadot-sdk implementation:
 // https://github.com/paritytech/polkadot-sdk/blob/6b854acc69cd64f7c0e6cdb606e741e630e45032/polkadot/node/core/approval-voting/src/criteria.rs#L186
@@ -23,7 +26,7 @@ kagome::primitives::Transcript assigned_core_transcript(
 // Polkadot-sdk implementation:
 // https://github.com/paritytech/polkadot-sdk/blob/6b854acc69cd64f7c0e6cdb606e741e630e45032/polkadot/node/core/approval-voting/src/criteria.rs#L395
 kagome::primitives::Transcript assigned_cores_transcript(
-    const scale::BitVector &core_indices) {
+    const kagome::scale::BitVector &core_indices) {
   kagome::primitives::Transcript t;
   t.initialize({'A',
                 '&',
