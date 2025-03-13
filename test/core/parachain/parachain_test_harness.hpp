@@ -6,12 +6,9 @@
 
 #include <gtest/gtest.h>
 
-#include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
-#include "testutil/prepare_loggers.hpp"
+#include <qtils/test/outcome.hpp>
 
 #include "crypto/hasher/hasher_impl.hpp"
-#include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/type_hasher.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -20,9 +17,8 @@
 #include "parachain/validator/prospective_parachains/candidate_storage.hpp"
 #include "parachain/validator/signer.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
-#include "scale/kagome_scale.hpp"
-#include "scale/scale.hpp"
-#include "testutil/scale_test_comparator.hpp"
+#include "testutil/literals.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::primitives;
 using namespace kagome::parachain;

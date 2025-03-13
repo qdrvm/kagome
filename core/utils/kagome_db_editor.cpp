@@ -41,6 +41,7 @@ namespace di = boost::di;
 namespace kagome {
   using common::BufferOrView;
   using common::BufferView;
+  using scale::encode;
   using storage::trie::Codec;
   using storage::trie::PolkadotCodec;
   using storage::trie::PolkadotTrieFactory;

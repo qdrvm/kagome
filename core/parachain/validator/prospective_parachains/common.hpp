@@ -28,7 +28,7 @@ namespace kagome::parachain::fragment {
   using HashSet = std::unordered_set<Args...>;
   template <typename... Args>
   using Vec = std::vector<Args...>;
-  using BitVec = scale::BitVec;
+  using BitVector = scale::BitVector;
   using ParaId = ParachainId;
   template <typename... Args>
   using Option = std::optional<Args...>;

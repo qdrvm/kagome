@@ -82,7 +82,7 @@ TEST_F(CandidateStorageTest, candidate_storage_methods) {
   ASSERT_EQ(storage.head_data_by_hash(parent_head_hash), std::nullopt);
 
   // Add a valid candidate.
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       candidate_entry,
       fragment::CandidateEntry::create(candidate_hash,
                                        candidate,
@@ -138,9 +138,10 @@ TEST_F(CandidateStorageTest, candidate_storage_methods) {
       make_committed_candidate(5, relay_parent, 8, {4, 5, 6}, {2, 3, 4}, 7);
 
   const Hash candidate_hash_2 = network::candidateHash(*hasher_, candidate_2);
-  EXPECT_OUTCOME_TRUE(candidate_entry_2,
-                      fragment::CandidateEntry::create_seconded(
-                          candidate_hash_2, candidate_2, pvd_2.get(), hasher_));
+  ASSERT_OUTCOME_SUCCESS(
+      candidate_entry_2,
+      fragment::CandidateEntry::create_seconded(
+          candidate_hash_2, candidate_2, pvd_2.get(), hasher_));
 
   std::ignore = storage.add_candidate_entry(candidate_entry_2);
   ASSERT_EQ(aggregate_hashes(parent_head_hash),

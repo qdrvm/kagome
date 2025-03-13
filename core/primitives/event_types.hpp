@@ -308,7 +308,7 @@ namespace kagome::primitives::events {
   struct ChainSub {
     ChainSub(ChainSubscriptionEnginePtr engine)
         : sub{std::make_shared<primitives::events::ChainEventSubscriber>(
-              std::move(engine))} {}
+            std::move(engine))} {}
 
     void onBlock(ChainEventType type, auto f) {
       subscribe(*sub, type, [f{std::move(f)}](const ChainEventParams &args) {

@@ -390,7 +390,7 @@ namespace kagome::application {
         std::max<size_t>(std::thread::hardware_concurrency(), 1)};
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
-    uint32_t max_parallel_downloads_;
+    uint32_t max_parallel_downloads_{};
   };
 
 }  // namespace kagome::application
