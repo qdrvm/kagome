@@ -51,7 +51,7 @@ namespace kagome::parachain {
    * @return Delay tranche if valid, error otherwise
    */
   outcome::result<DelayTranche> checkAssignmentCert(
-      const scale::BitVec &claimed_core_indices,
+      const scale::BitVector &claimed_core_indices,
       ValidatorIndex validator_index,
       const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
