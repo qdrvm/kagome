@@ -129,7 +129,7 @@ namespace kagome::state_metrics {
       SL_DEBUG(logger_, "Active era is not found");
       return std::nullopt;
     }
-    scale::ScaleDecoderStream decoder(opt_data.value());
+    scale::DecoderFromSpan decoder(opt_data.value());
     uint32_t active_era = 0;
     try {
       decoder >> active_era;
@@ -142,9 +142,15 @@ namespace kagome::state_metrics {
 
   std::vector<uint8_t> StateMetricsImpl::generateRewardPointsKey(
       uint32_t era_index) {
-    scale::ScaleEncoderStream encoder;
-    encoder << era_index;
-    const auto era_index_encoded = encoder.to_vector();
+    const auto era_index_encoded_res = scale::encode(era_index);
+    if (not era_index_encoded_res) {
+      SL_DEBUG(logger_,
+               "Error while encoding era index {}: {}",
+               era_index,
+               era_index_encoded_res.error().message());
+      return {};
+    }
+    const auto &era_index_encoded = era_index_encoded_res.value();
     const auto hashed_era_index = crypto::make_twox64(era_index_encoded);
     auto storage_key = reward_points_storage_key_basis_;
     storage_key.insert(
@@ -175,7 +181,7 @@ namespace kagome::state_metrics {
 
   std::optional<uint32_t> StateMetricsImpl::parseErasRewardPoints(
       const std::vector<uint8_t> &data) try {
-    scale::ScaleDecoderStream decoder(data);
+    scale::DecoderFromSpan decoder(data);
 
     uint32_t total_points = 0;
     decoder >> total_points;
