@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "authorship/impl/block_builder_error.hpp"
 #include "mock/core/authorship/block_builder_factory_mock.hpp"
 #include "mock/core/authorship/block_builder_mock.hpp"
@@ -17,7 +19,6 @@
 #include "primitives/event_types.hpp"
 #include "subscription/extrinsic_event_key_repository.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "transaction_pool/transaction_pool_error.hpp"
 

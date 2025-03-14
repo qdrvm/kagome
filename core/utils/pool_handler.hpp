@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <boost/asio/defer.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/post.hpp>
 
@@ -50,6 +51,24 @@ namespace kagome {
       }
     }
 
+    template <typename F>
+    void defer(F &&func) {
+      if (is_active_.load(std::memory_order_acquire)) {
+        boost::asio::defer(*ioc_, std::forward<F>(func));
+      } else if (not started_) {
+        throw std::logic_error{"PoolHandler lost callback before start()"};
+      }
+    }
+
+    template <typename F>
+    void withIoContext(F &&func) {
+      if (is_active_.load(std::memory_order_acquire)) {
+        std::forward<F>(func)(*ioc_);
+      } else if (not started_) {
+        throw std::logic_error{"PoolHandler lost callback before start()"};
+      }
+    }
+
     friend void post(PoolHandler &self, auto f) {
       return self.execute(std::move(f));
     }
@@ -60,6 +79,10 @@ namespace kagome {
 
     friend bool runningInThisThread(const PoolHandler &self) {
       return self.isInCurrentThread();
+    }
+
+    bool isActive() const {
+      return is_active_;
     }
 
    private:

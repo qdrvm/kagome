@@ -1044,6 +1044,15 @@ namespace kagome::network {
         };
 
         if (sync_method_ == application::SyncMethod::Full) {
+          // Check if body is present
+          if (not block_data.body.has_value()) {
+            SL_ERROR(log_,
+                     "Can't apply block {}: body is missing",
+                     block_info);
+            callback(Error::RESPONSE_WITHOUT_BLOCK_BODY);
+            return;
+          }
+
           // Regular syncing
           primitives::Block block{
               .header = std::move(block_data.header.value()),
@@ -1383,16 +1392,16 @@ namespace kagome::network {
     auto cb2 = [weak{weak_from_this()},
                 block,
                 cb{std::move(cb)},
-                peer{*chosen}](outcome::result<BlocksResponse> r) mutable {
+                peer{*chosen}](outcome::result<BlocksResponse> res) mutable {
       auto self = weak.lock();
       if (not self) {
         return;
       }
       self->busy_peers_.erase(peer);
-      if (not r) {
-        return cb(r.error());
+      if (not res) {
+        return cb(res.error());
       }
-      auto &blocks = r.value().blocks;
+      auto &blocks = res.value().blocks;
       if (blocks.size() != 1) {
         return cb(Error::EMPTY_RESPONSE);
       }
@@ -1420,23 +1429,23 @@ namespace kagome::network {
     }
     busy_peers_.emplace(*chosen);
     auto cb2 = [weak{weak_from_this()}, min, cb{std::move(cb)}, peer{*chosen}](
-                   outcome::result<WarpResponse> r) mutable {
+                   outcome::result<WarpResponse> res) mutable {
       auto self = weak.lock();
       if (not self) {
         return;
       }
       self->busy_peers_.erase(peer);
-      if (not r) {
-        return cb(r.error());
+      if (not res) {
+        return cb(res.error());
       }
-      auto &blocks = r.value().proofs;
+      auto &blocks = res.value().proofs;
       for (const auto &block : blocks) {
         self->grandpa_environment_->applyJustification(
             block.justification.block_info,
             {scale::encode(block.justification).value()},
-            [cb{std::move(cb)}](outcome::result<void> r) {
-              if (not r) {
-                cb(r.error());
+            [cb{std::move(cb)}](outcome::result<void> res) {
+              if (not res) {
+                cb(res.error());
               } else {
                 cb(std::nullopt);
               }
@@ -1484,23 +1493,23 @@ namespace kagome::network {
                 expected,
                 isFinalized,
                 cb{std::move(cb)},
-                peer{*chosen}](outcome::result<BlocksResponse> r) mutable {
+                peer{*chosen}](outcome::result<BlocksResponse> res) mutable {
       auto self = weak.lock();
       if (not self) {
         return cb(Error::SHUTTING_DOWN);
       }
 
       self->busy_peers_.erase(peer);
-      if (not r) {
-        return cb(r.error());
+      if (not res) {
+        return cb(res.error());
       }
 
-      auto &blocks = r.value().blocks;
+      auto &blocks = res.value().blocks;
       if (blocks.empty()) {
         return cb(Error::EMPTY_RESPONSE);
       }
-      for (auto &b : blocks) {
-        auto &header = b.header;
+      for (auto &block : blocks) {
+        auto &header = block.header;
 
         if (not header) {
           return cb(Error::EMPTY_RESPONSE);
@@ -1517,18 +1526,18 @@ namespace kagome::network {
           return cb(Error::INVALID_HASH);
         }
 
-        if (auto er = self->block_storage_->putBlockHeader(headerValue);
-            er.has_error()) {
-          SL_ERROR(self->log_, "Failed to put block header: {}", er.error());
-          return cb(er.error());
+        if (auto res = self->block_storage_->putBlockHeader(headerValue);
+            res.has_error()) {
+          SL_ERROR(self->log_, "Failed to put block header: {}", res.error());
+          return cb(res.error());
         }
 
         if (isFinalized) {
-          if (auto er = self->block_storage_->assignNumberToHash(headerInfo);
-              er.has_error()) {
+          if (auto res = self->block_storage_->assignNumberToHash(headerInfo);
+              res.has_error()) {
             SL_ERROR(
-                self->log_, "Failed to assign number to hash: {}", er.error());
-            return cb(er.error());
+                self->log_, "Failed to assign number to hash: {}", res.error());
+            return cb(res.error());
           }
         }
         const auto headerNumber = headerInfo.number;

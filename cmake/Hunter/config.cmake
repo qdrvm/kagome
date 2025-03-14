@@ -18,6 +18,13 @@
 # )
 
 hunter_config(
+    qtils
+    VERSION 0.1.0
+    CMAKE_ARGS
+      FORMAT_ERROR_WITH_FULLTYPE=ON
+)
+
+hunter_config(
     backward-cpp
     URL https://github.com/bombela/backward-cpp/archive/refs/tags/v1.6.zip
     SHA1 93c4c843fc9308e62ac462459077d87dc6dd9885
@@ -100,14 +107,8 @@ hunter_config(
 )
 
 hunter_config(
-    erasure_coding_crust
-    VERSION 0.0.9
+    wabt
+    URL https://github.com/qdrvm/wabt/archive/2e9d30c4a67c1b884a8162bf3f3a5a8585cfdb94.tar.gz
+    SHA1 b5759660eb8ad3f074274341641e918f688868bd
     KEEP_PACKAGE_SOURCES
 )
-
-hunter_config(
-    soralog
-    VERSION 0.2.4
-    KEEP_PACKAGE_SOURCES
-)
-

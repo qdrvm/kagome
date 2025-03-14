@@ -8,6 +8,8 @@
 
 #include <unordered_set>
 
+#include "common/buffer_view.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/trie/raw_cursor.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 
@@ -31,13 +33,13 @@ namespace kagome::storage::trie {
       }
       auto &node = node_res.value();
       std::optional<common::BufferView> compact;
-      auto &value = node->getMutableValue();
+      const auto &value = node->getValue();
       if (value.hash) {
         auto it = db.db.find(*value.hash);
         if (it != db.db.end() and value_seen.emplace(*value.hash).second) {
           compact = it->second;
-          value.hash.reset();
-          value.value.emplace();
+          node->setValueHash(std::nullopt);
+          node->setValue(common::Buffer{});
         }
       }
       auto &level = levels.back();
@@ -75,7 +77,11 @@ namespace kagome::storage::trie {
         if (level.branch_end) {
           auto &item = level.stack.back();
           auto &proof = proofs[levels.size() - 1][item.t];
-          proof.put(codec.encodeNode(*item.node, StateVersion::V0).value());
+          proof.put(codec
+                        .encodeNode(*item.node,
+                                    StateVersion::V0,
+                                    Codec::TraversePolicy::UncachedOnly)
+                        .value());
           level.pop();
           if (not level.stack.empty()) {
             *level.branch_merkle = MerkleValue::create({}).value();
@@ -89,17 +95,18 @@ namespace kagome::storage::trie {
     }
 
     // encode concatenated vectors
-    scale::ScaleEncoderStream s;
+    std::vector<uint8_t> out;
+    scale::EncoderToVector encoder(out);
     try {
-      s << scale::CompactInteger{proofs[0].size() + proofs[1].size()};
+      encode(scale::as_compact(proofs[0].size() + proofs[1].size()), encoder);
       for (auto &proof : proofs) {
         for (auto &x : proof) {
-          s << x;
+          encode(x, encoder);
         }
       }
     } catch (std::system_error &e) {
       return e.code();
     }
-    return common::Buffer{s.to_vector()};
+    return common::Buffer{std::move(out)};
   }
 }  // namespace kagome::storage::trie

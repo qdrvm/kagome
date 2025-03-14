@@ -6,9 +6,10 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "application/impl/chain_spec_impl.hpp"
 #include "filesystem/common.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::application::ChainSpecImpl;
@@ -54,7 +55,7 @@ class ConfigurationStorageTest : public ::testing::Test {
 TEST_F(ConfigurationStorageTest, MatchesConfig) {
   // given provided in set up
   // when
-  EXPECT_OUTCOME_TRUE(config_storage, ChainSpecImpl::loadFrom(path_));
+  ASSERT_OUTCOME_SUCCESS(config_storage, ChainSpecImpl::loadFrom(path_));
 
   // then
   ASSERT_EQ(config_storage->getGenesisTopSection(), expected_genesis_config_);

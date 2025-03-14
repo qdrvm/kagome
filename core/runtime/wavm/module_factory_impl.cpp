@@ -18,16 +18,17 @@
 #include "runtime/wavm/instance_environment_factory.hpp"
 #include "runtime/wavm/module.hpp"
 #include "runtime/wavm/module_params.hpp"
+#include "scale/kagome_scale.hpp"
 #include "utils/read_file.hpp"
 #include "utils/write_file.hpp"
 
 namespace kagome::runtime::wavm {
   struct Compiled {
-    SCALE_TIE(2);
-
-    Buffer wasm, compiled;
+    Buffer wasm;
+    Buffer compiled;
   };
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   static thread_local std::shared_ptr<Compiled> loading;
 
   struct ObjectCache : WAVM::Runtime::ObjectCacheInterface {
@@ -55,15 +56,18 @@ namespace kagome::runtime::wavm {
       std::shared_ptr<crypto::Hasher> hasher)
       : compartment_{std::move(compartment)},
         module_params_{std::move(module_params)},
-        host_api_factory_{host_api_factory},
+        host_api_factory_{std::move(host_api_factory)},
         core_factory_{std::move(core_factory)},
-        storage_{storage},
-        serializer_{serializer},
+        storage_{std::move(storage)},
+        serializer_{std::move(serializer)},
         intrinsic_module_{std::move(intrinsic_module)},
         hasher_(std::move(hasher)) {
     BOOST_ASSERT(compartment_ != nullptr);
     BOOST_ASSERT(module_params_ != nullptr);
     BOOST_ASSERT(host_api_factory_ != nullptr);
+    BOOST_ASSERT(core_factory_ != nullptr);
+    BOOST_ASSERT(storage_ != nullptr);
+    BOOST_ASSERT(serializer_ != nullptr);
     BOOST_ASSERT(intrinsic_module_ != nullptr);
     BOOST_ASSERT(hasher_ != nullptr);
 
@@ -85,12 +89,13 @@ namespace kagome::runtime::wavm {
     WAVM::WASM::LoadError error;
     if (not WAVM::WASM::loadBinaryModule(
             code.data(), code.size(), ir, &error)) {
-      return CompilationError{std::move(error.message)};
+      return CompilationError{error.message};
     }
     auto compiled =
         WAVM::LLVMJIT::compileModule(ir, WAVM::LLVMJIT::getHostTargetSpec());
-    auto raw =
-        scale::encode(Compiled{code, Buffer{std::move(compiled)}}).value();
+    auto raw = scale::encode(Compiled{.wasm = code,
+                                      .compiled = Buffer{std::move(compiled)}})
+                   .value();
     OUTCOME_TRY(writeFileTmp(path_compiled, raw));
     return outcome::success();
   }

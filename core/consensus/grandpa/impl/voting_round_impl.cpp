@@ -538,7 +538,9 @@ namespace kagome::consensus::grandpa {
     }
     auto &signed_prevote = signed_prevote_opt.value();
     if (onPrevote({}, signed_prevote, Propagation::NEEDLESS)) {
-      update(false, true, false);
+      update(IsPreviousRoundChanged{false},
+             IsPrevotesChanged{true},
+             IsPrecommitsChanged{false});
     }
     env_->onVoted(round_number_, voter_set_->id(), signed_prevote);
   }
@@ -586,7 +588,9 @@ namespace kagome::consensus::grandpa {
     }
     auto &signed_precommit = signed_precommit_opt.value();
     if (onPrecommit({}, signed_precommit, Propagation::NEEDLESS)) {
-      update(false, false, true);
+      update(IsPreviousRoundChanged{false},
+             IsPrevotesChanged{false},
+             IsPrecommitsChanged{true});
     }
     env_->onVoted(round_number_, voter_set_->id(), signed_precommit);
   }

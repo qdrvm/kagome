@@ -28,6 +28,7 @@ namespace kagome::consensus {
 
 namespace kagome::consensus::babe {
   class BabeConfigRepository;
+  struct BabeBlockHeader;
   struct Seal;
 }  // namespace kagome::consensus::babe
 

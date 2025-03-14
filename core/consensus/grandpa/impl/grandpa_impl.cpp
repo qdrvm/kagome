@@ -277,7 +277,8 @@ namespace kagome::consensus::grandpa {
 
   outcome::result<void> GrandpaImpl::makeRoundAfterLastFinalized() {
     auto finalized = block_tree_->getLastFinalized();
-    auto authorities = authority_manager_->authorities(finalized, true);
+    auto authorities =
+        authority_manager_->authorities(finalized, IsBlockFinalized(true));
     if (not authorities) {
       return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
     }
@@ -1190,18 +1191,18 @@ namespace kagome::consensus::grandpa {
         and std::pair{authority_set->id, justification.round_number}
                 < std::pair{current_round_->voterSetId(),
                             current_round_->roundNumber()}) {
-      auto r = verifyJustification(justification, *authority_set);
-      if (r.has_error()) {
+      auto res = verifyJustification(justification, *authority_set);
+      if (res.has_error()) {
         SL_WARN(logger_,
                 "verify justification block {} set {} round {}: {}",
                 justification.block_info.number,
                 authority_set->id,
                 justification.round_number,
-                r.error());
+                res.error());
       } else {
-        r = environment_->finalize(authority_set->id, justification);
+        res = environment_->finalize(authority_set->id, justification);
       }
-      callbackCall(std::move(callback), r);
+      callbackCall(std::move(callback), res);
       return;
     }
     std::shared_ptr<VotingRound> round;
@@ -1292,8 +1293,8 @@ namespace kagome::consensus::grandpa {
       }
     }
 
-    if (auto r = round->applyJustification(justification); r.has_error()) {
-      callbackCall(std::move(callback), r.as_failure());
+    if (auto res = round->applyJustification(justification); res.has_error()) {
+      callbackCall(std::move(callback), res.as_failure());
       return;
     }
 
@@ -1338,7 +1339,7 @@ namespace kagome::consensus::grandpa {
       return;
     }
     REINVOKE(*grandpa_pool_handler_, onHead, block);
-    auto f = [&](WaitingBlock &waiting) {
+    auto predicate = [&](WaitingBlock &waiting) {
       if (waiting.blocks.erase(block) == 0) {
         return true;
       }
@@ -1366,7 +1367,7 @@ namespace kagome::consensus::grandpa {
       grandpa_pool_handler_->execute(std::move(f));
       return false;
     };
-    retain_if(waiting_blocks_, f);
+    retain_if(waiting_blocks_, predicate);
     pruneWaitingBlocks();
   }
 
@@ -1410,7 +1411,7 @@ namespace kagome::consensus::grandpa {
       auto *index = vote.is<Prevote>()   ? &votes.prevote_idx
                   : vote.is<Precommit>() ? &votes.precommit_idx
                                          : nullptr;
-      if (index and not*index) {
+      if (index and not *index) {
         *index = votes.seen.size();
       }
     }
