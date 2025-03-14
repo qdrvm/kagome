@@ -256,7 +256,7 @@ namespace kagome::parachain {
     bool bitfields_indicate_availability(
         size_t core_idx,
         const std::vector<BitfieldStore::SignedBitfield> &bitfields,
-        const scale::BitVec &availability);
+        const scale::BitVector &availability);
 
     /**
      * @brief Fetches the list of backed candidates for a given relay parent.

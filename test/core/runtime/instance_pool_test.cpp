@@ -9,8 +9,9 @@
 #include <random>
 #include <ranges>
 
+#include <qtils/test/outcome.hpp>
+
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 #include "runtime/common/runtime_instances_pool.hpp"
@@ -82,7 +83,7 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   std::vector<std::thread> threads;
   for (int i = 0; i < THREAD_NUM; i++) {
     threads.emplace_back([&pool, &code, i]() {
-      ASSERT_OUTCOME_SUCCESS_TRY(pool->instantiateFromCode(
+      ASSERT_OUTCOME_SUCCESS(pool->instantiateFromCode(
           make_code_hash(i % POOL_SIZE), [&] { return code; }, {}));
     });
   }
@@ -95,7 +96,7 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
 
   // check that all POOL_SIZE instances are in cache
   for (int i = 0; i < POOL_SIZE; i++) {
-    ASSERT_OUTCOME_SUCCESS_TRY(pool->instantiateFromCode(
+    ASSERT_OUTCOME_SUCCESS(pool->instantiateFromCode(
         make_code_hash(i),
         []() -> decltype(code) { throw std::logic_error{"already compiled"}; },
         {}));

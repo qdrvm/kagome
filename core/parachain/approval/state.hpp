@@ -8,6 +8,8 @@
 
 #include <optional>
 
+#include <scale/bit_vector.hpp>
+
 #include "common/visitor.hpp"
 #include "parachain/types.hpp"
 
@@ -89,18 +91,18 @@ namespace kagome::parachain::approval {
     return 0ul;
   }
 
-  inline size_t count_ones(const scale::BitVec &src) {
+  inline size_t count_ones(const scale::BitVector &src) {
     size_t count_ones = 0ull;
-    for (const auto v : src.bits) {
+    for (const auto v : src) {
       count_ones += (v ? 1ull : 0ull);
     }
     return count_ones;
   }
 
   template <typename F>
-  inline outcome::result<void> iter_ones(const scale::BitVec &src, F &&f) {
-    for (size_t ix = 0; ix < src.bits.size(); ++ix) {
-      if (src.bits[ix]) {
+  inline outcome::result<void> iter_ones(const scale::BitVector &src, F &&f) {
+    for (size_t ix = 0; ix < src.size(); ++ix) {
+      if (src[ix]) {
         OUTCOME_TRY(std::forward<F>(f)(ix));
       }
     }

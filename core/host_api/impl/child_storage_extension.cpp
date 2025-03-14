@@ -12,13 +12,13 @@
 #include <fmt/std.h>
 
 #include "common/monadic_utils.hpp"
-#include "common/tagged.hpp"
 #include "host_api/impl/storage_util.hpp"
 #include "log/trace_macros.hpp"
 #include "runtime/memory_provider.hpp"
 #include "runtime/ptr_size.hpp"
 #include "runtime/trie_storage_provider.hpp"
 #include "scale/encode_append.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 

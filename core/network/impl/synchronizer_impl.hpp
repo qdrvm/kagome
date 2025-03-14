@@ -11,6 +11,7 @@
 #include <atomic>
 #include <mutex>
 #include <queue>
+#include <random>
 #include <unordered_set>
 
 #include <libp2p/basic/scheduler.hpp>
@@ -264,6 +265,8 @@ namespace kagome::network {
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<PoolHandlerReady> main_pool_handler_;
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
+    uint32_t max_parallel_downloads_;
+    std::mt19937 random_gen_;
 
     application::SyncMethod sync_method_;
 
@@ -312,7 +315,8 @@ namespace kagome::network {
 
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
-    std::unordered_set<primitives::BlockInfo> load_blocks_;
+    std::unordered_map<primitives::BlockInfo, uint32_t> load_blocks_;
+    std::shared_mutex load_blocks_mutex_;
     std::pair<primitives::BlockNumber, std::chrono::milliseconds>
         load_blocks_max_{};
 

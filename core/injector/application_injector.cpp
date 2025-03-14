@@ -846,6 +846,9 @@ namespace {
             bind_by_lambda<storage::trie::Codec>([](const auto&) {
               return std::make_shared<storage::trie::PolkadotCodec>(crypto::blake2b<32>);
             }),
+            bind_by_lambda<storage::trie::PolkadotCodec>([](const auto&) {
+              return std::make_shared<storage::trie::PolkadotCodec>(crypto::blake2b<32>);
+            }),
             di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
             bind_by_lambda<storage::trie_pruner::TriePruner>(
                 [](const auto &injector)
@@ -963,7 +966,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-            makeKagomeNodeInjector(std::move(app_config)))} {}
+          makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_
