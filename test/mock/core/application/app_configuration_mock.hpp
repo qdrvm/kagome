@@ -200,6 +200,11 @@ namespace kagome::application {
                 (),
                 (const, override));
 
+    MOCK_METHOD(std::optional<std::string>,
+                getValidatorAddress,
+                (),
+                (const, override));
+
     MOCK_METHOD(uint32_t, maxParallelDownloads, (), (const, override));
   };
 
