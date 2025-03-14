@@ -86,5 +86,6 @@ target_link_libraries(application_injector
     waitable_timer
     wasm_compiler
     zstd::libzstd_static
+    state_metrics
     )
 kagome_clear_objects(application_injector)

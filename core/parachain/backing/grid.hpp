@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <numeric>
+#include <random>
 #include <unordered_set>
 #include <vector>
 
@@ -170,16 +171,26 @@ namespace kagome::parachain::grid {
           sent(0),
           sample_rate(DEFAULT_RANDOM_SAMPLE_RATE) {}
 
+    RandomRouting(size_t target, size_t sent, size_t sample_rate)
+        : target(target), sent(sent), sample_rate(sample_rate) {}
+
     /// Perform random sampling for a specific peer
     /// Returns `true` for a lucky peer
-    bool sample(size_t n_peers_total) const {
+    bool sample(size_t n_peers_total,
+                std::optional<std::reference_wrapper<std::mt19937>> rng =
+                    std::nullopt) {
       if (n_peers_total == 0 || sent >= target) {
         return false;
       } else if (sample_rate > n_peers_total) {
         return true;
       } else {
-        std::srand(std::time(nullptr));
-        size_t random_number = (std::rand() % n_peers_total) + size_t(1);
+        std::mt19937 local_rng;
+        if (not rng) {
+          std::random_device rd;
+          local_rng = std::mt19937(rd());
+          rng = std::ref(local_rng);
+        }
+        size_t random_number = ((*rng).get()() % n_peers_total) + size_t(1);
         return random_number <= sample_rate;
       }
     }
