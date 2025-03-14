@@ -290,13 +290,13 @@ namespace kagome::consensus::grandpa {
     }
 
     /// entries to be processed
-    std::stack<const Entry *> nodes;
+    std::stack<std::reference_wrapper<const Entry>> nodes;
 
     auto active_node = start_node;
 
     nodes.emplace(start_node);
     while (not nodes.empty()) {
-      const auto &node = *nodes.top();
+      auto &node = nodes.top().get();
       nodes.pop();
 
       for (auto &descendant_hash : node.descendants) {
@@ -312,14 +312,14 @@ namespace kagome::consensus::grandpa {
           continue;
         }
 
-        if (descendant.number > active_node->number
-            or (descendant.number == active_node->number
-                and active_node->cumulative_vote.sum(vote_type)
+        if (descendant.number > active_node.number
+            or (descendant.number == active_node.number
+                and active_node.cumulative_vote.sum(vote_type)
                         < descendant.cumulative_vote.sum(vote_type))) {
           node_key = descendant_hash;
-          active_node = &descendant;
+          active_node = descendant;
 
-          nodes.emplace(&descendant);
+          nodes.emplace(descendant);
         }
       }
 
@@ -330,7 +330,7 @@ namespace kagome::consensus::grandpa {
         force_constrain ? current_best : std::nullopt;
 
     Subchain subchain =
-        ghostFindMergePoint(vote_type, node_key, *active_node, info, condition);
+        ghostFindMergePoint(vote_type, node_key, active_node, info, condition);
     auto &hashes = subchain.hashes;
 
     if (hashes.empty()) {
