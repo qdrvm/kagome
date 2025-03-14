@@ -1,0 +1,36 @@
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1720279313,
+        "narHash": "sha256-POof6A43PHty3CgR67ADZEQRuPWX9FhL0sMzp3a4jOE=",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/270dace49bc95a7f88ad187969179ff0d2ba20ed.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/270dace49bc95a7f88ad187969179ff0d2ba20ed.tar.gz"
+      }
+    },
+    "oldnixpkgs": {
+      "locked": {
+        "lastModified": 1687213506,
+        "narHash": "sha256-6NfYqgF0XVc1zscPJfDE2UipOt3LUbXyf5DTUvr9zWs=",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/c6c17387f7dd5332bec72bb9e76df434ac6b2bff.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/c6c17387f7dd5332bec72bb9e76df434ac6b2bff.tar.gz"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs",
+        "oldnixpkgs": "oldnixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

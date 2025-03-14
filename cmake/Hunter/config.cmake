@@ -38,6 +38,12 @@ hunter_config(
     CMAKE_ARGS WITH_GFLAGS=OFF USE_RTTI=ON
 )
 
+hunter_config(
+    BoringSSL
+    URL  https://github.com/qdrvm/boringssl/archive/bc72a3fa91d52d6c1db45c24efd863d180c7d98c.zip
+    SHA1 64b281459365194c7d1f561b075c25138e122926
+)
+
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       fmt
