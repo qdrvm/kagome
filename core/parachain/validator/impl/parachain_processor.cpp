@@ -3541,9 +3541,9 @@ namespace kagome::parachain {
         continue;
       }
 
-      if (backed_candidate.validator_indices.bits.size() <= validator_position
+      if (backed_candidate.validator_indices.size() <= validator_position
           || backed_candidate.validity_votes.size() <= validator_position
-          || not backed_candidate.validator_indices.bits[validator_position]) {
+          || not backed_candidate.validator_indices[validator_position]) {
         return;
       }
 
