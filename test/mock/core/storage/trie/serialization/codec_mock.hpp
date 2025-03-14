@@ -18,6 +18,7 @@ namespace kagome::storage::trie {
                 encodeNode,
                 (const trie::TrieNode &opaque_node,
                  trie::StateVersion version,
+                 TraversePolicy policy,
                  const ChildVisitor &child_visitor),
                 (const, override));
     MOCK_METHOD(outcome::result<std::shared_ptr<trie::TrieNode>>,
@@ -32,6 +33,7 @@ namespace kagome::storage::trie {
                 merkleValue,
                 (const trie::OpaqueTrieNode &opaque_node,
                  trie::StateVersion version,
+                 TraversePolicy policy,
                  const ChildVisitor &child_visitor),
                 (const, override));
     MOCK_METHOD(common::Hash256,

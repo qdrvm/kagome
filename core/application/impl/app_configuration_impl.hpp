@@ -246,6 +246,10 @@ namespace kagome::application {
       return validator_address_ss58_;
     }
 
+    uint32_t maxParallelDownloads() const override {
+      return max_parallel_downloads_;
+    }
+
    private:
     void parse_general_segment(const rapidjson::Value &val);
     void parse_blockchain_segment(const rapidjson::Value &val);
@@ -391,6 +395,7 @@ namespace kagome::application {
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
     std::optional<std::string> validator_address_ss58_;
+    uint32_t max_parallel_downloads_{};
   };
 
 }  // namespace kagome::application

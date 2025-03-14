@@ -30,13 +30,19 @@
 using kagome::application::AppConfiguration;
 using kagome::application::AppConfigurationImpl;
 
-int storage_explorer_main(int argc, const char **argv);
-int db_editor_main(int argc, const char **argv);
-
 namespace kagome {
+  int storage_explorer_main(int argc, const char **argv);
+  int db_editor_main(int argc, const char **argv);
   int benchmark_main(int argc, const char **argv);
   int key_main(int argc, const char **argv);
-}
+
+  const std::unordered_map<std::string_view, int (*)(int, const char **)>
+      subcommands{
+          {"storage-explorer", storage_explorer_main},
+          {"benchmark", benchmark_main},
+          {"key", key_main},
+      };
+}  // namespace kagome
 
 namespace {
   int run_node(int argc, const char **argv) {
@@ -139,10 +145,10 @@ int main(int argc, const char **argv, const char **env) {
     auto kagome_log_configurator =
         custom_log_config_path.has_value()
             ? std::make_shared<kagome::log::Configurator>(
-                  std::move(libp2p_log_configurator),
-                  custom_log_config_path.value())
+                std::move(libp2p_log_configurator),
+                custom_log_config_path.value())
             : std::make_shared<kagome::log::Configurator>(
-                  std::move(libp2p_log_configurator));
+                std::move(libp2p_log_configurator));
 
     return std::make_shared<soralog::LoggingSystem>(
         std::move(kagome_log_configurator));
@@ -160,13 +166,7 @@ int main(int argc, const char **argv, const char **env) {
 
   int exit_code = EXIT_FAILURE;
 
-  if (argc == 0) {
-    // Abnormal run
-    wrong_usage();
-  }
-
-  else if (argc == 1) {
-    // Run without arguments
+  if (argc == 0 || argc == 1) {
     wrong_usage();
   }
 
@@ -174,11 +174,11 @@ int main(int argc, const char **argv, const char **env) {
     std::string_view name{argv[1]};
 
     if (name == "storage-explorer") {
-      exit_code = storage_explorer_main(argc - 1, argv + 1);
+      exit_code = kagome::storage_explorer_main(argc - 1, argv + 1);
     }
 
     else if (name == "db-editor") {
-      exit_code = db_editor_main(argc - 1, argv + 1);
+      exit_code = kagome::db_editor_main(argc - 1, argv + 1);
     }
 
     else if (name == "benchmark") {

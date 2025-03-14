@@ -27,22 +27,22 @@ namespace kagome::parachain {
   };
 
   struct GroupStatements {
-    scale::BitVec seconded;
-    scale::BitVec valid;
+    scale::BitVector seconded;
+    scale::BitVector valid;
 
     GroupStatements(size_t len) {
-      seconded.bits.assign(len, false);
-      valid.bits.assign(len, false);
+      seconded.assign(len, false);
+      valid.assign(len, false);
     }
 
     void note_seconded(size_t within_group_index) {
-      BOOST_ASSERT(within_group_index < seconded.bits.size());
-      seconded.bits[within_group_index] = true;
+      BOOST_ASSERT(within_group_index < seconded.size());
+      seconded[within_group_index] = true;
     }
 
     void note_validated(size_t within_group_index) {
-      BOOST_ASSERT(within_group_index < valid.bits.size());
-      valid.bits[within_group_index] = true;
+      BOOST_ASSERT(within_group_index < valid.size());
+      valid[within_group_index] = true;
     }
   };
 
@@ -189,14 +189,14 @@ namespace kagome::parachain {
         const CandidateHash &candidate_hash,
         const network::vstaging::StatementFilter &filter,
         F &&cb) const {
-      auto call = [&](const scale::BitVec &target,
+      auto call = [&](const scale::BitVector &target,
                       network::vstaging::CompactStatement &&stm) {
         Fingerprint fingerprint{
             .index = 0,
             .statement = std::move(stm),
         };
-        for (size_t i = 0; i < target.bits.size(); ++i) {
-          if (!target.bits[i]) {
+        for (size_t i = 0; i < target.size(); ++i) {
+          if (!target[i]) {
             continue;
           }
           if (i >= group_validators.size()) {
@@ -222,7 +222,7 @@ namespace kagome::parachain {
            });
     }
 
-    std::optional<bool> insert(
+    scale::OptionalBool insert(
         const Groups &groups,
         const IndexedAndSigned<network::vstaging::CompactStatement> &statement,
         StatementOrigin origin) {

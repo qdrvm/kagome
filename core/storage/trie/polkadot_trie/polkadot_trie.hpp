@@ -26,8 +26,8 @@ namespace kagome::storage::trie {
     using BranchPtr = std::shared_ptr<BranchNode>;
     using ConstBranchPtr = std::shared_ptr<const BranchNode>;
 
-    using NodeRetrieveFunction = std::function<outcome::result<NodePtr>(
-        const std::shared_ptr<OpaqueTrieNode> &)>;
+    using NodeRetrieveFunction =
+        std::function<outcome::result<NodePtr>(const DummyNode &)>;
     using ValueRetrieveFunction =
         std::function<outcome::result<std::optional<common::Buffer>>(
             const common::Hash256 & /* value hash */)>;
@@ -43,12 +43,8 @@ namespace kagome::storage::trie {
             retrieve_value{std::move(retrieve_value)} {}
 
       inline static outcome::result<NodePtr> defaultNodeRetrieve(
-          const std::shared_ptr<OpaqueTrieNode> &node) {
-        BOOST_ASSERT_MSG(
-            node == nullptr
-                or std::dynamic_pointer_cast<TrieNode>(node) != nullptr,
-            "Unexpected Dummy node.");
-        return std::dynamic_pointer_cast<TrieNode>(node);
+          const DummyNode &node) {
+        return nullptr;
       }
 
       inline static outcome::result<std::optional<common::Buffer>>

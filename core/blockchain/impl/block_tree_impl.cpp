@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <set>
+#include <soralog/macro.hpp>
 #include <stack>
 
 #include "blockchain/block_tree_error.hpp"
@@ -270,11 +271,10 @@ namespace kagome::blockchain {
                           std::move(justification_storage_policy),
                           state_pruner,
                           main_thread_pool));
-
     // Add non-finalized block to the block tree
-    for (auto &e : collected) {
-      const auto &block = e.first;
-      const auto header = std::move(e.second);
+    for (auto &item : collected) {
+      const auto &block = item.first;
+      const auto header = std::move(item.second);
 
       auto res = block_tree->addExistingBlock(block.hash, header);
       if (res.has_error()) {
@@ -396,16 +396,16 @@ namespace kagome::blockchain {
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
       common::MainThreadPool &main_thread_pool)
       : block_tree_data_{BlockTreeData{
-            .storage_ = std::move(storage),
-            .state_pruner_ = std::move(state_pruner),
-            .tree_ = std::make_unique<CachedTree>(finalized),
-            .hasher_ = std::move(hasher),
-            .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
-            .justification_storage_policy_ =
-                std::move(justification_storage_policy),
-            .genesis_block_hash_ = {},
-            .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
-        }},
+          .storage_ = std::move(storage),
+          .state_pruner_ = std::move(state_pruner),
+          .tree_ = std::make_unique<CachedTree>(finalized),
+          .hasher_ = std::move(hasher),
+          .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
+          .justification_storage_policy_ =
+              std::move(justification_storage_policy),
+          .genesis_block_hash_ = {},
+          .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
+      }},
         chain_events_engine_{std::move(chain_events_engine)},
         main_pool_handler_{main_thread_pool.handlerStarted()},
         extrinsic_events_engine_{std::move(extrinsic_events_engine)} {
@@ -1311,7 +1311,10 @@ namespace kagome::blockchain {
           }
           extrinsics.emplace_back(std::move(ext));
         }
-        OUTCOME_TRY(p.state_pruner_->pruneDiscarded(block_header));
+        p.state_pruner_->schedulePrune(
+            block_header.state_root,
+            block_header.blockInfo(),
+            storage::trie_pruner::PruneReason::Discarded);
       }
       retired_hashes.emplace_back(
           primitives::events::RemoveAfterFinalizationParams::HeaderInfo{
@@ -1351,7 +1354,10 @@ namespace kagome::blockchain {
       BOOST_ASSERT(next_hash_opt.has_value());
       auto &next_hash = *next_hash_opt;
       OUTCOME_TRY(header, getBlockHeader(hash));
-      OUTCOME_TRY(block_tree_data.state_pruner_->pruneFinalized(header));
+      block_tree_data.state_pruner_->schedulePrune(
+          header.state_root,
+          header.blockInfo(),
+          storage::trie_pruner::PruneReason::Finalized);
       hash = next_hash;
     }
 

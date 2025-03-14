@@ -7,9 +7,11 @@
 #include <memory>
 
 #include <gtest/gtest.h>
+
+#include <qtils/test/outcome.hpp>
+
 #include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
-#include "testutil/outcome.hpp"
 
 using namespace kagome;
 using namespace common;
@@ -29,7 +31,7 @@ struct NodeEncodingTest : public ::testing::TestWithParam<Case> {
 TEST_P(NodeEncodingTest, GetHeader) {
   auto [node, expected] = GetParam();
 
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       actual, codec->encodeHeader(*node, storage::trie::StateVersion::V0));
   EXPECT_EQ(actual.toHex(), expected.toHex());
 }
@@ -39,7 +41,7 @@ std::shared_ptr<TrieNode> make(const common::Buffer &key_nibbles,
                                std::optional<common::Buffer> value) {
   auto node = std::make_shared<T>();
   node->setKeyNibbles(key_nibbles);
-  node->getMutableValue().value = value;
+  node->setValue(std::move(value));
   return node;
 }
 

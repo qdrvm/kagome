@@ -15,7 +15,7 @@
 #include "consensus/timeline/slots_util.hpp"
 #include "primitives/block_header.hpp"
 #include "runtime/runtime_api/babe_api.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/map_prefix/prefix.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -57,7 +57,7 @@ namespace kagome::consensus::babe {
       primitives::events::ChainSubscriptionEnginePtr chain_events_engine,
       LazySPtr<SlotsUtil> slots_util)
       : persistent_storage_(
-            persistent_storage->getSpace(storage::Space::kDefault)),
+          persistent_storage->getSpace(storage::Space::kDefault)),
         config_warp_sync_{app_config.syncMethod()
                           == application::SyncMethod::Warp},
         timings_(timings),

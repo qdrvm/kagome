@@ -110,8 +110,7 @@ namespace kagome::application {
                                             "The roles the node is running as");
       auto metric_node_roles =
           metrics_registry->registerGaugeMetric(nodeRolesMetricName);
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      metric_node_roles->set(app_config_->roles().value);
+      metric_node_roles->set(app_config_->roles().value());
 
       constexpr auto buildInfoMetricName = "kagome_build_info";
       metrics_registry->registerGaugeFamily(

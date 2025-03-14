@@ -66,7 +66,7 @@ namespace kagome::network {
       size_t limit_in,
       size_t limit_out)
       : notifications_{inject.notifications_factory->make(
-            std::move(protocols_groups), limit_in, limit_out)},
+          std::move(protocols_groups), limit_in, limit_out)},
         collation_versions_{CollationVersion::VStaging, CollationVersion::V1},
         roles_{inject.roles},
         peer_manager_{inject.peer_manager},
@@ -124,10 +124,10 @@ namespace kagome::network {
   }
 
   template <typename Types, typename Observer>
-  bool ParachainProtocol::onMessage(const PeerId &peer_id,
-                                    size_t protocol_group,
-                                    Buffer &&message_raw,
-                                    Observer &observer) {
+  bool ParachainProtocol::onMessageImpl(const PeerId &peer_id,
+                                        size_t protocol_group,
+                                        Buffer &&message_raw,
+                                        Observer &observer) {
     return Types::with(protocol_group, [&]<typename M>() {
       auto message = TRY_FALSE(scale::decode<WireMessage<M>>(message_raw));
       if (auto *view = boost::get<ViewUpdate>(&message)) {
@@ -156,7 +156,7 @@ namespace kagome::network {
   bool CollationProtocol::onMessage(const PeerId &peer_id,
                                     size_t protocol_group,
                                     Buffer &&message_raw) {
-    return ParachainProtocol::onMessage<CollationTypes>(
+    return ParachainProtocol::onMessageImpl<CollationTypes>(
         peer_id, protocol_group, std::move(message_raw), *observer_);
   }
 
@@ -189,7 +189,7 @@ namespace kagome::network {
   bool ValidationProtocol::onMessage(const PeerId &peer_id,
                                      size_t protocol_group,
                                      Buffer &&message_raw) {
-    return ParachainProtocol::onMessage<ValidationTypes>(
+    return ParachainProtocol::onMessageImpl<ValidationTypes>(
         peer_id, protocol_group, std::move(message_raw), *observer_);
   }
 

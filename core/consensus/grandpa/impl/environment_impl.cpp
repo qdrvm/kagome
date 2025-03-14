@@ -33,7 +33,7 @@
 #include "primitives/common.hpp"
 #include "runtime/runtime_api/grandpa_api.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "utils/pool_handler.hpp"
 
 namespace kagome::consensus::grandpa {
@@ -220,8 +220,7 @@ namespace kagome::consensus::grandpa {
     // Select best block with actual set_id
     if (voter_set_id.has_value()) {
       while (best_block.number > finalized.number) {
-        OUTCOME_TRY(header,
-                    block_tree_->getBlockHeader(best_block.hash));
+        OUTCOME_TRY(header, block_tree_->getBlockHeader(best_block.hash));
         auto parent_block = *header.parentInfo();
 
         auto voter_set = authority_manager_->authorities(
@@ -295,11 +294,11 @@ namespace kagome::consensus::grandpa {
                 vote.id,
                 vote.getBlockInfo());
 
-            self->transmitter_->sendVoteMessage(network::GrandpaVote{{
+            self->transmitter_->sendVoteMessage(network::GrandpaVote{
                 .round_number = round,
                 .counter = set_id,
                 .vote = vote,
-            }});
+            });
           }
         });
   }
@@ -328,9 +327,9 @@ namespace kagome::consensus::grandpa {
               ;
               self->transmitter_->sendVoteMessage(
                   peer_id,
-                  network::GrandpaVote{{.round_number = state.round_number,
-                                        .counter = voter_set_id,
-                                        .vote = vote}});
+                  network::GrandpaVote{.round_number = state.round_number,
+                                       .counter = voter_set_id,
+                                       .vote = vote});
             };
 
             for (const auto &vv : state.votes) {
@@ -422,7 +421,7 @@ namespace kagome::consensus::grandpa {
   outcome::result<void> EnvironmentImpl::finalize(
       VoterSetId id, const GrandpaJustification &grandpa_justification) {
     auto voters_res = authority_manager_->authorities(
-        grandpa_justification.block_info, false);
+        grandpa_justification.block_info, IsBlockFinalized(false));
     if (not voters_res) {
       return VotingRoundError::NO_KNOWN_AUTHORITIES_FOR_BLOCK;
     }

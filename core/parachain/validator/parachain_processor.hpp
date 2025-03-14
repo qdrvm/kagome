@@ -255,7 +255,7 @@ namespace kagome::parachain {
     bool bitfields_indicate_availability(
         size_t core_idx,
         const std::vector<BitfieldStore::SignedBitfield> &bitfields,
-        const scale::BitVec &availability);
+        const scale::BitVector &availability);
 
     /**
      * @brief Fetches the list of backed candidates for a given relay parent.
@@ -821,8 +821,10 @@ namespace kagome::parachain {
 
     metrics::RegistryPtr metrics_registry_ = metrics::createRegistry();
     metrics::Gauge *metric_is_parachain_validator_;
-    metrics::Counter *metric_kagome_parachain_candidate_backing_signed_statements_total_;
-    metrics::Counter *metric_kagome_parachain_candidate_backing_candidates_seconded_total_;
+    metrics::Counter
+        *metric_kagome_parachain_candidate_backing_signed_statements_total_;
+    metrics::Counter
+        *metric_kagome_parachain_candidate_backing_candidates_seconded_total_;
   };
 
 }  // namespace kagome::parachain
