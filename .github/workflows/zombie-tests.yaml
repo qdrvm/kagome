@@ -65,6 +65,14 @@ on:
         options:
           - 'true'
           - 'false'
+      skip_build:
+        description: 'Skip building packages (use when called from main pipeline)'
+        required: false
+        default: 'false'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
 
   workflow_call:
     inputs:
@@ -108,6 +116,11 @@ on:
         default: 'true'
         required: false
         description: 'Run tests on ARM64 architecture'
+      skip_build:
+        type: string
+        default: 'false'
+        required: false
+        description: 'Skip building packages (use when called from main pipeline)'
     secrets:
       GCP_SERVICE_ACCOUNT_KEY:
         required: true
@@ -123,22 +136,30 @@ env:
   CI: true
 
   CACHE_PATH: ./build_docker_ci/cache
-  USE_CACHE: ${{ github.event.inputs.use_cache || 'true' }}
-  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || 'latest' }}
-  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
-  RUNTIME_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.runtime_package_version || '25.03.02-0.14.1-3fbf6c6' }}
-  RUN_AMD64: ${{ github.event.inputs.run_amd64 || 'true' }}
-  RUN_ARM64: ${{ github.event.inputs.run_arm64 || 'true' }}
+  USE_CACHE: ${{ github.event.inputs.use_cache || inputs.use_cache || 'true' }}
+  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || inputs.builder_latest_tag || 'latest' }}
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || inputs.zombie_tester_latest_tag || 'latest' }}
+  RUNTIME_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.runtime_package_version || inputs.runtime_package_version || '25.03.02-0.14.1-3fbf6c6' }}
+  RUN_AMD64: ${{ github.event.inputs.run_amd64 || inputs.run_amd64 || 'true' }}
+  RUN_ARM64: ${{ github.event.inputs.run_arm64 || inputs.run_arm64 || 'true' }}
+  SKIP_BUILD: ${{ github.event.inputs.skip_build || inputs.skip_build || 'false' }}
 
-  BUILD_TYPE: ${{ github.event.inputs.build_type }}
+  BUILD_TYPE: ${{ github.event.inputs.build_type || inputs.build_type || 'Release' }}
 
 jobs:
   check_package_exists:
     runs-on: ubuntu-latest
     outputs:
       package_exists: ${{ steps.check.outputs.exists }}
+      skip_build: ${{ steps.skip_check.outputs.skip_build }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: "Set skip build output"
+        id: skip_check
+        run: |
+          SKIP_BUILD="${{ inputs.skip_build || github.event.inputs.skip_build || 'false' }}"
+          echo "skip_build=$SKIP_BUILD" >> $GITHUB_OUTPUT
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -156,21 +177,28 @@ jobs:
         id: check
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
-          exists=$(make kagome_package_check_version)
-          echo "exists=$exists" >> $GITHUB_OUTPUT
+          # If skip_build is true, we'll treat the package as existing
+          if [ "${{ steps.skip_check.outputs.skip_build }}" == "true" ]; then
+            echo "Skip build flag is set, assuming package exists"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            exists=$(make kagome_package_check_version)
+            echo "Package check result: $exists"
+            echo "exists=$exists" >> $GITHUB_OUTPUT
+          fi
   
   kagome_dev_docker_build:
     needs: [ check_package_exists ]
-    if: needs.check_package_exists.outputs.package_exists == 'false'
+    if: needs.check_package_exists.outputs.package_exists == 'false' && needs.check_package_exists.outputs.skip_build != 'true'
     uses: ./.github/workflows/build.yaml
     with:
-      build_debug: ${{ github.event.inputs.build_type == 'Debug' }}
-      build_release: ${{ github.event.inputs.build_type == 'Release' }}
-      build_relwithdebinfo: ${{ github.event.inputs.build_type == 'RelWithDebInfo' }}
-      build_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
-      build_arm64: ${{ github.event.inputs.run_arm64 || 'true' }}
-      use_cache: ${{ github.event.inputs.use_cache }}
-      builder_latest_tag: ${{ github.event.inputs.builder_latest_tag }}
+      build_debug: ${{ github.event.inputs.build_type == 'Debug' || inputs.build_type == 'Debug' }}
+      build_release: ${{ github.event.inputs.build_type == 'Release' || inputs.build_type == 'Release' }}
+      build_relwithdebinfo: ${{ github.event.inputs.build_type == 'RelWithDebInfo' || inputs.build_type == 'RelWithDebInfo' }}
+      build_amd64: ${{ github.event.inputs.run_amd64 || inputs.run_amd64 || 'true' }}
+      build_arm64: ${{ github.event.inputs.run_arm64 || inputs.run_arm64 || 'true' }}
+      use_cache: ${{ github.event.inputs.use_cache || inputs.use_cache || 'true' }}
+      builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || inputs.builder_latest_tag || 'latest' }}
       cache_upload_allowed: false
     secrets: inherit
 
@@ -200,8 +228,8 @@ jobs:
 
   zombie_tests:
     timeout-minutes: 60
-    needs: [check_package_exists, kagome_dev_docker_build, setup_matrix]
-    if: always() && (needs.check_package_exists.outputs.package_exists == 'true' || needs.kagome_dev_docker_build.result == 'success')
+    needs: [check_package_exists, setup_matrix]
+    if: always() && (needs.check_package_exists.outputs.package_exists == 'true' || needs.check_package_exists.outputs.skip_build == 'true' || (needs.kagome_dev_docker_build.result == 'success' && needs.kagome_dev_docker_build.result != 'skipped'))
     strategy:
       fail-fast: false
       matrix:
@@ -276,6 +304,7 @@ jobs:
         run: |
           version=$(make kagome_get_package_version_no_arch)-${{ env.ARCH }}
           echo "kagome_package_version=$version" >> $GITHUB_ENV
+          echo "Using package version: $version"
 
       - name: "Run test"
         working-directory: ./zombienet/docker
