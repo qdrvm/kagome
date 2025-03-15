@@ -13,6 +13,15 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      build_type:
+        description: 'Build type for zombie tests'
+        required: false
+        default: 'Release'
+        type: 'choice'
+        options:
+          - 'Debug'
+          - 'Release'
+          - 'RelWithDebInfo'
       run_all_steps:
         description: 'Run all steps'
         required: true
@@ -310,7 +319,7 @@ jobs:
       zombie_tester_latest_tag: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
       runtime_package_version: ${{ github.event.inputs.runtime_package_version || '25.03.02-0.14.1-3fbf6c6' }}
       run_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
-      run_arm64: ${{ github.event.inputs.run_arm64 || 'true' }}
+      run_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
       skip_build: 'true'  # Skip rebuilding packages since they were already built
     secrets:
       GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
