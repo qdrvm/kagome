@@ -100,6 +100,17 @@ env:
   RUNTIME_PACKAGE_VERSION: ${{ github.event.inputs.runtime_package_version || '25.03.02-0.14.1-3fbf6c6' }}
 
 jobs:
+  # Add a diagnostics job to help debug
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Show context variables"
+        run: |
+          echo "github.ref: ${{ github.ref }}"
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "Is PR with labels? ${{ github.event_name == 'pull_request' && github.event.pull_request.labels != null }}"
+          echo "Run all steps: ${{ github.event.inputs.run_all_steps == 'true' }}"
+    
   MacOS:
     # temporary disabled
     if: false
@@ -265,15 +276,13 @@ jobs:
 
   # Replace individual build job with reusable workflow from build.yaml
   build:
-    if: ${{ 
-      github.ref == 'refs/heads/master' || 
-      startsWith( github.ref, 'refs/tags/') || 
-      contains( github.event.pull_request.labels.*.name, 'Non-master self-hosted') || 
-      github.event.inputs.run_all_steps == 'true' }}
+    needs: [diagnostic]
+    # Simplified condition to ensure it runs
+    if: always()
     uses: ./.github/workflows/build.yaml
     with:
       build_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
-      build_arm64: ${{ github.event.inputs.run_arm64 || 'true' }}
+      build_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
       build_debug: true
       build_release: true
       build_relwithdebinfo: true
@@ -289,8 +298,8 @@ jobs:
 
   # Use zombie-tests workflow instead of integrating it directly
   zombie_tests:
-    needs: [build]
-    if: ${{ success() }}
+    needs: [build, diagnostic]
+    if: always() && needs.build.result == 'success'
     uses: ./.github/workflows/zombie-tests.yaml
     with:
       build_type: ${{ github.event.inputs.build_type || 'Release' }}

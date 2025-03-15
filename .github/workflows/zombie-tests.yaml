@@ -159,6 +159,7 @@ jobs:
         id: skip_check
         run: |
           SKIP_BUILD="${{ inputs.skip_build || github.event.inputs.skip_build || 'false' }}"
+          echo "Setting skip_build to $SKIP_BUILD"
           echo "skip_build=$SKIP_BUILD" >> $GITHUB_OUTPUT
 
       - name: "Authenticate with Google Cloud"
@@ -186,6 +187,10 @@ jobs:
             echo "Package check result: $exists"
             echo "exists=$exists" >> $GITHUB_OUTPUT
           fi
+          
+          # Debug output
+          echo "skip_build: ${{ steps.skip_check.outputs.skip_build }}"
+          echo "package_exists: ${{ steps.check.outputs.exists }}"
   
   kagome_dev_docker_build:
     needs: [ check_package_exists ]
@@ -229,7 +234,7 @@ jobs:
   zombie_tests:
     timeout-minutes: 60
     needs: [check_package_exists, setup_matrix]
-    if: always() && (needs.check_package_exists.outputs.package_exists == 'true' || needs.check_package_exists.outputs.skip_build == 'true' || (needs.kagome_dev_docker_build.result == 'success' && needs.kagome_dev_docker_build.result != 'skipped'))
+    if: always() && needs.setup_matrix.result == 'success' && (needs.check_package_exists.outputs.package_exists == 'true' || needs.check_package_exists.outputs.skip_build == 'true' || needs.kagome_dev_docker_build.result == 'success')
     strategy:
       fail-fast: false
       matrix:
