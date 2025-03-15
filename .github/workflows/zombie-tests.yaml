@@ -158,7 +158,7 @@ jobs:
       - name: "Set skip build output"
         id: skip_check
         run: |
-          SKIP_BUILD="${{ inputs.skip_build || github.event.inputs.skip_build || 'false' }}"
+          SKIP_BUILD="${{ github.event.inputs.skip_build || inputs.skip_build || 'false' }}"
           echo "Setting skip_build to $SKIP_BUILD"
           echo "skip_build=$SKIP_BUILD" >> $GITHUB_OUTPUT
 
