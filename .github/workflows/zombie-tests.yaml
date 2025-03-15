@@ -209,12 +209,21 @@ jobs:
 
   setup_matrix:
     runs-on: ubuntu-latest
+    needs: [check_package_exists]
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       platforms: ${{ steps.extract-platforms.outputs.platforms }}
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
+        
+      - name: "Debug environment variables"
+        run: |
+          echo "RUN_AMD64: ${{ env.RUN_AMD64 }}"
+          echo "RUN_ARM64: ${{ env.RUN_ARM64 }}"
+          echo "SKIP_BUILD: ${{ env.SKIP_BUILD }}"
+          echo "skip_build output: ${{ needs.check_package_exists.outputs.skip_build }}"
+          echo "package_exists output: ${{ needs.check_package_exists.outputs.package_exists }}"
 
       - name: "Generate matrix"
         id: matrix
@@ -230,11 +239,21 @@ jobs:
         run: |
           platforms=$(echo '${{ steps.matrix.outputs.matrix }}' | jq -c '.include | map({platform: .platform, runs_on: .runs_on})')
           echo "platforms=$platforms" >> $GITHUB_OUTPUT
+          
+      - name: "Debug matrix outputs"
+        run: |
+          echo "Matrix output: ${{ steps.matrix.outputs.matrix }}"
+          echo "Platforms output: ${{ steps.extract-platforms.outputs.platforms }}"
 
   zombie_tests:
     timeout-minutes: 60
-    needs: [check_package_exists, setup_matrix]
-    if: success() && needs.setup_matrix.result == 'success' && (needs.check_package_exists.outputs.package_exists == 'true' || needs.check_package_exists.outputs.skip_build == 'true' || needs.kagome_dev_docker_build.result == 'success')
+    needs: [check_package_exists, setup_matrix, kagome_dev_docker_build]
+    if: >
+      always() && 
+      needs.setup_matrix.result == 'success' && 
+      (needs.check_package_exists.outputs.package_exists == 'true' || 
+       needs.check_package_exists.outputs.skip_build == 'true' || 
+       needs.kagome_dev_docker_build.result == 'success')
     strategy:
       fail-fast: false
       matrix:
