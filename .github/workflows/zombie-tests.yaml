@@ -254,6 +254,7 @@ jobs:
       (needs.check_package_exists.outputs.package_exists == 'true' || 
        needs.check_package_exists.outputs.skip_build == 'true' || 
        needs.kagome_dev_docker_build.result == 'success')
+    name: "${{ matrix.platform_config.platform == 'linux/amd64' && 'AMD64' || 'ARM64' }} - ${{ matrix.scenario.name }}"
     strategy:
       fail-fast: false
       matrix:
