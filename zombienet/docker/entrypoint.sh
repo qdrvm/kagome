@@ -7,9 +7,16 @@ GROUP_ID=${GROUP_ID:-1000}
 USER_NAME=${USER_NAME:-builder}
 USER_GROUP=${USER_GROUP:-builder}
 
-MOUNTED_DIRS=(
-  "/home/builder" 
-)
+HOME_DIR="/home/$USER_NAME"
+MOUNTED_DIRS_ARRAY=()
+
+if [ ! -d "$HOME_DIR" ]; then
+  mkdir -p "$HOME_DIR"
+fi
+
+if [ -n "$MOUNTED_DIRS" ]; then
+  read -r -a MOUNTED_DIRS_ARRAY <<< "$MOUNTED_DIRS"
+fi
 
 echo "Current IDs for $USER_NAME: UID=$(id -u "$USER_NAME"), GID=$(id -g "$USER_NAME")"
 
@@ -25,9 +32,12 @@ if ! id -u "$USER_ID" &>/dev/null; then
 else
   echo "User $USER_ID already exists"
   USER_NAME=$(getent passwd "$USER_ID" | cut -d: -f1)
+  usermod -d "$HOME_DIR" "$USER_NAME"
 fi
 
-for dir in "${MOUNTED_DIRS[@]}"; do
+chown -R "$USER_ID":"$GROUP_ID" "$HOME_DIR"
+
+for dir in "${MOUNTED_DIRS_ARRAY[@]}"; do
   if [ -d "$dir" ]; then
     echo "Changing ownership of $dir to $USER_NAME:$USER_GROUP"
     chown -R "$USER_ID":"$GROUP_ID" "$dir"

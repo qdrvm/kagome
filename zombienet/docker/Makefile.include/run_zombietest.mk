@@ -20,6 +20,7 @@ define run_test
 		-e USER_NAME=kagome_builder \
 		-e USER_GROUP=kagome_builder \
 		-e TEST_PATH=$$TEST_PATH \
+		-e MOUNTED_DIRS="/tmp/kagome" \
 		-e KAGOME_PACKAGE_VERSION=$(KAGOME_PACKAGE_VERSION) \
 		-e RUNTIME_PACKAGE_VERSION=$(RUNTIME_PACKAGE_VERSION) \
 		-e GOOGLE_APPLICATION_CREDENTIALS=/root/.gcp/google_creds.json \
