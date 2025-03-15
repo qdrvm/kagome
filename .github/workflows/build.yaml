@@ -130,6 +130,18 @@ jobs:
           build_relwithdebinfo: ${{ inputs.build_relwithdebinfo || github.event.inputs.build_relwithdebinfo || 'true' }}
           amd64_runner: '"actions-runner-controller"'
           arm64_runner: '["self-hosted","qdrvm-arm64"]'
+          
+      - name: "Debug matrix configuration"
+        run: |
+          echo "Input parameters:"
+          echo "build_amd64: ${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}"
+          echo "build_arm64: ${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'true' }}"
+          echo "build_debug: ${{ inputs.build_debug || github.event.inputs.build_debug || 'true' }}"
+          echo "build_release: ${{ inputs.build_release || github.event.inputs.build_release || 'true' }}"
+          echo "build_relwithdebinfo: ${{ inputs.build_relwithdebinfo || github.event.inputs.build_relwithdebinfo || 'true' }}"
+          echo "use_cache: ${{ env.USE_CACHE }}"
+          echo "---"
+          echo "Matrix output: ${{ steps.matrix.outputs.matrix }}"
 
   build:
     needs: setup_matrix

@@ -67,14 +67,14 @@ on:
       run_arm64:
         description: 'Run tests on ARM64 architecture'
         required: false
-        default: 'true'
+        default: 'false'
         type: 'choice'
         options:
           - 'true'
           - 'false'
       runtime_package_version:
         description: 'Custom runtime package version'
-        default: '25.03.02-0.14.1-3fbf6c6'
+        default: '25.03.15-0.14.1-3fbf6c6'
         required: false
         type: 'string'
 
@@ -109,7 +109,6 @@ env:
   RUNTIME_PACKAGE_VERSION: ${{ github.event.inputs.runtime_package_version || '25.03.02-0.14.1-3fbf6c6' }}
 
 jobs:
-  # Add a diagnostics job to help debug
   diagnostic:
     runs-on: ubuntu-latest
     steps:
@@ -283,10 +282,8 @@ jobs:
           path: ${{ env.CACHE_PATH }}
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
 
-  # Replace individual build job with reusable workflow from build.yaml
   build:
     needs: [diagnostic]
-    # Remove always() to allow cancellation
     if: success()
     uses: ./.github/workflows/build.yaml
     with:
@@ -305,10 +302,8 @@ jobs:
       HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
       HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
 
-  # Use zombie-tests workflow instead of integrating it directly
   zombie_tests:
     needs: [build]
-    # Remove always() to allow cancellation
     if: success() && needs.build.result == 'success'
     uses: ./.github/workflows/zombie-tests.yaml
     with:
