@@ -1,362 +1,210 @@
-# name: "Test Pipeline (WIP) (Kagome Build)"
-
-# on:
-#   workflow_dispatch:
-#     inputs:
-#       build_amd64:
-#         description: "Build linux/amd64?"
-#         type: boolean
-#         required: false
-#         default: true
-#       build_arm64:
-#         description: "Build linux/arm64?"
-#         type: boolean
-#         required: false
-#         default: true
-#       build_debug:
-#         description: "Build Debug?"
-#         type: boolean
-#         required: false
-#         default: true
-#       build_release:
-#         description: "Build Release?"
-#         type: boolean
-#         required: false
-#         default: true
-#       build_relwithdebinfo:
-#         description: "Build RelWithDebInfo?"
-#         type: boolean
-#         required: false
-#         default: true
-#       use_cache:
-#         description: "Use cache?"
-#         type: boolean
-#         required: false
-#         default: true
-#       cache_upload_allowed:
-#         description: "Force cache upload?"
-#         type: boolean
-#         required: false
-#         default: false
-#       builder_latest_tag:
-#         description: "Custom Builder tag"
-#         type: string
-#         required: false
-#         default: "latest"
-
-#   workflow_call:
-#     inputs:
-#       build_amd64:
-#         type: string
-#         default: "true"
-#         required: true
-#       build_arm64:
-#         type: string
-#         default: "true"
-#         required: true
-#       build_debug:
-#         type: string
-#         default: "true"
-#         required: true
-#       build_release:
-#         type: string
-#         default: "true"
-#         required: true
-#       build_relwithdebinfo:
-#         type: string
-#         default: "true"
-#         required: true
-#       use_cache:
-#         type: string
-#         default: "true"
-#         required: true
-#       cache_upload_allowed:
-#         type: string
-#         default: "false"
-#         required: true
-#       builder_latest_tag:
-#         type: string
-#         default: "latest"
-#         required: false
-#     secrets:
-#       GCP_SERVICE_ACCOUNT_KEY:
-#         required: true
-#       GCP_REGISTRY:
-#         required: true
-#       GCP_PROJECT:
-#         required: true
-#       HUNTER_USERNAME:
-#         required: true
-#       HUNTER_TOKEN:
-#         required: true
-
-# env:
-#   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
-#   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-#   CI: true
-#   CACHE_PATH: ./build_docker_ci/cache
-#   DOCKER_BUILD_DIR_NAME: build_docker_ci
-
-#   # 1) inputs.<...> (workflow_dispatch, где boolean)
-#   # 2) github.event.inputs.<...> (workflow_call, где string)
-#   # 3) fallback
-#   USE_CACHE: ${{ inputs.use_cache || github.event.inputs.use_cache || 'true' }}
-#   CACHE_UPLOAD_ALLOWED: ${{ inputs.cache_upload_allowed || github.event.inputs.cache_upload_allowed || 'false' }}
-#   BUILDER_LATEST_TAG: ${{ inputs.builder_latest_tag || github.event.inputs.builder_latest_tag || 'latest' }}
-
-#   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
-#   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
-#   GIT_REF_NAME: ${{ github.ref_name }}
-
-#   IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
-
-# jobs:
-#   setup_matrix:
-#     runs-on: ubuntu-latest
-#     outputs:
-#       matrix: ${{ steps.matrix.outputs.matrix }}
-#     steps:
-#       - name: "Checkout repository"
-#         uses: actions/checkout@v4
-
-#       - name: "Generate build matrix"
-#         id: matrix
-#         uses: ./.github/actions/matrix-builder
-#         with:
-#           build_amd64: ${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}
-#           build_arm64: ${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'true' }}
-#           build_debug: ${{ inputs.build_debug || github.event.inputs.build_debug || 'true' }}
-#           build_release: ${{ inputs.build_release || github.event.inputs.build_release || 'true' }}
-#           build_relwithdebinfo: ${{ inputs.build_relwithdebinfo || github.event.inputs.build_relwithdebinfo || 'true' }}
-#           amd64_runner: '"actions-runner-controller"'
-#           arm64_runner: '["self-hosted","qdrvm-arm64"]'
-
-#   build:
-#     needs: setup_matrix
-#     strategy:
-#       fail-fast: false
-#       matrix: ${{ fromJSON(needs.setup_matrix.outputs.matrix) }}
-
-#     runs-on: ${{ matrix.runs_on }}
-#     timeout-minutes: 180
-
-#     env:
-#       PLATFORM: ${{ matrix.platform }}
-#       BUILD_TYPE: ${{ matrix.build_type }}
-
-#     steps:
-#     - name: "Checkout"
-#       uses: actions/checkout@v4
-#       with:
-#         fetch-depth: 0
-
-#     - name: "Get master branch"
-#       if: ${{ github.ref != 'refs/heads/master' }}
-#       run: git fetch origin master:master || true
-
-#     - name: "Authenticate with Google Cloud"
-#       uses: google-github-actions/auth@v2
-#       with:
-#         credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-
-#     - name: "Set up Cloud SDK"
-#       uses: google-github-actions/setup-gcloud@v2
-
-#     - name: "Configure Docker for GCR"
-#       run: |
-#         gcloud auth configure-docker --quiet
-#         gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
-
-#     - name: "Get commit version"
-#       working-directory: ./housekeeping/docker/kagome-dev
-#       run: make configure
-
-#     - name: "Install zstd"
-#       run: |
-#         if ! command -v zstd &> /dev/null; then
-#           echo "zstd not found, installing..."
-#           sudo apt-get update && sudo apt-get install -y zstd || echo "Failed to install zstd, but continuing..."
-#         else
-#           echo "zstd is already installed"
-#         fi
-
-#     - name: "Get Cache"
-#       if: ${{ env.USE_CACHE == 'true' }}
-#       working-directory: ./housekeeping/docker/kagome-dev
-#       run: |
-#         make cache_get || true
-
-#     - name: "Build target"
-#       working-directory: ./housekeeping/docker/kagome-dev
-#       run: |
-#         echo "Building for PLATFORM=${{ matrix.platform }}, BUILD_TYPE=${{ matrix.build_type }}"
-#         make kagome_docker_build BUILD_TYPE=${{ matrix.build_type }}
-#         echo "Build finished!"
-
-#     - name: "Upload cache"
-#       if: ${{ success() }}
-#       working-directory: ./housekeeping/docker/kagome-dev
-#       run: |
-#         make cache_check_and_upload || true
-
-#     - name: "Push Kagome APT Package"
-#       working-directory: ./housekeeping/docker/kagome-dev
-#       run: |
-#         make upload_apt_package BUILD_TYPE=${{ matrix.build_type }}
-
-#     - name: "Versions Info"
-#       working-directory: ./housekeeping/docker/kagome-dev
-#       run: |
-#         make kagome_deb_package_info || true
-
-#
-# Copyright Quadrivium LLC
-# All Rights Reserved
-# SPDX-License-Identifier: Apache-2.0
-#
-
-name: Zombie Tester
+name: "Test Pipeline (WIP) (Kagome Build)"
 
 on:
-  #  schedule:
-  #    - cron: '0 2 * * 0' # Update zombie builder image each Sunday night
   workflow_dispatch:
     inputs:
-      zombie_tester_tag:
-        description: 'Custom Zombie Tester tag'
-        default: 'latest'
+      build_amd64:
+        description: "Build linux/amd64?"
+        type: boolean
         required: false
-        type: 'string'
-      zombienet_release:
-        description: 'Custom zombienet release'
-        default: '1.3.124'
+        default: true
+      build_arm64:
+        description: "Build linux/arm64?"
+        type: boolean
         required: false
-        type: 'string'
-      polkadot_package_version:
-        description: 'Custom Polkadot package version'
-        default: '20250211-24121'
+        default: true
+      build_debug:
+        description: "Build Debug?"
+        type: boolean
         required: false
-        type: 'string'
+        default: true
+      build_release:
+        description: "Build Release?"
+        type: boolean
+        required: false
+        default: true
+      build_relwithdebinfo:
+        description: "Build RelWithDebInfo?"
+        type: boolean
+        required: false
+        default: true
+      use_cache:
+        description: "Use cache?"
+        type: boolean
+        required: false
+        default: true
+      cache_upload_allowed:
+        description: "Force cache upload?"
+        type: boolean
+        required: false
+        default: false
+      builder_latest_tag:
+        description: "Custom Builder tag"
+        type: string
+        required: false
+        default: "latest"
+
+  workflow_call:
+    inputs:
+      build_amd64:
+        type: string
+        default: "true"
+        required: true
+      build_arm64:
+        type: string
+        default: "true"
+        required: true
+      build_debug:
+        type: string
+        default: "true"
+        required: true
+      build_release:
+        type: string
+        default: "true"
+        required: true
+      build_relwithdebinfo:
+        type: string
+        default: "true"
+        required: true
+      use_cache:
+        type: string
+        default: "true"
+        required: true
+      cache_upload_allowed:
+        type: string
+        default: "false"
+        required: true
+      builder_latest_tag:
+        type: string
+        default: "latest"
+        required: false
+    secrets:
+      GCP_SERVICE_ACCOUNT_KEY:
+        required: true
+      GCP_REGISTRY:
+        required: true
+      GCP_PROJECT:
+        required: true
+      HUNTER_USERNAME:
+        required: true
+      HUNTER_TOKEN:
+        required: true
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+  CI: true
+  CACHE_PATH: ./build_docker_ci/cache
+  DOCKER_BUILD_DIR_NAME: build_docker_ci
+
+  # 1) inputs.<...> (workflow_dispatch, где boolean)
+  # 2) github.event.inputs.<...> (workflow_call, где string)
+  # 3) fallback
+  USE_CACHE: ${{ inputs.use_cache || github.event.inputs.use_cache || 'true' }}
+  CACHE_UPLOAD_ALLOWED: ${{ inputs.cache_upload_allowed || github.event.inputs.cache_upload_allowed || 'false' }}
+  BUILDER_LATEST_TAG: ${{ inputs.builder_latest_tag || github.event.inputs.builder_latest_tag || 'latest' }}
+
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
-  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_tag || 'latest' }}
-  ZOMBIENET_RELEASE: ${{ github.event.inputs.zombienet_release || '1.3.119' }}
-  POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.polkadot_package_version || '20250211-24121' }}
-  SCCACHE_GCS_BUCKET: ${{ secrets.SCCACHE_GCS_BUCKET }}
-  DOCKER_BUILD_DIR_NAME: build_docker_ci
-#  CACHE_VERSION: v001
-#  CACHE_PATHS: ./zombienet/docker/build_docker/cargo
+  GIT_REF_NAME: ${{ github.ref_name }}
+
+  IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
 
 jobs:
-  build_zombie_tester:
-    runs-on: ${{ matrix.os }}
+  setup_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Generate build matrix"
+        id: matrix
+        uses: ./.github/actions/matrix-builder
+        with:
+          build_amd64: ${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}
+          build_arm64: ${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'true' }}
+          build_debug: ${{ inputs.build_debug || github.event.inputs.build_debug || 'true' }}
+          build_release: ${{ inputs.build_release || github.event.inputs.build_release || 'true' }}
+          build_relwithdebinfo: ${{ inputs.build_relwithdebinfo || github.event.inputs.build_relwithdebinfo || 'true' }}
+          amd64_runner: '"actions-runner-controller"'
+          arm64_runner: '["self-hosted","qdrvm-arm64"]'
+
+  build:
+    needs: setup_matrix
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - platform: linux/amd64
-            os: ubuntu-24.04
-          - platform: linux/arm64
-            os: ubuntu-24.04-arm
-    timeout-minutes: 60
+      matrix: ${{ fromJSON(needs.setup_matrix.outputs.matrix) }}
+
+    runs-on: ${{ matrix.runs_on }}
+    timeout-minutes: 180
+
     env:
       PLATFORM: ${{ matrix.platform }}
+      BUILD_TYPE: ${{ matrix.build_type }}
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    - name: "Checkout"
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: "Fetch master branch"
-        if: github.ref != 'refs/heads/master'
-        run: |
-          git fetch origin master:master || true
+    - name: "Get master branch"
+      if: ${{ github.ref != 'refs/heads/master' }}
+      run: git fetch origin master:master || true
 
-      - name : "Authenticate with Google Cloud"
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+    - name: "Authenticate with Google Cloud"
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
-      - name: "Set up Cloud SDK"
-        uses: 'google-github-actions/setup-gcloud@v2'
+    - name: "Set up Cloud SDK"
+      uses: google-github-actions/setup-gcloud@v2
 
-      - name: "Configure Docker for GCR"
-        run: |
-          gcloud auth configure-docker --quiet
-          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+    - name: "Configure Docker for GCR"
+      run: |
+        gcloud auth configure-docker --quiet
+        gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Check if image tag exists using Makefile"
-        id: check-tag
-        working-directory: ./zombienet/docker
-        run: |
-          make configure
-          exists=$(make zombie_tester_check_tag)
-          echo "Image Exists: $exists"
-          echo "exists=$exists" >> $GITHUB_ENV
+    - name: "Get commit version"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: make configure
 
-      - name: "Build Zombie Tester"
-        working-directory: ./zombienet/docker
-        if: env.exists == 'false'
-        run: |
-          make zombie_tester && make zombie_tester_push
+    - name: "Install zstd"
+      run: |
+        if ! command -v zstd &> /dev/null; then
+          echo "zstd not found, installing..."
+          sudo apt-get update && sudo apt-get install -y zstd || echo "Failed to install zstd, but continuing..."
+        else
+          echo "zstd is already installed"
+        fi
 
-      - name: "Versions Info"
-        if: always()
-        working-directory: ./zombienet/docker
-        run: |
-          make zombie_tester_image_info
-  
-  zombie_tester_manifest:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    needs: [build_zombie_tester]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    - name: "Get Cache"
+      if: ${{ env.USE_CACHE == 'true' }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make cache_get || true
 
-      - name: "Fetch master branch"
-        if: github.ref != 'refs/heads/master'
-        run: |
-          git fetch origin master:master || true
+    - name: "Build target"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        echo "Building for PLATFORM=${{ matrix.platform }}, BUILD_TYPE=${{ matrix.build_type }}"
+        make kagome_docker_build BUILD_TYPE=${{ matrix.build_type }}
+        echo "Build finished!"
 
-      - name : "Authenticate with Google Cloud"
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+    - name: "Upload cache"
+      if: ${{ success() }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make cache_check_and_upload || true
 
-      - name: "Set up Cloud SDK"
-        uses: 'google-github-actions/setup-gcloud@v2'
+    - name: "Push Kagome APT Package"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make upload_apt_package BUILD_TYPE=${{ matrix.build_type }}
 
-      - name: "Configure Docker for GCR"
-        run: |
-          gcloud auth configure-docker --quiet
-          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
-
-      - name: "Check if image tag exists using Makefile"
-        id: check-tag
-        working-directory: ./zombienet/docker
-        run: |
-          make configure
-          exists=$(make zombie_tester_check_latest_tag)
-          echo "Image Exists: $exists"
-          echo "exists=$exists" >> $GITHUB_ENV
-
-      - name: "Build Zombie Tester"
-        working-directory: ./zombienet/docker
-        if: env.exists == 'false'
-        run: |
-          make zombie_tester_push_manifest
-
-      - name: "Versions Info"
-        if: always()
-        working-directory: ./zombienet/docker
-        run: |
-          make zombie_tester_image_info
-
-          
+    - name: "Versions Info"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make kagome_deb_package_info || true
