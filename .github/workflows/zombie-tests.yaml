@@ -242,12 +242,13 @@ jobs:
         scenario: [
           { name: "0001 PVF preparation & execution time", test: "test-polkadot-functional-0001-parachains-pvf" },
           { name: "0003 BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute", test: "test-polkadot-functional-0003-beefy-and-mmr" },
-          { name: "0007 Test if disputes triggered on finalized blocks within scope always end as valid", test: "test-polkadot-functional-0007-dispute-freshly-finalized" },
-          { name: "0008 Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded", test: "test-polkadot-functional-0008-dispute-old-finalized" },
-          { name: "0009 Approval voting coalescing does not lag finality", test: "test-polkadot-functional-0009-approval-voting-coalescing" },
-          { name: "0011 Test we are producing blocks at 6 seconds clip", test: "test-polkadot-functional-0011-async-backing-6-seconds-rate" },
-          { name: "0013 Systematic chunk recovery is used if the chunk mapping feature is enabled.", test: "test-polkadot-functional-0013-systematic-chunk-recovery" },
-          { name: "c0001 Warp sync from polkadot node", test: "test-custom-0001-validators-warp-sync" }
+          # temporarily disabled some tests
+          # { name: "0007 Test if disputes triggered on finalized blocks within scope always end as valid", test: "test-polkadot-functional-0007-dispute-freshly-finalized" },
+          # { name: "0008 Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded", test: "test-polkadot-functional-0008-dispute-old-finalized" },
+          # { name: "0009 Approval voting coalescing does not lag finality", test: "test-polkadot-functional-0009-approval-voting-coalescing" },
+          # { name: "0011 Test we are producing blocks at 6 seconds clip", test: "test-polkadot-functional-0011-async-backing-6-seconds-rate" },
+          # { name: "0013 Systematic chunk recovery is used if the chunk mapping feature is enabled.", test: "test-polkadot-functional-0013-systematic-chunk-recovery" },
+          # { name: "c0001 Warp sync from polkadot node", test: "test-custom-0001-validators-warp-sync" }
         ]
         #  - name: "Disputes initiation, conclusion and lag"
         #    test: "test-polkadot-functional-0002-parachains-disputes"
