@@ -9,6 +9,7 @@ define run_test
 	echo "Running test in container $$CONTAINER_NAME with params \n test:$(1) and \n Kagome package version: $(KAGOME_PACKAGE_VERSION)"; \
 	START_TIME=$$(date +%s); \
 	TEST_PATH=$$(echo $(1) | xargs); \
+	trap 'echo "Caught interrupt signal, cleaning up container $$CONTAINER_NAME"; docker rm -f $$CONTAINER_NAME 2>/dev/null || true; exit 1' INT TERM EXIT; \
 	docker run --name $$CONTAINER_NAME \
 		--platform $(PLATFORM) \
 		--entrypoint "/bin/bash" \
@@ -30,8 +31,9 @@ define run_test
 			echo \"POLKADOT_VERSION=\$$(polkadot --version | awk '{print \$$2}')\" && \
 			echo \"ZOMBIENET_VERSION=\$$(zombienet version)\" && \
 			/usr/local/bin/entrypoint.sh \
-			zombienet test -p native /opt/$$TEST_PATH " ; \
-	TEST_EXIT_CODE=$$(docker inspect $$CONTAINER_NAME --format='{{.State.ExitCode}}'); \
+			zombienet test -p native /opt/$$TEST_PATH " || TEST_EXIT_CODE=$$?; \
+	trap - INT TERM EXIT; \
+	ACTUAL_EXIT_CODE=$${TEST_EXIT_CODE:-$$(docker inspect $$CONTAINER_NAME --format='{{.State.ExitCode}}')}; \
 	if [ "$(COPY_LOGS_TO_HOST)" = "true" ]; then \
 		$(MAKE) copy_logs_to_host CONTAINER_NAME=$$CONTAINER_NAME; \
 	fi; \
@@ -40,13 +42,13 @@ define run_test
 	MINUTES=$$((DURATION / 60)); \
 	SECONDS=$$((DURATION % 60)); \
 	echo "Test duration: $$MINUTES min $$SECONDS sec"; \
-	echo "Test finished with exit code $$TEST_EXIT_CODE"; \
+	echo "Test finished with exit code $$ACTUAL_EXIT_CODE"; \
 	echo "Runtime cache directory content:"; \
 	if [ "$(DELETE_IMAGE_AFTER_TEST)" = "true" ]; then \
-		docker rm -f $$CONTAINER_NAME; \
+		docker rm -f $$CONTAINER_NAME 2>/dev/null || true; \
 		echo "Container $$CONTAINER_NAME removed"; \
 	fi; \
-	exit $$TEST_EXIT_CODE
+	exit $$ACTUAL_EXIT_CODE
 endef
 
 copy_logs_to_host:
