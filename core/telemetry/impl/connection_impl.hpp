@@ -124,6 +124,7 @@ namespace kagome::telemetry {
 
     void reconnect();
 
+    log::Logger log_;
     std::shared_ptr<boost::asio::io_context> io_context_;
     const TelemetryEndpoint endpoint_;
     OnConnectedCallback callback_;
@@ -131,7 +132,6 @@ namespace kagome::telemetry {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     bool is_connected_ = false;
     bool shutdown_requested_ = false;
-    log::Logger log_;
 
     std::chrono::seconds reconnect_timeout_ = kInitialReconnectTimeout;
     uint16_t port_ = 80;

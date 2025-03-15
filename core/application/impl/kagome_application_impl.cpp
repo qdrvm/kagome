@@ -63,6 +63,7 @@ namespace kagome::application {
     injector_.kademliaRandomWalk();
     injector_.injectAddressPublisher();
     injector_.injectTimeline();
+    injector_.injectStateMetrics();
 
     logger_->info("Start as node version '{}' named as '{}' with PID {}",
                   app_config_->nodeVersion(),
@@ -109,8 +110,7 @@ namespace kagome::application {
                                             "The roles the node is running as");
       auto metric_node_roles =
           metrics_registry->registerGaugeMetric(nodeRolesMetricName);
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      metric_node_roles->set(app_config_->roles().value);
+      metric_node_roles->set(app_config_->roles().value());
 
       constexpr auto buildInfoMetricName = "kagome_build_info";
       metrics_registry->registerGaugeFamily(
@@ -144,7 +144,6 @@ namespace kagome::application {
             "Secure validator mode is not implemented for the current "
             "platform. Proceed at your own risk.");
 #endif
-
     app_state_manager->run();
 
     watchdog->stop();

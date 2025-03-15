@@ -20,4 +20,5 @@ target_link_libraries(vote_graph_test
     consensus
     blob
     blockchain
+    logger_for_tests
     )

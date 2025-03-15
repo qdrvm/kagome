@@ -73,8 +73,7 @@ namespace kagome::authorship {
     /**
      * Estimates the size of the block based on
      *
-     * This function calculates the size of the block by encoding it
-     * using the ScaleEncoderStream
+     * This function calculates the size of the block by SCALE-encoding
      *
      * @return The estimated size of the block.
      */
@@ -84,8 +83,7 @@ namespace kagome::authorship {
     /**
      * @brief Returns the estimated size of the block header.
      *
-     * This function calculates the size of the block header by encoding it
-     * using the ScaleEncoderStream
+     * This function calculates the size of the block header by SCALE-encoding
      *
      * @return The estimated size of the block header.
      */

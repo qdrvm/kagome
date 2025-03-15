@@ -5,8 +5,9 @@
  */
 
 #include "parachain/validator/prospective_parachains/fragment_chain.hpp"
-#include <random>
 #include "core/parachain/parachain_test_harness.hpp"
+
+#include <random>
 
 using namespace kagome::parachain::fragment;
 
@@ -42,17 +43,17 @@ class FragmentChainTest : public ProspectiveParachainsTestHarness {
 TEST_F(FragmentChainTest, init_and_populate_from_empty) {
   const auto base_constraints = make_constraints(0, {0}, {0x0a});
 
-  EXPECT_OUTCOME_TRUE(scope,
-                      Scope::with_ancestors(
-                          RelayChainBlockInfo{
-                              .hash = fromNumber(1),
-                              .number = 1,
-                              .storage_root = fromNumber(2),
-                          },
-                          base_constraints,
-                          {},
-                          4,
-                          {}));
+  ASSERT_OUTCOME_SUCCESS(scope,
+                         Scope::with_ancestors(
+                             RelayChainBlockInfo{
+                                 .hash = fromNumber(1),
+                                 .number = 1,
+                                 .storage_root = fromNumber(2),
+                             },
+                             base_constraints,
+                             {},
+                             4,
+                             {}));
 
   auto chain = FragmentChain::init(hasher_, scope, CandidateStorage{});
   ASSERT_EQ(chain.best_chain_len(), 0);
@@ -141,7 +142,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
        {make_constraints(
             relay_parent_x_info.number, {relay_parent_x_info.number}, {0x0e}),
         make_constraints(relay_parent_y_info.number, {0}, {0x0a})}) {
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         scope,
         Scope::with_ancestors(
             relay_parent_z_info, wrong_constraints, {}, 4, ancestors));
@@ -166,7 +167,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
 
   // Various depths
   {
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         scope,
         Scope::with_ancestors(
             relay_parent_z_info, base_constraints, {}, 0, ancestors));
@@ -195,7 +196,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
   }
   {
     // depth is 1, allows two candidates
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         scope,
         Scope::with_ancestors(
             relay_parent_z_info, base_constraints, {}, 1, ancestors));
@@ -224,7 +225,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
 
   // depth is larger than 2, allows all three candidates
   for (size_t depth = 2; depth < 6; ++depth) {
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         scope,
         Scope::with_ancestors(
             relay_parent_z_info, base_constraints, {}, depth, ancestors));
@@ -256,12 +257,12 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       // be deleted since they form a chain with A.
       Vec<fragment::RelayChainBlockInfo> ancestors_without_x = {
           relay_parent_y_info};
-      EXPECT_OUTCOME_TRUE(scope,
-                          Scope::with_ancestors(relay_parent_z_info,
-                                                base_constraints,
-                                                {},
-                                                4,
-                                                ancestors_without_x));
+      ASSERT_OUTCOME_SUCCESS(scope,
+                             Scope::with_ancestors(relay_parent_z_info,
+                                                   base_constraints,
+                                                   {},
+                                                   4,
+                                                   ancestors_without_x));
 
       const auto chain = populate_chain_from_previous_storage(scope, storage);
       ASSERT_TRUE(chain.best_chain_vec().empty());
@@ -281,7 +282,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
     {
       // Candidates A and B have relay parents out of scope. Candidate C will
       // also be deleted since it forms a chain with A and B.
-      EXPECT_OUTCOME_TRUE(
+      ASSERT_OUTCOME_SUCCESS(
           scope,
           Scope::with_ancestors(
               relay_parent_z_info, base_constraints, {}, 4, {}));
@@ -313,17 +314,18 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
                                  {0x0c},
                                  {0x0a},
                                  relay_parent_z_info.number);
-    EXPECT_OUTCOME_TRUE(wrong_candidate_c_entry,
-                        CandidateEntry::create(
-                            network::candidateHash(*hasher_, wrong_candidate_c),
-                            wrong_candidate_c,
-                            wrong_pvd_c,
-                            CandidateState::Backed,
-                            hasher_));
+    ASSERT_OUTCOME_SUCCESS(
+        wrong_candidate_c_entry,
+        CandidateEntry::create(
+            network::candidateHash(*hasher_, wrong_candidate_c),
+            wrong_candidate_c,
+            wrong_pvd_c,
+            CandidateState::Backed,
+            hasher_));
     ASSERT_TRUE(modified_storage.add_candidate_entry(wrong_candidate_c_entry)
                     .has_value());
 
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         scope,
         Scope::with_ancestors(
             relay_parent_z_info, base_constraints, {}, 4, ancestors));
@@ -365,18 +367,19 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
                                  {0x0c},
                                  {0x0d},
                                  0);
-    EXPECT_OUTCOME_TRUE(wrong_candidate_c_entry,
-                        CandidateEntry::create(
-                            network::candidateHash(*hasher_, wrong_candidate_c),
-                            wrong_candidate_c,
-                            wrong_pvd_c,
-                            CandidateState::Backed,
-                            hasher_));
+    ASSERT_OUTCOME_SUCCESS(
+        wrong_candidate_c_entry,
+        CandidateEntry::create(
+            network::candidateHash(*hasher_, wrong_candidate_c),
+            wrong_candidate_c,
+            wrong_pvd_c,
+            CandidateState::Backed,
+            hasher_));
 
     ASSERT_TRUE(modified_storage.add_candidate_entry(wrong_candidate_c_entry)
                     .has_value());
 
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         scope,
         Scope::with_ancestors(
             relay_parent_z_info, base_constraints, {}, 4, ancestors));
@@ -410,19 +413,19 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
                                  0);
     const auto unconnected_candidate_c_hash =
         network::candidateHash(*hasher_, unconnected_candidate_c);
-    EXPECT_OUTCOME_TRUE(unconnected_candidate_c_entry,
-                        CandidateEntry::create(unconnected_candidate_c_hash,
-                                               unconnected_candidate_c,
-                                               unconnected_pvd_c,
-                                               CandidateState::Backed,
-                                               hasher_));
+    ASSERT_OUTCOME_SUCCESS(unconnected_candidate_c_entry,
+                           CandidateEntry::create(unconnected_candidate_c_hash,
+                                                  unconnected_candidate_c,
+                                                  unconnected_pvd_c,
+                                                  CandidateState::Backed,
+                                                  hasher_));
 
     ASSERT_TRUE(
         modified_storage.add_candidate_entry(unconnected_candidate_c_entry)
             .has_value());
 
     {
-      EXPECT_OUTCOME_TRUE(
+      ASSERT_OUTCOME_SUCCESS(
           scope,
           Scope::with_ancestors(
               relay_parent_z_info, base_constraints, {}, 4, ancestors));
@@ -464,16 +467,16 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
 
     const auto modified_candidate_a_hash =
         network::candidateHash(*hasher_, modified_candidate_a);
-    EXPECT_OUTCOME_TRUE(modified_candidate_a_entry,
-                        CandidateEntry::create(modified_candidate_a_hash,
-                                               modified_candidate_a,
-                                               modified_pvd_a,
-                                               CandidateState::Backed,
-                                               hasher_));
+    ASSERT_OUTCOME_SUCCESS(modified_candidate_a_entry,
+                           CandidateEntry::create(modified_candidate_a_hash,
+                                                  modified_candidate_a,
+                                                  modified_pvd_a,
+                                                  CandidateState::Backed,
+                                                  hasher_));
     ASSERT_TRUE(modified_storage.add_candidate_entry(modified_candidate_a_entry)
                     .has_value());
     {
-      EXPECT_OUTCOME_TRUE(
+      ASSERT_OUTCOME_SUCCESS(
           scope,
           Scope::with_ancestors(relay_parent_z_info,
                                 base_constraints,
@@ -510,12 +513,12 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
 
     const auto wrong_candidate_c_hash =
         network::candidateHash(*hasher_, wrong_candidate_c);
-    EXPECT_OUTCOME_TRUE(wrong_candidate_c_entry,
-                        CandidateEntry::create(wrong_candidate_c_hash,
-                                               wrong_candidate_c,
-                                               wrong_pvd_c,
-                                               CandidateState::Backed,
-                                               hasher_));
+    ASSERT_OUTCOME_SUCCESS(wrong_candidate_c_entry,
+                           CandidateEntry::create(wrong_candidate_c_hash,
+                                                  wrong_candidate_c,
+                                                  wrong_pvd_c,
+                                                  CandidateState::Backed,
+                                                  hasher_));
     ASSERT_TRUE(modified_storage.add_candidate_entry(wrong_candidate_c_entry)
                     .has_value());
 
@@ -524,7 +527,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
     ASSERT_TRUE(FragmentChain::fork_selection_rule(wrong_candidate_c_hash,
                                                    modified_candidate_a_hash));
     {
-      EXPECT_OUTCOME_TRUE(
+      ASSERT_OUTCOME_SUCCESS(
           scope,
           Scope::with_ancestors(relay_parent_z_info,
                                 base_constraints,
@@ -579,7 +582,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
         }};
 
     for (const auto &pending : {test_case_0, test_case_1, test_case_2}) {
-      EXPECT_OUTCOME_TRUE(
+      ASSERT_OUTCOME_SUCCESS(
           scope,
           Scope::with_ancestors(
               relay_parent_z_info, base_constraints, pending, 3, ancestors));
@@ -599,7 +602,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
         relay_parent_y_info};
 
     {
-      EXPECT_OUTCOME_TRUE(
+      ASSERT_OUTCOME_SUCCESS(
           scope,
           Scope::with_ancestors(relay_parent_z_info,
                                 base_constraints,
@@ -620,7 +623,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
     {
       // Even relay parents of pending availability candidates which are out of
       // scope cannot move backwards.
-      EXPECT_OUTCOME_TRUE(
+      ASSERT_OUTCOME_SUCCESS(
           scope,
           Scope::with_ancestors(
               relay_parent_z_info,
@@ -667,7 +670,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
   // Check that D, F, A2 and B2 are kept as unconnected potential candidates.
   {
     {
-      EXPECT_OUTCOME_TRUE(
+      ASSERT_OUTCOME_SUCCESS(
           scope,
           Scope::with_ancestors(
               relay_parent_z_info, base_constraints, {}, 2, ancestors));
@@ -938,7 +941,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       }
 
       // Simulate the fact that candidates A, B, C are now pending availability.
-      EXPECT_OUTCOME_TRUE(
+      ASSERT_OUTCOME_SUCCESS(
           scope2,
           Scope::with_ancestors(relay_parent_z_info,
                                 base_constraints,
@@ -975,7 +978,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
                 FragmentChainError::CANDIDATE_ALREADY_KNOWN);
 
       // Simulate the fact that candidates A, B and C have been included.
-      EXPECT_OUTCOME_TRUE(
+      ASSERT_OUTCOME_SUCCESS(
           scope3,
           Scope::with_ancestors(relay_parent_z_info,
                                 make_constraints(0, {0}, {0x0d}),
@@ -1027,7 +1030,7 @@ TEST_F(FragmentChainTest,
       .storage_root = fromNumber(0),
   };
 
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       scope,
       Scope::with_ancestors(
           relay_parent_info, base_constraints, {}, max_depth, {}));
@@ -1098,7 +1101,7 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
   };
 
   const auto base_constraints = make_constraints(0, {0}, required_parent);
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       scope,
       Scope::with_ancestors(
           relay_parent_info, base_constraints, {}, max_depth, {}));
@@ -1241,7 +1244,7 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
 
   // Stop when we've found a candidate which is pending availability
   {
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         scope2,
         Scope::with_ancestors(relay_parent_info,
                               base_constraints,

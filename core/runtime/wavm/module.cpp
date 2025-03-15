@@ -41,7 +41,7 @@ namespace kagome::runtime::wavm {
     if (!WAVM::Runtime::loadBinaryModule(
             code.data(), code.size(), module, featureSpec, &loadError)) {
       logger->warn("Error loading WAVM binary module: {}", loadError.message);
-      return CompilationError{std::move(loadError.message)};
+      return CompilationError{loadError.message};
     }
 
     auto &memory_imports = WAVM::Runtime::getModuleIR(module).memories.imports;

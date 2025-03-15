@@ -7,7 +7,8 @@
 #pragma once
 
 #include <libp2p/peer/peer_info.hpp>
-#include "scale/scale.hpp"
+
+#include "scale/kagome_scale.hpp"
 
 namespace scale {
 
@@ -18,10 +19,9 @@ namespace scale {
     static libp2p::peer::PeerId dummyPeerId();
   };
 
-  ::scale::ScaleEncoderStream &operator<<(
-      ::scale::ScaleEncoderStream &s, const libp2p::peer::PeerInfo &peer_info);
+  void encode(const libp2p::peer::PeerInfo &peer_info,
+              ::scale::Encoder &encoder);
 
-  ::scale::ScaleDecoderStream &operator>>(::scale::ScaleDecoderStream &s,
-                                          libp2p::peer::PeerInfo &peer_info);
+  void decode(libp2p::peer::PeerInfo &peer_info, ::scale::Decoder &decoder);
 
 }  // namespace scale

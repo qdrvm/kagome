@@ -24,7 +24,7 @@ namespace kagome::runtime::wavm {
       : storage_{std::move(storage)},
         serializer_{std::move(serializer)},
         host_api_factory_{std::move(host_api_factory)},
-        core_factory_{core_factory} {}
+        core_factory_{std::move(core_factory)} {}
 
   InstanceEnvironment InstanceEnvironmentFactory::make(
       MemoryOrigin memory_origin,

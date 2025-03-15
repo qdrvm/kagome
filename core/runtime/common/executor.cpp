@@ -15,7 +15,7 @@
 #include "runtime/module_repository.hpp"
 #include "runtime/runtime_context.hpp"
 #include "runtime/trie_storage_provider.hpp"
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/trie/trie_batches.hpp"
 
 namespace kagome::runtime {

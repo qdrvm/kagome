@@ -12,13 +12,13 @@
 
 namespace kagome::log {
 
-  extern Logger profiling_logger;  // NOLINT
+  Logger profiling_logger();
 
   struct ProfileScope {
     using Clock = ::kagome::clock::SteadyClockImpl;
 
     explicit ProfileScope(std::string_view scope,
-                          log::Logger logger = profiling_logger)
+                          log::Logger logger = profiling_logger())
         : scope{scope}, logger{std::move(logger)} {
       BOOST_ASSERT(logger != nullptr);
       start = Clock{}.now();
