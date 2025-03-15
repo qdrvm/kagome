@@ -277,8 +277,8 @@ jobs:
   # Replace individual build job with reusable workflow from build.yaml
   build:
     needs: [diagnostic]
-    # Simplified condition to ensure it runs
-    if: always()
+    # Remove always() to allow cancellation
+    if: success()
     uses: ./.github/workflows/build.yaml
     with:
       build_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
@@ -298,8 +298,9 @@ jobs:
 
   # Use zombie-tests workflow instead of integrating it directly
   zombie_tests:
-    needs: [build, diagnostic]
-    if: always() && needs.build.result == 'success'
+    needs: [build]
+    # Remove always() to allow cancellation
+    if: success() && needs.build.result == 'success'
     uses: ./.github/workflows/zombie-tests.yaml
     with:
       build_type: ${{ github.event.inputs.build_type || 'Release' }}

@@ -234,7 +234,7 @@ jobs:
   zombie_tests:
     timeout-minutes: 60
     needs: [check_package_exists, setup_matrix]
-    if: always() && needs.setup_matrix.result == 'success' && (needs.check_package_exists.outputs.package_exists == 'true' || needs.check_package_exists.outputs.skip_build == 'true' || needs.kagome_dev_docker_build.result == 'success')
+    if: success() && needs.setup_matrix.result == 'success' && (needs.check_package_exists.outputs.package_exists == 'true' || needs.check_package_exists.outputs.skip_build == 'true' || needs.kagome_dev_docker_build.result == 'success')
     strategy:
       fail-fast: false
       matrix:
@@ -268,6 +268,16 @@ jobs:
       ARCH: ${{ matrix.platform_config.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
 
     steps:
+      - name: "Check for workflow cancellation"
+        id: check_cancel
+        run: |
+          # This checks if the workflow has been canceled
+          if [ "$GITHUB_ACTION_STATE" == "cancelled" ]; then
+            echo "Workflow was cancelled, exiting early"
+            exit 1
+          fi
+        continue-on-error: true
+
       - name: "Checkout repository"
         uses: actions/checkout@v4
 
