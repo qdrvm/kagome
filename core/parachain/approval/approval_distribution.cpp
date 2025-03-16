@@ -2472,13 +2472,13 @@ namespace kagome::parachain {
     SL_TRACE(logger_, "NAR. (peers=[{}])", fmt::join(nar.second, ","));
 
     auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
+      if (source && peer == source->get()) {
+        return false;
+      }
+  
       if (source) {
         const auto &[_, pr] = nar;
-        if (peer == source->get()) {
-          return false;
-        }
-  
-        /// TODO(iceseer): topology
+          /// TODO(iceseer): topology
         return pr.contains(peer);
       }
       return peer_kn.sent.can_send(message_subject, message_kind);
