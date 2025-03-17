@@ -219,6 +219,7 @@ namespace kagome::network {
 
   struct Statement {
     CandidateState candidate_state{Unused<0>{}};
+    bool operator==(const Statement &) const = default;
   };
   using SignedStatement = IndexedAndSigned<Statement>;
 
