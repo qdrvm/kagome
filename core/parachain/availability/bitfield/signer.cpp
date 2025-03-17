@@ -110,7 +110,7 @@ namespace kagome::parachain {
 
     scheduler_->schedule(
         [weak{weak_from_this()},
-         signer{std::move(signer)},
+         signer{std::move(*signer)},
          candidates{std::move(candidates)}]() mutable {
           if (auto self = weak.lock()) {
             auto res = self->sign(signer, candidates);
