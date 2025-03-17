@@ -14,7 +14,8 @@ namespace kagome::parachain {
 
   class ParachainStorageImpl : public ParachainStorage {
    protected:
-    std::shared_ptr<parachain::AvailabilityStore> av_store_;
+    std::shared_ptr<parachain::AvailabilityStore>
+        av_store_;  // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
 
    public:
     ParachainStorageImpl(

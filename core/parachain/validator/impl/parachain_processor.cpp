@@ -107,7 +107,7 @@ namespace kagome::parachain {
       std::shared_ptr<statement_distribution::IStatementDistribution>
           statement_distribution)
       : ParachainStorageImpl(std::move(av_store)),
-        statement_distribution_(statement_distribution) {
+        statement_distribution_(std::move(statement_distribution)) {
     app_state_manager.takeControl(*this);
   }
 
@@ -1321,11 +1321,8 @@ namespace kagome::parachain {
                 relay_parent,
                 candidate_hash,
                 peer_id);
-            self->validateAsync(ValidationTaskType::kAttest,
-                                candidate,
-                                std::move(*p),
-                                std::move(pvd),
-                                relay_parent);
+            self->validateAsync(
+                ValidationTaskType::kAttest, candidate, *p, pvd, relay_parent);
           });
     } else {
       SL_WARN(logger_,
@@ -2466,7 +2463,9 @@ namespace kagome::parachain {
          relay_parent,
          n_validators{parachain_state->get().table_context.validators.size()},
          _measure,
-         candidate_hash](outcome::result<Pvf::Result> r) mutable {
+         candidate_hash](
+            outcome::result<Pvf::Result>
+                r) mutable {  // NOLINT(performance-unnecessary-value-param)
           TRY_GET_OR_RET(self, weak_self.lock());
           self->on_pvf_result_received(kMode,
                                        n_validators,
@@ -2527,11 +2526,11 @@ namespace kagome::parachain {
         ValidateAndSecondResult{
             .result = outcome::success(),
             .relay_parent = relay_parent,
-            .commitments = std::make_shared<network::CandidateCommitments>(
-                std::move(comms)),
+            .commitments =
+                std::make_shared<network::CandidateCommitments>(comms),
             .candidate = candidate,
             .pov = std::move(available_data.pov),
-            .pvd = std::move(pvd),
+            .pvd = pvd,
         });
   }
 
@@ -2854,8 +2853,8 @@ namespace kagome::parachain {
     collations.status = CollationStatus::WaitingOnValidation;
     validateAsync(ValidationTaskType::kSecond,
                   pending_collation_fetch.candidate_receipt,
-                  std::move(pending_collation_fetch.pov),
-                  std::move(pvd->get()),
+                  pending_collation_fetch.pov,
+                  pvd->get(),
                   relay_parent);
 
     // Store the fetched collation in the current state

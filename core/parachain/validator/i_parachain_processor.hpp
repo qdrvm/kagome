@@ -35,7 +35,7 @@ namespace kagome::parachain {
 
   class ParachainProcessor {
    public:
-    enum class Error {
+    enum class Error : uint8_t {
       RESPONSE_ALREADY_RECEIVED = 1,
       COLLATION_NOT_FOUND,
       KEY_NOT_PRESENT,

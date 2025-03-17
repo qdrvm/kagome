@@ -29,7 +29,8 @@ namespace kagome::network {
 
   struct ExViewRef {
     std::optional<std::reference_wrapper<const HashedBlockHeader>> new_head;
-    const std::vector<primitives::BlockHash> &lost;
+    const std::vector<primitives::BlockHash>
+        &lost;  // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   };
 
   /**
@@ -37,7 +38,7 @@ namespace kagome::network {
    */
   class IPeerView {
    public:
-    enum struct EventType : uint32_t { kViewUpdated, kPeerRemoved };
+    enum struct EventType : uint8_t { kViewUpdated, kPeerRemoved };
 
     using PeerId = libp2p::peer::PeerId;
 
