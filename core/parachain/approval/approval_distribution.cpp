@@ -2173,7 +2173,7 @@ namespace kagome::parachain {
              source ? fmt::format("{}", source->get()) : "our",
              block_hash,
              validator_index,
-             fmt::join(claimed_candidate_indices.bits, ","));
+             fmt::join(claimed_candidate_indices, ","));
 
     // Compute metadata on the assignment.
     auto message_subject{std::make_tuple(
@@ -2348,7 +2348,7 @@ namespace kagome::parachain {
             source ? fmt::format("{}", source->get()) : "our",
             validator_index,
             block_hash,
-            fmt::join(candidate_indices.bits, ","),
+            fmt::join(candidate_indices, ","),
             enc);
 
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
@@ -2725,7 +2725,7 @@ namespace kagome::parachain {
              "candidate_indices=[{}], block_hash={}, validator={})",
              indirect_cert.block_hash,
              fmt::join(peers, ","),
-             fmt::join(candidate_indices.bits, ","),
+             fmt::join(candidate_indices, ","),
              indirect_cert.block_hash,
              indirect_cert.validator);
 
@@ -3503,7 +3503,7 @@ namespace kagome::parachain {
             SL_TRACE(logger_,
                      "Want to send assignment. (bitfield=[{}], block_hash={}, "
                      "valdator={}, block={})",
-                     fmt::join(assignment_message.second.bits, ","),
+                     fmt::join(assignment_message.second, ","),
                      assignment_message.first.block_hash,
                      assignment_message.first.validator,
                      block);
