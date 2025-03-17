@@ -39,7 +39,7 @@ BUILD_TYPE ?= Release
 
 # kagome_docker_build Variables
 CONTAINER_NAME := kagome_build-$(DIR_PATH_HASH)
-DOCKER_BUILD_DIR_NAME := build_docker_$(ARCHITECTURE)
+DOCKER_BUILD_DIR_NAME := build_docker_$(ARCHITECTURE)_$(BUILD_TYPE)
 WORKING_DIR := $(shell pwd)/../../../../kagome
 BUILD_DIR := $(WORKING_DIR)/$(DOCKER_BUILD_DIR_NAME)
 CACHE_DIR := $(BUILD_DIR)/cache
@@ -88,6 +88,11 @@ CACHE_UPLOAD_ALLOWED ?= false
 CACHE_LIFETIME_DAYS ?= 3
 CACHE_ONLY_MASTER ?= false
 
+# Sanitizer build parameters
+ASAN_PARAMS ?= -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-13_cxx20.cmake -DASAN=ON
+TSAN_PARAMS ?= -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-19_cxx20.cmake -DTSAN=ON
+UBSAN_PARAMS ?= -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/clang-19_cxx20.cmake -DUBSAN=ON -DUBSAN_TRAP=OFF -DUBSAN_ABORT=ON
+SAN_PARAMS ?= -DCLEAR_OBJS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/gcc-13_cxx20.cmake -DASAN=ON
 
 export DOCKER_BUILDKIT=1
 # BUILDKIT_PROGRESS - auto, plain, tty, rawjson
