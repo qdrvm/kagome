@@ -59,12 +59,13 @@ namespace kagome {
 
   namespace parachain {
     class ParachainObserver;
-    class ParachainProcessorImpl;
+    class ParachainProcessor;
     class ApprovalDistribution;
 
     namespace statement_distribution {
       class StatementDistribution;
-    }
+      class IStatementDistribution;
+    }  // namespace statement_distribution
   }  // namespace parachain
 
   namespace runtime {
@@ -142,8 +143,7 @@ namespace kagome::injector {
     std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
     std::shared_ptr<network::StateProtocolObserver> injectStateObserver();
     std::shared_ptr<parachain::ParachainObserver> injectParachainObserver();
-    std::shared_ptr<parachain::ParachainProcessorImpl>
-    injectParachainProcessor();
+    std::shared_ptr<parachain::ParachainProcessor> injectParachainProcessor();
     std::shared_ptr<parachain::statement_distribution::StatementDistribution>
     injectStatementDistribution();
     std::shared_ptr<parachain::ApprovalDistribution>

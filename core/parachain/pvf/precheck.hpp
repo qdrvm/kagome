@@ -39,13 +39,22 @@ namespace kagome::runtime {
 namespace kagome::parachain {
   class PvfPool;
 
-  /// Signs pvf check statement for every new head.
-  class PvfPrecheck : public std::enable_shared_from_this<PvfPrecheck> {
+  class IPvfPrecheck {
    public:
     using BroadcastCallback = std::function<void(
         const primitives::BlockHash &, const network::SignedBitfield &)>;
     using Candidates = std::vector<std::optional<network::CandidateHash>>;
 
+    virtual ~IPvfPrecheck() = default;
+
+    /// Subscribes to new heads.
+    virtual void start() = 0;
+  };
+
+  /// Signs pvf check statement for every new head.
+  class PvfPrecheck : public IPvfPrecheck,
+                      public std::enable_shared_from_this<PvfPrecheck> {
+   public:
     PvfPrecheck(
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -60,7 +69,7 @@ namespace kagome::parachain {
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine);
 
     /// Subscribes to new heads.
-    void start();
+    void start() override;
 
    private:
     using BlockHash = primitives::BlockHash;

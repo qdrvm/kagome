@@ -21,19 +21,21 @@
 #include "parachain/validator/impl/candidates.hpp"
 #include "parachain/validator/network_bridge.hpp"
 #include "parachain/validator/signer.hpp"
+#include "parachain/validator/statement_distribution/i_statement_distribution.hpp"
 #include "parachain/validator/statement_distribution/peer_state.hpp"
 #include "parachain/validator/statement_distribution/per_session_state.hpp"
 #include "parachain/validator/statement_distribution/types.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 
 namespace kagome::parachain {
-  class ParachainProcessorImpl;
+  class ParachainProcessor;
 }
 
 namespace kagome::parachain::statement_distribution {
 
   class StatementDistribution
       : public std::enable_shared_from_this<StatementDistribution>,
+        public IStatementDistribution,
         public network::CanDisconnect {
    public:
     enum class Error : uint8_t {
@@ -74,7 +76,7 @@ namespace kagome::parachain::statement_distribution {
         std::shared_ptr<parachain::ValidatorSignerFactory> sf,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         StatementDistributionThreadPool &statements_distribution_thread_pool,
-        std::shared_ptr<ProspectiveParachains> prospective_parachains,
+        std::shared_ptr<IProspectiveParachains> prospective_parachains,
         std::shared_ptr<runtime::ParachainHost> parachain_host,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<authority_discovery::Query> query_audi,
@@ -97,11 +99,12 @@ namespace kagome::parachain::statement_distribution {
     // outcome::result<network::vstaging::AttestedCandidateResponse>
     void OnFetchAttestedCandidateRequest(
         const network::vstaging::AttestedCandidateRequest &request,
-        std::shared_ptr<libp2p::connection::Stream> stream);
+        std::shared_ptr<libp2p::connection::Stream> stream) override;
 
     // CanDisconnect
     bool can_disconnect(const libp2p::PeerId &) const override;
-    void store_parachain_processor(std::weak_ptr<ParachainProcessorImpl> pp) {
+    void store_parachain_processor(
+        std::weak_ptr<ParachainProcessor> pp) override {
       BOOST_ASSERT(!pp.expired());
       parachain_processor = std::move(pp);
     }
@@ -113,21 +116,24 @@ namespace kagome::parachain::statement_distribution {
     // validators group or sends a request to fetch the attested candidate.
     void handle_incoming_manifest(
         const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::BackedCandidateManifest &msg);
+        const network::vstaging::BackedCandidateManifest &msg) override;
 
     void handle_incoming_acknowledgement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::BackedCandidateAcknowledgement
-            &acknowledgement);
+            &acknowledgement) override;
 
     void handle_incoming_statement(
         const libp2p::peer::PeerId &peer_id,
-        const network::vstaging::StatementDistributionMessageStatement &stm);
+        const network::vstaging::StatementDistributionMessageStatement &stm)
+        override;
 
-    void handle_backed_candidate_message(const CandidateHash &candidate_hash);
+    void handle_backed_candidate_message(
+        const CandidateHash &candidate_hash) override;
 
-    void share_local_statement(const primitives::BlockHash &relay_parent,
-                               const SignedFullStatementWithPVD &statement);
+    void share_local_statement(
+        const primitives::BlockHash &relay_parent,
+        const SignedFullStatementWithPVD &statement) override;
 
    private:
     struct ManifestImportSuccess {
@@ -325,8 +331,8 @@ namespace kagome::parachain::statement_distribution {
         std::vector<std::pair<HypotheticalCandidate,
                               fragment::HypotheticalMembership>> frontier);
 
-    outcome::result<std::optional<ValidatorSigner>> is_parachain_validator(
-        const primitives::BlockHash &relay_parent) const;
+    outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>>
+    is_parachain_validator(const primitives::BlockHash &relay_parent) const;
 
     std::unordered_map<ParachainId, std::vector<GroupIndex>>
     determine_groups_per_para(
@@ -364,12 +370,12 @@ namespace kagome::parachain::statement_distribution {
     /// worker thread
     std::shared_ptr<PoolHandlerReady> statements_distribution_thread_handler;
     std::shared_ptr<authority_discovery::Query> query_audi;
-    std::weak_ptr<ParachainProcessorImpl> parachain_processor;
+    std::weak_ptr<ParachainProcessor> parachain_processor;
     std::shared_ptr<NetworkBridge> network_bridge;
     std::shared_ptr<network::Router> router;
     std::shared_ptr<PoolHandler> main_pool_handler;
     std::shared_ptr<crypto::Hasher> hasher;
-    std::shared_ptr<ProspectiveParachains> prospective_parachains;
+    std::shared_ptr<IProspectiveParachains> prospective_parachains;
     std::shared_ptr<runtime::ParachainHost> parachain_host;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider;
     std::shared_ptr<network::PeerView> peer_view;
