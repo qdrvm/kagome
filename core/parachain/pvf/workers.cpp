@@ -204,7 +204,7 @@ namespace kagome::parachain {
     if (it == free_.end()) {
       it = free_.begin();
     }
-    auto worker = std::move(*it);
+    auto worker = *it;
     free_.erase(it);
     lock.unlock();
     writeCode(std::move(job), std::move(worker), std::make_shared<Used>(*this));
