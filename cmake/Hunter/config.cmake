@@ -19,9 +19,7 @@
 
 hunter_config(
     qtils
-    #VERSION 0.1.0
-    URL  https://github.com/qdrvm/qtils/archive/7fa095bed51f9c1b7d4a2c99552229df380373ea.tar.gz
-    SHA1 0c18a0e91ad1e78b3a3f7af0db09e79876e6c045
+    VERSION 0.1.0
     CMAKE_ARGS
       FORMAT_ERROR_WITH_FULLTYPE=ON
 )
