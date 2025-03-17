@@ -9,9 +9,7 @@
 #include <cstdint>
 #include <type_traits>
 
-#include <scale/enum_traits.hpp>
-
-#include "common/outcome_throw.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::network {
   /**

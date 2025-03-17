@@ -94,6 +94,7 @@ addtest(parachain_test
 target_link_libraries(parachain_test
     validator_parachain
     log_configurator
+    vrf_provider
     base_fs_test
     key_store
     logger

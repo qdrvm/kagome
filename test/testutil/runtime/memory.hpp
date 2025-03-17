@@ -7,12 +7,12 @@
 #pragma once
 
 #include <memory>
-#include <scale/scale.hpp>
 
 #include "common/buffer.hpp"
 #include "common/span_adl.hpp"
 #include "runtime/common/memory_allocator.hpp"
 #include "runtime/memory.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::runtime {
   struct TestMemory {

@@ -11,8 +11,6 @@
 #include "primitives/arithmetic_error.hpp"
 #include "primitives/token_error.hpp"
 #include "primitives/transaction_validity.hpp"
-#include "scale/scale.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::primitives {
 
@@ -22,25 +20,19 @@ namespace kagome::primitives {
   // https://w3f-research.readthedocs.io/en/latest/_static/pdfview/viewer.html?file=https://w3f.github.io/polkadot-spec/spec/host/nightly.pdf#label329
 
   class DispatchSuccess {};
-  SCALE_EMPTY_CODER(DispatchSuccess);
 
   namespace dispatch_error {
     /// Some unclassified error occurred.
     struct Other {
-      SCALE_TIE(1)
       std::string value;
     };
 
     /// Failed to lookup some data.
     struct CannotLookup {};
-    SCALE_EMPTY_CODER(CannotLookup);
     /// A bad origin.
     struct BadOrigin {};
-    SCALE_EMPTY_CODER(BadOrigin);
     /// A custom error in a module.
     struct Module {
-      SCALE_TIE_ONLY(index, error);
-
       /// Module index, matching the metadata module index.
       uint8_t index;
       /// Module specific error value.
@@ -48,25 +40,20 @@ namespace kagome::primitives {
       /// Optional error message.
       std::optional<std::string>
           message;  // not currently used in rust impl, thus not scale encoded
+      SCALE_CUSTOM_DECOMPOSITION(Module, index, error);
     };
 
     /// At least one consumer is remaining so the account cannot be destroyed.
     struct ConsumerRemaining {};
-    SCALE_EMPTY_CODER(ConsumerRemaining);
     /// There are no providers so the account cannot be created.
     struct NoProviders {};
-    SCALE_EMPTY_CODER(NoProviders);
     /// An error to do with tokens.
     struct Token {
-      SCALE_TIE(1);
-
       TokenError error;
     };
 
     /// An arithmetic error.
     struct Arithmetic {
-      SCALE_TIE(1);
-
       ArithmeticError error;
     };
   }  // namespace dispatch_error

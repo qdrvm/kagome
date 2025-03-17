@@ -35,9 +35,9 @@ namespace kagome::parachain {
     chain_sub_.onHead(
         [weak{weak_from_this()}](const primitives::BlockHeader &header) {
           if (auto self = weak.lock()) {
-            auto r = self->onBlock(header.hash());
-            if (r.has_error()) {
-              SL_DEBUG(self->logger_, "onBlock error {}", r.error());
+            auto res = self->onBlock(header.hash());
+            if (res.has_error()) {
+              SL_DEBUG(self->logger_, "onBlock error {}", res.error());
             }
           }
         });
@@ -52,10 +52,10 @@ namespace kagome::parachain {
   outcome::result<void> BitfieldSigner::sign(const IValidatorSigner &signer,
                                              const Candidates &candidates) {
     const BlockHash &relay_parent = signer.relayParent();
-    scale::BitVec bitfield;
-    bitfield.bits.reserve(candidates.size());
+    scale::BitVector bitfield;
+    bitfield.reserve(candidates.size());
     for (auto &candidate : candidates) {
-      bitfield.bits.push_back(
+      bitfield.push_back(
           candidate && store_->hasChunk(*candidate, signer.validatorIndex()));
     }
 
@@ -113,9 +113,9 @@ namespace kagome::parachain {
          signer{std::move(signer)},
          candidates{std::move(candidates)}]() mutable {
           if (auto self = weak.lock()) {
-            auto r = self->sign(*signer, candidates);
-            if (r.has_error()) {
-              SL_WARN(self->logger_, "sign error {}", r.error());
+            auto res = self->sign(signer, candidates);
+            if (res.has_error()) {
+              SL_WARN(self->logger_, "sign error {}", res.error());
             }
           }
         },

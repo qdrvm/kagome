@@ -20,8 +20,6 @@
 #include <boost/assert.hpp>
 #include <boost/lockfree/queue.hpp>
 
-#include "scale/tie.hpp"
-
 #include "common/buffer.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "log/logger.hpp"
@@ -63,8 +61,6 @@ namespace kagome::storage::trie_pruner {
         ":trie_pruner:info"_buf;
 
     struct TriePrunerInfo {
-      SCALE_TIE(1);
-
       std::optional<primitives::BlockInfo> last_pruned_block;
     };
 

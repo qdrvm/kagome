@@ -24,7 +24,7 @@ namespace kagome::api::state::request {
     GetStorageSize &operator=(GetStorageSize &&) = default;
 
     explicit GetStorageSize(std::shared_ptr<StateApi> api)
-        : api_(std::move(api)) {};
+        : api_(std::move(api)){};
     ~GetStorageSize() = default;
 
     outcome::result<void> init(const jsonrpc::Request::Parameters &params);

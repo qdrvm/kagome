@@ -7,15 +7,13 @@
 #pragma once
 
 #include "common/buffer.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::primitives {
   /**
    * Justification of the finalized block
    */
   struct Justification {
-    SCALE_TIE(1);
-
     common::Buffer data;
+    bool operator==(const Justification &other) const = default;
   };
 }  // namespace kagome::primitives

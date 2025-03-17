@@ -47,9 +47,9 @@ namespace kagome::runtime {
     static constexpr bool DEFAULT_WASM_EXT_BULK_MEMORY = false;
 
     struct ContextParams {
-      SCALE_TIE(2);
       MemoryLimits memory_limits;
       bool wasm_ext_bulk_memory = DEFAULT_WASM_EXT_BULK_MEMORY;
+      bool operator==(const ContextParams &other) const = default;
     };
 
     const std::shared_ptr<ModuleInstance> module_instance;

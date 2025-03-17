@@ -10,15 +10,11 @@
 
 namespace kagome::network {
   struct WarpSyncFragment {
-    SCALE_TIE(2);
-
     primitives::BlockHeader header;
     consensus::grandpa::GrandpaJustification justification;
   };
 
   struct WarpSyncProof {
-    SCALE_TIE(2);
-
     std::vector<WarpSyncFragment> proofs;
     bool is_finished = false;
   };

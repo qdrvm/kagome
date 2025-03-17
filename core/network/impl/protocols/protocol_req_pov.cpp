@@ -27,16 +27,16 @@ namespace kagome::network {
                        const blockchain::GenesisBlockHash &genesis_hash,
                        std::shared_ptr<ReqPovObserver> observer)
         : RequestResponseProtocolImpl<
-              RequestPov,
-              ResponsePov,
-              ScaleMessageReadWriter>{kReqPovProtocolName,
-                                      std::move(inject),
-                                      make_protocols(kReqPovProtocol,
-                                                     genesis_hash,
-                                                     kProtocolPrefixPolkadot),
-                                      log::createLogger(kReqPovProtocolName,
-                                                        "req_pov_protocol"),
-                                      kRequestTimeout},
+            RequestPov,
+            ResponsePov,
+            ScaleMessageReadWriter>{kReqPovProtocolName,
+                                    std::move(inject),
+                                    make_protocols(kReqPovProtocol,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(kReqPovProtocolName,
+                                                      "req_pov_protocol"),
+                                    kRequestTimeout},
           observer_{std::move(observer)} {}
 
    protected:
@@ -76,8 +76,7 @@ namespace kagome::network {
       const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<ReqPovObserver> observer)
       : impl_{std::make_shared<ReqPovProtocolImpl>(
-            std::move(inject), chain_spec, genesis_hash, std::move(observer))} {
-  }
+          std::move(inject), chain_spec, genesis_hash, std::move(observer))} {}
 
   const Protocol &ReqPovProtocol::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");

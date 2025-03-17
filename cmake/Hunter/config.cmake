@@ -18,6 +18,13 @@
 # )
 
 hunter_config(
+    qtils
+    VERSION 0.1.0
+    CMAKE_ARGS
+      FORMAT_ERROR_WITH_FULLTYPE=ON
+)
+
+hunter_config(
     backward-cpp
     URL https://github.com/bombela/backward-cpp/archive/refs/tags/v1.6.zip
     SHA1 93c4c843fc9308e62ac462459077d87dc6dd9885
@@ -88,8 +95,8 @@ endif ()
 
 hunter_config(
     kagome-crates
-    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/v1.0.4.tar.gz
-    SHA1 a85f3ca7a5dac2d22c609cc0c3f39408ad72dba8
+    URL  https://github.com/qdrvm/kagome-crates/archive/fce83df7999a220afa23073d200ea0c5cf6a88d0.tar.gz
+    SHA1 ded55add59f489ca8bae38f7ac2792bd1bbec579
 )
 
 hunter_config(
@@ -100,21 +107,8 @@ hunter_config(
 )
 
 hunter_config(
-    erasure_coding_crust
-    VERSION 0.0.9
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    soralog
-    VERSION 0.2.4
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
     wabt
-    URL https://github.com/qdrvm/wabt/archive/d1abde6977d4d3f81024a7eb099228107f27377e.tar.gz
-    SHA1 0917dd9e8300c888ef0005b027008efe001abda4
+    URL https://github.com/qdrvm/wabt/archive/2e9d30c4a67c1b884a8162bf3f3a5a8585cfdb94.tar.gz
+    SHA1 b5759660eb8ad3f074274341641e918f688868bd
     KEEP_PACKAGE_SOURCES
 )
-

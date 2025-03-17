@@ -11,8 +11,6 @@
 #include "common/buffer.hpp"
 #include "parachain/pvf/secure_mode_precheck.hpp"
 #include "runtime/runtime_context.hpp"
-#include "scale/scale.hpp"
-#include "scale/tie.hpp"
 
 namespace kagome::application {
   class AppConfiguration;
@@ -31,8 +29,6 @@ namespace kagome::parachain {
       const application::AppConfiguration &app_config);
 
   struct PvfWorkerInputConfig {
-    SCALE_TIE(5);
-
     RuntimeEngine engine;
     std::string cache_dir;
     std::vector<std::string> log_params;
@@ -41,9 +37,9 @@ namespace kagome::parachain {
   };
 
   struct PvfWorkerInputCodeParams {
-    SCALE_TIE(2);
     std::string path;
     kagome::runtime::RuntimeContext::ContextParams context_params;
+    bool operator==(const PvfWorkerInputCodeParams &other) const = default;
   };
 
   using PvfWorkerInputArgs = Buffer;

@@ -109,6 +109,10 @@ namespace kagome {
     class Key;
   }
 
+  namespace state_metrics {
+    class StateMetrics;
+  }
+
   class Watchdog;
 }  // namespace kagome
 
@@ -166,6 +170,7 @@ namespace kagome::injector {
     std::shared_ptr<application::mode::RecoveryMode> injectRecoveryMode();
     std::shared_ptr<benchmark::BlockExecutionBenchmark> injectBlockBenchmark();
     std::shared_ptr<key::Key> injectKey();
+    std::shared_ptr<state_metrics::StateMetrics> injectStateMetrics();
 
    protected:
     std::shared_ptr<class KagomeNodeInjectorImpl> pimpl_;

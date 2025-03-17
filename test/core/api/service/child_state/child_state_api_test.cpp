@@ -6,8 +6,9 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "api/service/child_state/impl/child_state_api_impl.hpp"
-#include "core/storage/trie/polkadot_trie_cursor_dummy.hpp"
 #include "mock/core/api/service/child_state/child_state_api_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/runtime/core_mock.hpp"
@@ -16,9 +17,7 @@
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/block_header.hpp"
-#include "runtime/runtime_context.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::api::ChildStateApiMock;
 using kagome::blockchain::BlockTreeMock;
@@ -125,11 +124,11 @@ namespace kagome::api {
           return batch;
         }));
 
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         r1,
         api_->getStorage(
             "c"_buf, "d"_buf, std::optional<BlockHash>{"B"_hash256}));
-    ASSERT_EQ(r1.value(), "4"_buf);
+    ASSERT_EQ(r1, "4"_buf);
   }
 
   /**
