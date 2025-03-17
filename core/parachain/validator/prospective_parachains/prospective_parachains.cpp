@@ -634,18 +634,6 @@ namespace kagome::parachain {
     return *view_;
   }
 
-  //      std::vector<
-  //        std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>
-  //    ProspectiveParachains::answer_hypothetical_membership_request(
-  //        const IProspectiveParachains::HypotheticalMembershipRequest
-  //        &request) {
-  //          return answer_hypothetical_membership_request(request.candidates,
-  //          utils::map(request.fragment_chain_relay_parent, [](const auto &v)
-  //          {
-  //            return std::cref(v);
-  //        }))
-  //        }
-
   std::vector<
       std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>
   ProspectiveParachains::answer_hypothetical_membership_request(

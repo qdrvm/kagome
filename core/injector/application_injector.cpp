@@ -795,27 +795,12 @@ namespace {
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
             di::bind<parachain::IProspectiveParachains>.template to<parachain::ProspectiveParachains>(),
-            bind_by_lambda<parachain::BackedCandidatesSource>(
-                [](const auto &injector) {
-                  return injector.template create<sptr<parachain::ThreadedParachainProcessorImpl>>();
-                }),
-            bind_by_lambda<parachain::ParachainStorage>(
-                [](const auto &injector) {
-                  return injector.template create<sptr<parachain::ThreadedParachainProcessorImpl>>();
-                }),
-            bind_by_lambda<parachain::ParachainProcessor>(
-                [](const auto &injector) {
-                  return injector.template create<sptr<parachain::ThreadedParachainProcessorImpl>>();
-                }),
+            di::bind<parachain::BackedCandidatesSource>.template to<parachain::ThreadedParachainProcessorImpl>(),
+            di::bind<parachain::ParachainStorage>.template to<parachain::ThreadedParachainProcessorImpl>(),
+            di::bind<parachain::ParachainProcessor>.template to<parachain::ThreadedParachainProcessorImpl>(),
             di::bind<parachain::IPvfPrecheck>.template to<parachain::PvfPrecheck>(),
-            bind_by_lambda<network::CanDisconnect>(
-                [](const auto &injector) {
-                  return injector.template create<sptr<parachain::statement_distribution::StatementDistribution>>();
-                }),
-            bind_by_lambda<parachain::statement_distribution::IStatementDistribution>(
-                [](const auto &injector) {
-                  return injector.template create<sptr<parachain::statement_distribution::StatementDistribution>>();
-                }),
+            di::bind<network::CanDisconnect>.template to<parachain::statement_distribution::StatementDistribution>(),
+            di::bind<parachain::statement_distribution::IStatementDistribution>.template to<parachain::statement_distribution::StatementDistribution>(),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
             bind_by_lambda<parachain::SecureModeSupport>([config](const auto &) {
               auto support = parachain::SecureModeSupport::none();

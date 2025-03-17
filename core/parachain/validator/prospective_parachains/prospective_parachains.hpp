@@ -40,10 +40,6 @@ namespace kagome::parachain {
 
       bool operator==(const HypotheticalMembershipRequest &other) const =
           default;
-      // {
-      //     return candidates == other.candidates &&
-      //     fragment_chain_relay_parent == other.fragment_chain_relay_parent;
-      // }
     };
 
     virtual ~IProspectiveParachains() = default;
@@ -73,12 +69,6 @@ namespace kagome::parachain {
 
     virtual outcome::result<void> onActiveLeavesUpdate(
         const network::ExViewRef &update) = 0;
-
-    //    virtual std::vector<
-    //        std::pair<HypotheticalCandidate,
-    //        fragment::HypotheticalMembership>>
-    //    answer_hypothetical_membership_request(
-    //        const HypotheticalMembershipRequest &request) = 0;
 
     virtual std::vector<
         std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>
@@ -213,11 +203,6 @@ namespace kagome::parachain {
         const std::span<const HypotheticalCandidate> &candidates,
         const std::optional<std::reference_wrapper<const Hash>>
             &fragment_tree_relay_parent) override;
-
-    // std::vector<
-    //     std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>
-    // answer_hypothetical_membership_request(
-    //     const HypotheticalMembershipRequest &request) override;
 
     void candidate_backed(ParachainId para,
                           const CandidateHash &candidate_hash) override;
