@@ -6,6 +6,8 @@
 
 #include <map>
 
+#include <scale/bit_vector.hpp>
+
 #include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "core/parachain/parachain_test_harness.hpp"
