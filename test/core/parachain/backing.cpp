@@ -40,6 +40,7 @@
 #include "parachain/availability/proof.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "primitives/event_types.hpp"
+#include "scale/kagome_scale.hpp"
 #include "testutil/lazy.hpp"
 #include "utils/map.hpp"
 
@@ -423,12 +424,18 @@ class BackingTest : public ProspectiveParachainsTestHarness {
 
   template <typename T>
   inline Hash hash_of(T &&t) {
-    return hasher_->blake2b_256(scale::encode(std::forward<T>(t)).value());
+    std::vector<uint8_t> bytes;
+    kagome::scale::EncoderToVector ec(bytes);
+    kagome::scale::encode(std::forward<T>(t), ec);
+    return hasher_->blake2b_256(bytes);
   }
 
   template <typename T>
   static Hash hash_of(const kagome::crypto::Hasher &hasher, T &&t) {
-    return hasher.blake2b_256(scale::encode(std::forward<T>(t)).value());
+    std::vector<uint8_t> bytes;
+    kagome::scale::EncoderToVector ec(bytes);
+    kagome::scale::encode(std::forward<T>(t), ec);
+    return hasher.blake2b_256(bytes);
   }
 
   Hash make_erasure_root(

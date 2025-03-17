@@ -19,7 +19,9 @@
 
 hunter_config(
     qtils
-    VERSION 0.1.0
+    #VERSION 0.1.0
+    URL  https://github.com/qdrvm/qtils/archive/7fa095bed51f9c1b7d4a2c99552229df380373ea.tar.gz
+    SHA1 0c18a0e91ad1e78b3a3f7af0db09e79876e6c045
     CMAKE_ARGS
       FORMAT_ERROR_WITH_FULLTYPE=ON
 )
@@ -28,33 +30,34 @@ hunter_config(
     backward-cpp
     URL https://github.com/bombela/backward-cpp/archive/refs/tags/v1.6.zip
     SHA1 93c4c843fc9308e62ac462459077d87dc6dd9885
-    CMAKE_ARGS BACKWARD_TESTS=OFF
+    CMAKE_ARGS
+      BACKWARD_TESTS=OFF
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     rocksdb
     VERSION 9.6.1
-    CMAKE_ARGS WITH_GFLAGS=OFF USE_RTTI=ON
+    CMAKE_ARGS
+      WITH_GFLAGS=OFF
+      USE_RTTI=ON
 )
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       fmt
-      URL
-          https://github.com/fmtlib/fmt/archive/refs/tags/10.2.1.tar.gz
-      SHA1
-          d223964b782d2562d6722ffe67027204c6035453
+      URL  https://github.com/fmtlib/fmt/archive/refs/tags/10.2.1.tar.gz
+      SHA1 d223964b782d2562d6722ffe67027204c6035453
       CMAKE_ARGS
-          CMAKE_POSITION_INDEPENDENT_CODE=TRUE
+        CMAKE_POSITION_INDEPENDENT_CODE=TRUE
   )
 
   hunter_config(
       spdlog
       VERSION 1.12.0-p0
       CMAKE_ARGS
-          SPDLOG_BUILD_PIC=ON
-          SPDLOG_FMT_EXTERNAL=ON
+        SPDLOG_BUILD_PIC=ON
+        SPDLOG_FMT_EXTERNAL=ON
   )
 
   hunter_config(

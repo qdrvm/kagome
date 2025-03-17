@@ -9,6 +9,7 @@
 #include <memory>
 #include <sstream>
 
+#include <qtils/strict_sptr.hpp>
 #include <soralog/level.hpp>
 #include <soralog/logger.hpp>
 #include <soralog/logging_system.hpp>
@@ -26,14 +27,7 @@
 namespace kagome::log {
 
   using Level = soralog::Level;
-  struct Logger : std::shared_ptr<soralog::Logger> {
-    Logger() = delete;
-    Logger(std::shared_ptr<soralog::Logger> sptr)
-        : std::shared_ptr<soralog::Logger>(std::move(sptr)) {
-      BOOST_ASSERT_MSG(get() != nullptr, "Logger does not exist");
-    };
-  };
-  using WLogger = std::weak_ptr<soralog::Logger>;
+  using Logger = qtils::StrictSharedPtr<soralog::Logger>;
 
   enum class Error : uint8_t { WRONG_LEVEL = 1, WRONG_GROUP, WRONG_LOGGER };
 
