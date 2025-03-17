@@ -92,6 +92,7 @@ namespace kagome::crypto {
     using Type = std::decay_t<D>;
     Type payload;
     Sr25519Signature signature;
+    bool operator==(const Sr25519Signed &) const = default;
   };
 
   struct Sr25519Keypair {

@@ -80,7 +80,7 @@ namespace kagome::consensus::babe {
 
 namespace kagome::parachain {
   class ApprovalThreadPool;
-  class ParachainProcessorImpl;
+  class ParachainProcessor;
   class Pvf;
 }  // namespace kagome::parachain
 
@@ -318,7 +318,7 @@ namespace kagome::parachain {
         std::shared_ptr<crypto::KeyStore> keystore,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
-        std::shared_ptr<ParachainProcessorImpl> parachain_processor,
+        std::shared_ptr<ParachainProcessor> parachain_processor,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::PeerManager> pm,
         std::shared_ptr<network::Router> router,
@@ -896,7 +896,7 @@ namespace kagome::parachain {
           StorePair<Hash, DistribBlockEntry>>
         store_;
 
-    std::shared_ptr<ParachainProcessorImpl> parachain_processor_;
+    std::shared_ptr<ParachainProcessor> parachain_processor_;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
     std::shared_ptr<network::PeerManager> pm_;
     std::shared_ptr<network::Router> router_;

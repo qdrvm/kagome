@@ -62,6 +62,7 @@ namespace kagome::parachain {
     using Type = std::decay_t<D>;
     Type payload;
     ValidatorIndex ix;
+    bool operator==(const Indexed &) const = default;
   };
 
   /**
