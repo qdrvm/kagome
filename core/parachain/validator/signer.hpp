@@ -61,8 +61,8 @@ namespace kagome::parachain {
 
     virtual outcome::result<IndexedAndSigned<network::Statement>> sign(
         const network::Statement &payload) const = 0;
-    virtual outcome::result<IndexedAndSigned<scale::BitVec>> sign(
-        const scale::BitVec &payload) const = 0;
+    virtual outcome::result<IndexedAndSigned<scale::BitVector>> sign(
+        const scale::BitVector &payload) const = 0;
 
     virtual ValidatorIndex validatorIndex() const = 0;
     virtual SessionIndex getSessionIndex() const = 0;
@@ -86,8 +86,8 @@ namespace kagome::parachain {
         const network::Statement &payload) const override {
       return sign_obj(payload);
     }
-    outcome::result<IndexedAndSigned<scale::BitVec>> sign(
-        const scale::BitVec &payload) const override {
+    outcome::result<IndexedAndSigned<scale::BitVector>> sign(
+        const scale::BitVector &payload) const override {
       return sign_obj(payload);
     }
 

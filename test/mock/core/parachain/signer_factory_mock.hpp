@@ -19,9 +19,9 @@ namespace kagome::parachain {
                 (const network::Statement &),
                 (const, override));
 
-    MOCK_METHOD(outcome::result<IndexedAndSigned<scale::BitVec>>,
+    MOCK_METHOD(outcome::result<IndexedAndSigned<scale::BitVector>>,
                 sign,
-                (const scale::BitVec &),
+                (const scale::BitVector &),
                 (const, override));
 
     MOCK_METHOD(ValidatorIndex, validatorIndex, (), (const, override));
