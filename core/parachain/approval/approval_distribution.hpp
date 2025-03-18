@@ -37,6 +37,28 @@
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/safe_object.hpp"
 
+namespace kagome::parachain {
+  /**
+   * @brief Checks if an assignment certificate is valid and returns the
+   * corresponding delay tranche
+   * @param claimed_core_indices Bitfield of the core indices being claimed
+   * @param validator_index Index of the validator making the assignment
+   * @param session_info Current session info containing validator and
+   * assignment keys
+   * @param relay_vrf_story VRF story for the relay chain block
+   * @param cert The assignment certificate to verify
+   * @param backing_groups Groups that back each assigned core
+   * @return Delay tranche if valid, error otherwise
+   */
+  outcome::result<DelayTranche> checkAssignmentCert(
+      const scale::BitVector &claimed_core_indices,
+      ValidatorIndex validator_index,
+      const runtime::SessionInfo &config,
+      const RelayVRFStory &relay_vrf_story,
+      const approval::AssignmentCertV2 &assignment,
+      const std::vector<GroupIndex> &backing_groups);
+}  // namespace kagome::parachain
+
 namespace kagome {
   class PoolHandler;
   class PoolHandlerReady;
@@ -58,7 +80,7 @@ namespace kagome::consensus::babe {
 
 namespace kagome::parachain {
   class ApprovalThreadPool;
-  class ParachainProcessorImpl;
+  class ParachainProcessor;
   class Pvf;
 }  // namespace kagome::parachain
 
@@ -296,7 +318,7 @@ namespace kagome::parachain {
         std::shared_ptr<crypto::KeyStore> keystore,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<network::PeerView> peer_view,
-        std::shared_ptr<ParachainProcessorImpl> parachain_processor,
+        std::shared_ptr<ParachainProcessor> parachain_processor,
         std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
         std::shared_ptr<network::PeerManager> pm,
         std::shared_ptr<network::Router> router,
@@ -874,7 +896,7 @@ namespace kagome::parachain {
           StorePair<Hash, DistribBlockEntry>>
         store_;
 
-    std::shared_ptr<ParachainProcessorImpl> parachain_processor_;
+    std::shared_ptr<ParachainProcessor> parachain_processor_;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
     std::shared_ptr<network::PeerManager> pm_;
     std::shared_ptr<network::Router> router_;

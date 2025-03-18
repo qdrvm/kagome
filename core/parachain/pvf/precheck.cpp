@@ -69,10 +69,12 @@ namespace kagome::parachain {
 
   outcome::result<void> PvfPrecheck::onBlock() {
     auto block = block_tree_->bestBlock();
-    OUTCOME_TRY(signer, signer_factory_->at(block.hash));
-    if (not signer.has_value()) {
+    OUTCOME_TRY(opt_signer, signer_factory_->at(block.hash));
+    if (!opt_signer) {
       return outcome::success();
     }
+    auto &signer = *opt_signer;
+
     if (not session_code_accept_.empty()
         and signer->getSessionIndex() < session_code_accept_.begin()->first) {
       SL_WARN(logger_, "past session");
