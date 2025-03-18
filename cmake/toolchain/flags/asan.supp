@@ -1,1 +1,1 @@
-interceptor_via_fun:llvm::DebugCounter::addCounter
+interceptor_via_fun:_ZN4llvm12DebugCounter10addCounterERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEES8_
