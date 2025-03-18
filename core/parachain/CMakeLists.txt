@@ -32,6 +32,18 @@ target_link_libraries(backing_implicit_view
     outcome
     )
 
+add_library(parachain_errors
+    validator/i_parachain_processor.cpp
+    )
+
+target_link_libraries(parachain_errors
+    fmt::fmt
+    soralog::soralog
+    logger
+    Boost::boost
+    outcome
+    )
+
 add_library(validator_parachain
     availability/bitfield/signer.cpp
     availability/bitfield/store_impl.cpp
@@ -54,6 +66,7 @@ add_library(validator_parachain
     backing/store_impl.cpp
     backing/cluster.cpp
     validator/statement_distribution/statement_distribution.cpp
+    validator/parachain_storage.cpp
     )
 
 target_link_libraries(validator_parachain
@@ -69,6 +82,7 @@ target_link_libraries(validator_parachain
     runtime_common
     prospective_parachains
     backing_implicit_view
+    parachain_errors
     )
 
 add_library(kagome_pvf_worker

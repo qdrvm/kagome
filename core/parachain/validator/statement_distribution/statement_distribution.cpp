@@ -107,7 +107,7 @@ namespace kagome::parachain::statement_distribution {
       std::shared_ptr<parachain::ValidatorSignerFactory> sf,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       StatementDistributionThreadPool &statements_distribution_thread_pool,
-      std::shared_ptr<ProspectiveParachains> _prospective_parachains,
+      std::shared_ptr<IProspectiveParachains> _prospective_parachains,
       std::shared_ptr<runtime::ParachainHost> _parachain_host,
       std::shared_ptr<blockchain::BlockTree> _block_tree,
       std::shared_ptr<authority_discovery::Query> _query_audi,
@@ -231,7 +231,7 @@ namespace kagome::parachain::statement_distribution {
     peers.erase(peer);
   }
 
-  outcome::result<std::optional<ValidatorSigner>>
+  outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>>
   StatementDistribution::is_parachain_validator(
       const primitives::BlockHash &relay_parent) const {
     BOOST_ASSERT(main_pool_handler->isInCurrentThread());
@@ -268,7 +268,7 @@ namespace kagome::parachain::statement_distribution {
       if (auto res = is_parachain_validator(new_relay_parent);
           res.has_value()) {
         validator_index = utils::map(res.value(), [](const auto &signer) {
-          return signer.validatorIndex();
+          return signer->validatorIndex();
         });
       }
 

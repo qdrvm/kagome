@@ -33,7 +33,6 @@ namespace kagome::log {
       BOOST_ASSERT_MSG(get() != nullptr, "Logger does not exist");
     };
   };
-  using WLogger = std::weak_ptr<soralog::Logger>;
 
   enum class Error : uint8_t { WRONG_LEVEL = 1, WRONG_GROUP, WRONG_LOGGER };
 
