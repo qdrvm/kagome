@@ -89,7 +89,6 @@ namespace kagome::application {
      */
     virtual void atShutdown(OnShutdown &&cb) = 0;
 
-   public:
     /**
      * @brief Registration special methods (if any) of object as handlers
      * for stages of application life-cycle
