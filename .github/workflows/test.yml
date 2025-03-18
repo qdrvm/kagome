@@ -104,6 +104,7 @@ jobs:
       env:
         KAGOME_IN_DOCKER: 0
         KAGOME_MAC_CI: 1
+        ASAN_OPTIONS: suppressions=./cmake/toolchain/flags/asan.supp
 
   Linux:
     if: false # Need to fix
