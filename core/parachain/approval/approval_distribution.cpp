@@ -3422,8 +3422,10 @@ namespace kagome::parachain {
     primitives::BlockInfo result = min;
     for (auto &hash : chain) {
       auto entry = storedBlockEntries().get(hash);
-      if (not entry or not entry->get().is_fully_approved()) {
-        break;
+      if (result.number <= 1) {
+        if (not entry or not entry->get().is_fully_approved()) {
+          break;
+        }
       }
       result = {result.number + 1, hash};
     }
