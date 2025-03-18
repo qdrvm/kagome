@@ -71,6 +71,11 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
       set(ARCHITECTURE AArch64;X86;RISCV)
   endif()
 
+  if (ASAN)
+    set(LLVM_USE_SANITIZER "Address")
+  else()
+    set(LLVM_USE_SANITIZER "")
+  endif()
 
   hunter_config(
     LLD
@@ -78,6 +83,7 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
     CMAKE_ARGS # inspired by https://github.com/WasmEdge/WasmEdge/blob/5e8556afa5a71f3d3ef9615334ecf1a9d4d0f1e8/utils/docker/Dockerfile.manylinux2014_x86_64#L57
         LLVM_ENABLE_PROJECTS=lld;clang
         LLVM_TARGETS_TO_BUILD=${ARCHITECTURE};BPF 
+        LLVM_USE_SANITIZER=${LLVM_USE_SANITIZER}
   )
 
   hunter_config(
@@ -86,6 +92,7 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
     CMAKE_ARGS # inspired by https://github.com/WasmEdge/WasmEdge/blob/5e8556afa5a71f3d3ef9615334ecf1a9d4d0f1e8/utils/docker/Dockerfile.manylinux2014_x86_64#L57
         LLVM_ENABLE_PROJECTS=lld;clang
         LLVM_TARGETS_TO_BUILD=${ARCHITECTURE};BPF 
+        LLVM_USE_SANITIZER=${LLVM_USE_SANITIZER}
   )
 
   hunter_config(
