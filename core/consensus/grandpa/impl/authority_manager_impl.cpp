@@ -96,7 +96,8 @@ namespace kagome::consensus::grandpa {
         std::shared_ptr<const AuthoritySet> prev_state;
         [[unlikely]] if (info.number == 0) {
           OUTCOME_TRY(list, grandpa_api_->authorities(info.hash));
-          auto genesis = std::make_shared<AuthoritySet>(0, std::move(list));
+          auto genesis =
+              std::make_shared<AuthoritySet>(AuthoritySet{0, std::move(list)});
           GrandpaIndexedValue value{
               .next_set_id = genesis->id,
               .state = genesis,
@@ -197,12 +198,13 @@ namespace kagome::consensus::grandpa {
       AuthoritySetId set_id,
       const HasAuthoritySetChange &digests) const {
     BOOST_ASSERT(digests);
-    return std::make_shared<AuthoritySet>(
+    return std::make_shared<AuthoritySet>(AuthoritySet{
         set_id,
         isKusamaHardFork(block_tree_->getGenesisBlockHash(), block)
             ? kusamaHardForksAuthorities()
         : digests.forced ? digests.forced->authorities
-                         : digests.scheduled->authorities);
+                         : digests.scheduled->authorities,
+    });
   }
 
   outcome::result<void> AuthorityManagerImpl::load(

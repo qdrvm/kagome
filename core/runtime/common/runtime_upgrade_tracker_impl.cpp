@@ -207,7 +207,8 @@ namespace kagome::runtime {
         == runtime_upgrades_.end();
 
     if (is_new_upgrade) {
-      runtime_upgrades_.emplace_back(block_info, header.state_root);
+      runtime_upgrades_.emplace_back(
+          RuntimeUpgradeData{block_info, header.state_root});
 
       std::ranges::sort(runtime_upgrades_,
                         [](const auto &lhs, const auto &rhs) {

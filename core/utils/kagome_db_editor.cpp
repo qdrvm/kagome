@@ -376,7 +376,10 @@ Example:
         std::vector<runtime::RuntimeUpgradeTrackerImpl::RuntimeUpgradeData>
             runtime_upgrade_data{};
         runtime_upgrade_data.emplace_back(
-            last_finalized_block, last_finalized_block_header.state_root);
+            runtime::RuntimeUpgradeTrackerImpl::RuntimeUpgradeData{
+                last_finalized_block,
+                last_finalized_block_header.state_root,
+            });
         auto encoded_res = check(scale::encode(runtime_upgrade_data));
         check(buffer_storage->put(storage::kRuntimeHashesLookupKey,
                                   common::Buffer(encoded_res.value())))

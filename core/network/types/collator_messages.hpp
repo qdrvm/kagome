@@ -13,6 +13,7 @@
 #include <type_traits>
 #include <vector>
 
+#include <scale/tie_cmp.hpp>
 #include "common/blob.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "crypto/hasher.hpp"
@@ -382,7 +383,7 @@ namespace kagome::network {
     /// The collator required to author the block, if any.
     std::optional<CollatorId> collator;
 
-    auto operator<=>(const ScheduledCore &) const = default;
+    SCALE_TIE_CMP(ScheduledCore);
   };
 
   inline const CandidateHash &candidateHash(const CompactStatement &val) {
