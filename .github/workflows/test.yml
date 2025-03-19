@@ -100,7 +100,7 @@ jobs:
       env:
         KAGOME_MAC_CI: 1
     - name: build
-      run: ./housekeeping/make_build.sh -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.options.build_type }} -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=${{ matrix.options.wasm_compiler }} ${{ matrix.options.sanitizer || '' }} -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
+      run: ./housekeeping/make_build.sh -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.options.build_type }} -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=${{ matrix.options.wasm_compiler }} ${{ matrix.options.sanitizer || '' }} -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20_asan.cmake
       env:
         KAGOME_IN_DOCKER: 0
         KAGOME_MAC_CI: 1

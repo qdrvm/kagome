@@ -24,6 +24,8 @@ else()
   message(WARNING "Non-Clang compilers do not support -fsanitize-ignorelist flag, some known false positives are expected.")
 endif()
 
+add_compile_definitions(KAGOME_WITH_ASAN)
+
 foreach(FLAG IN LISTS FLAGS)
   add_cache_flag(CMAKE_CXX_FLAGS ${FLAG})
   add_cache_flag(CMAKE_C_FLAGS ${FLAG})

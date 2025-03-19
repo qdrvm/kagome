@@ -73,6 +73,8 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
 
   if (ASAN)
     set(LLVM_USE_SANITIZER "LLVM_USE_SANITIZER=Address")
+  elseif(UBSAN)
+    set(LLVM_USE_SANITIZER "LLVM_USE_SANITIZER=Undefined")
   else()
     set(LLVM_USE_SANITIZER "")
   endif()
