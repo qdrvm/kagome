@@ -153,3 +153,11 @@ hunter_config(
     SHA1 b5759660eb8ad3f074274341641e918f688868bd
     KEEP_PACKAGE_SOURCES
 )
+
+hunter_config(
+  benchmark
+  VERSION 1.9.0
+  CMAKE_ARGS
+    -DHAVE_STD_REGEX=ON 
+    -DRUN_HAVE_STD_REGEX=1
+)
