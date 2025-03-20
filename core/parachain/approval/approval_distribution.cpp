@@ -2248,14 +2248,6 @@ namespace kagome::parachain {
     const auto validator_index = vote.payload.ix;
     const auto &candidate_indices = vote.payload.payload.candidate_indices;
 
-    SL_INFO(logger_,
-            "===> source: {}, validator:{} block:{} indicies=[{}] data={}",
-            source ? fmt::format("{}", source->get()) : "our",
-            validator_index,
-            block_hash,
-            fmt::join(candidate_indices.bits, ","),
-            common::Buffer{scale::encode(vote).value()});
-
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
     if (!opt_entry) {
       logger_->info(
