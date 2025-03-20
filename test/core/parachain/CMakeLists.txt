@@ -30,6 +30,21 @@ target_link_libraries(scope_test
     logger
     )
 
+addtest(backing_test
+    backing.cpp
+    )
+
+target_link_libraries(backing_test
+    Boost::Boost.DI
+    Boost::boost
+    validator_parachain
+    prospective_parachains
+    log_configurator
+    base_fs_test
+    key_store
+    logger
+    )
+
 addtest(candidates_test
     candidates.cpp
     )

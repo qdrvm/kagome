@@ -45,7 +45,7 @@ namespace kagome::network {
         const RequestResponseInject &inject,
         const application::ChainSpec & /*chain_spec*/,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::ParachainProcessorImpl> pp,
+        std::shared_ptr<parachain::ParachainStorage> pp,
         common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
             FetchChunkRequest,
@@ -119,7 +119,7 @@ namespace kagome::network {
     }
 
     inline static const auto kFetchChunkProtocolName = "FetchChunkProtocol_v1"s;
-    std::shared_ptr<parachain::ParachainProcessorImpl> pp_;
+    std::shared_ptr<parachain::ParachainStorage> pp_;
   };
 
 }  // namespace kagome::network
