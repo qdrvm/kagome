@@ -119,9 +119,12 @@ namespace kagome::parachain::statement_distribution {
       std::shared_ptr<network::PeerView> _peer_view,
       LazySPtr<consensus::SlotsUtil> _slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> _babe_config_repo,
+      std::shared_ptr<network::ReputationRepository> _reputation_repository,
       primitives::events::PeerSubscriptionEnginePtr _peer_events_engine)
-      : implicit_view(
-          _prospective_parachains, _parachain_host, _block_tree, std::nullopt),
+      : implicit_view(_prospective_parachains,
+                      _parachain_host,
+                      _block_tree,
+                      std::nullopt),
         per_session(RefCache<SessionIndex, PerSessionState>::create()),
         signer_factory(std::move(sf)),
         peer_use_count(
@@ -141,6 +144,7 @@ namespace kagome::parachain::statement_distribution {
         crypto_provider(std::move(_crypto_provider)),
         peer_view(_peer_view),
         block_tree(_block_tree),
+        reputation_repository(std::move(_reputation_repository)),
         slots_util(_slots_util),
         babe_config_repo(std::move(_babe_config_repo)),
         peer_state_sub(
@@ -165,6 +169,7 @@ namespace kagome::parachain::statement_distribution {
     BOOST_ASSERT(peer_view);
     BOOST_ASSERT(block_tree);
     BOOST_ASSERT(babe_config_repo);
+    BOOST_ASSERT(reputation_repository);
     BOOST_ASSERT(peer_state_sub);
     BOOST_ASSERT(my_view_sub);
     BOOST_ASSERT(remote_view_sub);
@@ -645,11 +650,9 @@ namespace kagome::parachain::statement_distribution {
     auto relay_parent_state =
         tryGetStateByRelayParent(confirmed->get().relay_parent());
     if (!relay_parent_state) {
-      SL_ERROR(logger,
-               "Fetch attested candidate failed. Out of view. (candidate "
-               "hash={}, relay parent={})",
-               request.candidate_hash,
-               confirmed->get().relay_parent());
+      // Apply reputation penalty for unavailable relay parent state
+      reputation_repository->change(
+          peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
       return;
     }
 
@@ -686,6 +689,10 @@ namespace kagome::parachain::statement_distribution {
                "(candidate hash={}, relay parent={})",
                request.candidate_hash,
                confirmed->get().relay_parent());
+
+      // Apply reputation penalty for incorrect bitfield size
+      reputation_repository->change(
+          peer_id, network::reputation::cost::INVALID_DISPUTE_REQUEST);
       return;
     }
 
@@ -1522,32 +1529,50 @@ namespace kagome::parachain::statement_distribution {
 
     auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
     if (!relay_parent_state) {
+      // Apply reputation penalty for unavailable relay parent state
+      reputation_repository->change(
+          peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
       return {};
     }
 
     if (!relay_parent_state->get().local_validator) {
+      // Apply reputation penalty - we're not a validator
+      reputation_repository->change(
+          peer_id, network::reputation::cost::NOT_A_VALIDATOR_DISPUTE);
       return {};
     }
 
     auto expected_groups =
         utils::get(relay_parent_state->get().groups_per_para, para_id);
     if (!expected_groups) {
+      // Apply reputation penalty for wrong parachain
+      reputation_repository->change(
+          peer_id, network::reputation::cost::INVALID_IMPORT_DISPUTE);
       return {};
     }
 
     if (std::ranges::find(expected_groups->get(),
                           manifest_summary.claimed_group_index)
         == expected_groups->get().end()) {
+      // Apply reputation penalty for wrong group index
+      reputation_repository->change(
+          peer_id, network::reputation::cost::INVALID_IMPORT_DISPUTE);
       return {};
     }
 
     if (!relay_parent_state->get().per_session_state->value().grid_view) {
+      // Apply reputation penalty for missing grid view
+      reputation_repository->change(
+          peer_id, network::reputation::cost::INVALID_IMPORT_DISPUTE);
       return {};
     }
 
     const auto &grid_topology =
         *relay_parent_state->get().per_session_state->value().grid_view;
     if (manifest_summary.claimed_group_index >= grid_topology.size()) {
+      // Apply reputation penalty for invalid group index in topology
+      reputation_repository->change(
+          peer_id, network::reputation::cost::INVALID_IMPORT_DISPUTE);
       return {};
     }
 
