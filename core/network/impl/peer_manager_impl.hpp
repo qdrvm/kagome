@@ -146,7 +146,8 @@ namespace kagome::network {
 
     void processDiscoveredPeer(const PeerId &peer_id);
 
-    void processFullyConnectedPeer(const PeerId &peer_id);
+    void processFullyConnectedPeer(std::unique_lock<std::mutex> &lock,
+                                   const PeerId &peer_id);
 
     /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);

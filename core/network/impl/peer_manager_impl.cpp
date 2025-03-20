@@ -191,7 +191,7 @@ namespace kagome::network {
           self->disconnectFromPeer(peer_id);
           return;
         }
-        self->processFullyConnectedPeer(peer_id);
+        self->processFullyConnectedPeer(lock, peer_id);
       }
     });
 
@@ -434,7 +434,7 @@ namespace kagome::network {
       if (remote_peer_id == peer_id) {
         SL_DEBUG(self->log_, "Connected to peer {}", peer_id);
 
-        self->processFullyConnectedPeer(peer_id);
+        self->processFullyConnectedPeer(lock, peer_id);
       }
     });
   }
@@ -569,7 +569,8 @@ namespace kagome::network {
              queue_to_connect_.size());
   }
 
-  void PeerManagerImpl::processFullyConnectedPeer(const PeerId &peer_id) {
+  void PeerManagerImpl::processFullyConnectedPeer(
+      std::unique_lock<std::mutex> &lock, const PeerId &peer_id) {
     // Skip connection to itself
     if (isSelfPeer(peer_id)) {
       connecting_peers_.erase(peer_id);
@@ -602,6 +603,7 @@ namespace kagome::network {
     peer_event_engine_->notify(primitives::events::PeerEventType::kConnected,
                                peer_info.id);
 
+    lock.unlock();
     auto addresses_res =
         host_.getPeerRepository().getAddressRepository().getAddresses(peer_id);
     if (addresses_res.has_value()) {
