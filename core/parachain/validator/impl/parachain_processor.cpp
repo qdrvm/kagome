@@ -3334,7 +3334,6 @@ namespace kagome::parachain {
   }
 
   void ParachainProcessorImpl::onFinalize() {
-    BOOST_ASSERT(main_pool_handler_->isInCurrentThread());
     if (not isValidatingNode()) {
       return;
     }
