@@ -198,13 +198,17 @@ namespace kagome::network {
     // Start Identify protocol
     identify_->start();
 
-    // Enqueue bootstrap nodes with permanent lifetime
-    for (const auto &bootstrap_node : bootstrap_nodes_) {
-      if (own_peer_info_.id == bootstrap_node.id) {
-        continue;
+    // defer to avoid deadlock
+    main_pool_handler_->execute([weak_self{weak_from_this()}] {
+      WEAK_LOCK(self);
+      // Enqueue bootstrap nodes with permanent lifetime
+      for (const auto &bootstrap_node : self->bootstrap_nodes_) {
+        if (self->own_peer_info_.id == bootstrap_node.id) {
+          continue;
+        }
+        self->kademlia_->addPeer(bootstrap_node, true);
       }
-      kademlia_->addPeer(bootstrap_node, true);
-    }
+    });
 
     // Enqueue last active peers as first peers set but with limited lifetime
     auto last_active_peers = loadLastActivePeers();
