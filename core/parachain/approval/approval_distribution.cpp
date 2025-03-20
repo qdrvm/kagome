@@ -2322,7 +2322,9 @@ namespace kagome::parachain {
     std::unordered_set<libp2p::peer::PeerId> peers{};
     std::unordered_set<libp2p::peer::PeerId> kb;
     for (auto &[peer_id, peer_knowledge] : entry.known_by) {
-      kb.insert(peer_id);
+      if (logger_->level() >= log::Level::TRACE) {
+        kb.insert(peer_id);
+      }
       if (peer_filter(peer_id, peer_knowledge)) {
         peers.insert(peer_id);
         peer_knowledge.sent.insert(message_subject, message_kind);
@@ -2348,14 +2350,13 @@ namespace kagome::parachain {
     const auto validator_index = vote.payload.ix;
     const auto &candidate_indices = vote.payload.payload.candidate_indices;
 
-    const common::Buffer enc{scale::encode(vote).value()};
     SL_INFO(logger_,
             "===> source: {}, validator:{} block:{} indicies=[{}] data={}",
             source ? fmt::format("{}", source->get()) : "our",
             validator_index,
             block_hash,
             fmt::join(candidate_indices, ","),
-            enc);
+            common::Buffer{scale::encode(vote).value()});
 
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
     if (!opt_entry) {
@@ -2474,17 +2475,17 @@ namespace kagome::parachain {
               res.error());
       return;
     }
-    auto nar = std::move(res.value());
+    const auto &nar = res.value();
     SL_TRACE(logger_, "NAR. (peers=[{}])", fmt::join(nar.second, ","));
 
     auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
       if (source && peer == source->get()) {
         return false;
       }
-  
+
       if (source) {
         const auto &[_, pr] = nar;
-          /// TODO(iceseer): topology
+        /// TODO(iceseer): topology https://github.com/qdrvm/kagome/issues/2404
         return pr.contains(peer);
       }
       return peer_kn.sent.can_send(message_subject, message_kind);
@@ -2828,12 +2829,11 @@ namespace kagome::parachain {
     REINVOKE(
         *main_pool_handler_, runDistributeApproval, vote, std::move(peers));
 
-    const common::Buffer enc{scale::encode(vote).value()};
     SL_DEBUG(logger_,
              "Sending an approval to peers. (block={}, peers=[{}], data={})",
              vote.payload.payload.block_hash,
              fmt::join(peers, ","),
-             enc);
+             common::Buffer{scale::encode(vote).value()});
 
     router_->getValidationProtocol()->write(peers,
                                             network::vstaging::Approvals{
