@@ -3421,7 +3421,7 @@ namespace kagome::parachain {
 
     const auto validator_index_res =
         utils::map(parachain_state.table_context.validator,
-                   [](const auto &signer) { return signer.validatorIndex(); });
+                   [](const auto &signer) { return signer->validatorIndex(); });
     if (not validator_index_res) {
       return;
     }
