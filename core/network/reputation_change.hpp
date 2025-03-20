@@ -46,8 +46,8 @@ namespace kagome::network {
 
     // clang-format off
     namespace cost {
-      const ReputationChange UNEXPECTED_DISCONNECT        = {-1000, "Network: Unexpected disconnect"};
-      const ReputationChange DUPLICATE_BLOCK_REQUEST      = {-50,   "Sync: Duplicate block request"};
+      const ReputationChange UNEXPECTED_DISCONNECT        = {-100, "Network: Unexpected disconnect"};
+      const ReputationChange DUPLICATE_BLOCK_REQUEST      = {-100, "Sync: Duplicate block request"};
 
       const ReputationChange PAST_REJECTION               = {-50,   "Grandpa: Past message"};
 
@@ -89,11 +89,11 @@ namespace kagome::network {
       const ReputationChange HONEST_OUT_OF_SCOPE_CATCH_UP = {-200,  "Grandpa: Out-of-scope catch-up"};
 
       // Dispute distribution penalties
-      const ReputationChange INVALID_DISPUTE_REQUEST      = {-500,  "Dispute: Received message could not be decoded"};
-      const ReputationChange INVALID_SIGNATURE_DISPUTE    = {-5000, "Dispute: Signatures were invalid"};
-      const ReputationChange NOT_A_VALIDATOR_DISPUTE      = {-500,  "Dispute: Reporting peer was not a validator"};
-      const ReputationChange INVALID_IMPORT_DISPUTE       = {-100,  "Dispute: Import was deemed invalid by dispute-coordinator"};
-      const ReputationChange APPARENT_FLOOD_DISPUTE       = {-100,  "Dispute: Peer exceeded the rate limit"};
+      const ReputationChange INVALID_DISPUTE_REQUEST      = {-100, "Dispute: Received message could not be decoded"};
+      const ReputationChange INVALID_SIGNATURE_DISPUTE    = {std::numeric_limits<Reputation>::min(), "Dispute: Signatures were invalid"};
+      const ReputationChange NOT_A_VALIDATOR_DISPUTE      = {-300, "Dispute: Reporting peer was not a validator"};
+      const ReputationChange INVALID_IMPORT_DISPUTE       = {-100, "Dispute: Import was deemed invalid by dispute-coordinator"};
+      const ReputationChange APPARENT_FLOOD_DISPUTE       = {-100, "Dispute: Peer exceeded the rate limit"};
 
     }  // namespace cost
 
