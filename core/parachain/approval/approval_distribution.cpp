@@ -2350,7 +2350,7 @@ namespace kagome::parachain {
     const auto validator_index = vote.payload.ix;
     const auto &candidate_indices = vote.payload.payload.candidate_indices;
 
-    SL_INFO(logger_,
+    SL_TRACE(logger_,
             "===> source: {}, validator:{} block:{} indicies=[{}] data={}",
             source ? fmt::format("{}", source->get()) : "our",
             validator_index,
