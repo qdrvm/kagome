@@ -97,9 +97,8 @@ namespace kagome::dispute {
         3;
 
     /// Rate limit on the receiver side.
-    /// If messages from one peer come in at a higher rate than every
-    /// `kReceiveRateLimitMs` on average, we process messages from queues at
-    /// this interval
+    /// The queued messages for each peer are processed
+    /// every kReceiveRateLimitMs interval.
     static constexpr uint64_t kReceiveRateLimitMs = 100;
 
     /// It would be nice to draw this from the chain state, but we have no tools
