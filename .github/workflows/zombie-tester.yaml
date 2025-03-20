@@ -1,0 +1,43 @@
+name: (Dummy) Zombie Tester
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Custom message to display'
+        required: false
+        default: 'Hello World!'
+        type: 'string'
+      show_env:
+        description: 'Show environment information'
+        required: false
+        default: 'false'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  dummy-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Display message
+        run: echo "${{ github.event.inputs.message }}"
+        
+      - name: Show workflow information
+        run: |
+          echo "Running on branch: ${{ github.ref_name }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Workflow run ID: ${{ github.run_id }}"
+          
+      - name: Show environment information
+        if: ${{ github.event.inputs.show_env == 'true' }}
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Current time: $(date)"
+          echo "Node.js version: $(node --version)"
+          echo "OS information: $(uname -a)"

@@ -29,9 +29,11 @@
 #include "parachain/approval/approval_distribution_error.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/approval/state.hpp"
+#include "parachain/approval/transcript_utils.hpp"
 #include "parachain/pvf/pvf.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "primitives/math.hpp"
+#include "primitives/transcript.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 #include "utils/map.hpp"
 #include "utils/pool_handler_ready_make.hpp"
@@ -452,14 +454,17 @@ namespace {
     }
     UNREACHABLE;
   }
+}  // namespace
 
-  outcome::result<kagome::network::DelayTranche> checkAssignmentCert(
+namespace kagome::parachain {
+
+  outcome::result<DelayTranche> checkAssignmentCert(
       const scale::BitVector &claimed_core_indices,
-      kagome::network::ValidatorIndex validator_index,
-      const kagome::runtime::SessionInfo &config,
+      ValidatorIndex validator_index,
+      const runtime::SessionInfo &config,
       const RelayVRFStory &relay_vrf_story,
-      const kagome::parachain::approval::AssignmentCertV2 &assignment,
-      const std::vector<kagome::network::GroupIndex> &backing_groups) {
+      const approval::AssignmentCertV2 &assignment,
+      const std::vector<GroupIndex> &backing_groups) {
     using namespace kagome;  // NOLINT(google-build-using-namespace)
     using parachain::ApprovalDistributionError;
 
@@ -468,10 +473,9 @@ namespace {
     }
 
     const auto &validator_public = config.assignment_keys[validator_index];
-    //    OUTCOME_TRY(pk, network::ValidatorId::fromSpan(validator_public));
 
-    if (kagome::parachain::approval::count_ones(claimed_core_indices) == 0
-        || kagome::parachain::approval::count_ones(claimed_core_indices)
+    if (approval::count_ones(claimed_core_indices) == 0
+        || approval::count_ones(claimed_core_indices)
                != backing_groups.size()) {
       return ApprovalDistributionError::CORE_INDEX_OUT_OF_BOUNDS;
     }
@@ -511,29 +515,132 @@ namespace {
 
     return visit_in_place(
         assignment.kind,
-        [&](const parachain::approval::RelayVRFModuloCompact &obj)
-            -> outcome::result<kagome::network::DelayTranche> {
+        [&](const approval::RelayVRFModuloCompact &obj)
+            -> outcome::result<DelayTranche> {
           const auto core_bitfield = obj.core_bitfield;
           if (claimed_core_indices != core_bitfield) {
             return ApprovalDistributionError::VRF_MODULO_CORE_INDEX_MISMATCH;
           }
 
-          /// TODO(iceseer): `vrf_verify_extra` check
-          /// TODO(iceseer): `relay_vrf_modulo_core`
-          return network::DelayTranche(0ull);
+          auto log_ =
+              kagome::log::createLogger("ApprovalDistribution", "parachain");
+
+          primitives::Transcript modulo_transcript =
+              relay_vrf_modulo_transcript_v2(relay_vrf_story);
+          primitives::Transcript transcript =
+              assigned_cores_transcript(obj.core_bitfield);
+
+          auto res = sr25519_vrf_verify_extra(
+              validator_public.data(),
+              assignment.vrf.output.data(),
+              vrf_proof.data(),
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+              reinterpret_cast<const Strobe128 *>(
+                  modulo_transcript.data().data()),
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+              reinterpret_cast<const Strobe128 *>(transcript.data().data()));
+
+          // Prepare output variables
+          uint32_t *cores_out = nullptr;
+          size_t cores_out_sz = 0;
+
+          sr25519_relay_vrf_modulo_cores(&res.input_bytes,
+                                         &res.output_bytes,
+                                         config.relay_vrf_modulo_samples,
+                                         config.n_cores,
+                                         &cores_out,
+                                         &cores_out_sz);
+          std::vector<uint32_t> resulting_cores;
+          resulting_cores.reserve(cores_out_sz);
+          for (size_t ix = 0; ix < cores_out_sz; ++ix) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            const auto ci = cores_out[ix];
+            resulting_cores.push_back(ci);
+          }
+
+          // Validate that all claimed cores are in the resulting cores
+          bool all_cores_valid = true;
+          for (size_t claimed_core_index = 0;
+               claimed_core_index < claimed_core_indices.size();
+               ++claimed_core_index) {
+            if (claimed_core_indices[claimed_core_index]) {
+              if (std::ranges::find(resulting_cores, claimed_core_index)
+                  == resulting_cores.end()) {
+                all_cores_valid = false;
+
+                SL_DEBUG(
+                    log_,
+                    "Assignment claimed cores mismatch. (resulting_cores={}, "
+                    "claimed_core_indices={}, claimed_core_index={})",
+                    fmt::join(resulting_cores, ","),
+                    fmt::join(claimed_core_indices.bytes(), ","),
+                    claimed_core_index);
+
+                break;
+              }
+            }
+          }
+
+          // Clean up allocated memory
+          if (cores_out) {
+            sr25519_clear_assigned_cores_v2(cores_out, cores_out_sz);
+          }
+
+          if (!all_cores_valid) {
+            return ApprovalDistributionError::VRF_MODULO_CORE_INDEX_MISMATCH;
+          }
+
+          return DelayTranche(0ull);
         },
-        [&](const parachain::approval::RelayVRFModulo &obj)
-            -> outcome::result<kagome::network::DelayTranche> {
+        [&](const approval::RelayVRFModulo &obj)
+            -> outcome::result<DelayTranche> {
           const auto sample = obj.sample;
           if (sample >= config.relay_vrf_modulo_samples) {
             return ApprovalDistributionError::SAMPLE_OUT_OF_BOUNDS;
           }
-          /// TODO(iceseer): `vrf_verify_extra` check
-          /// TODO(iceseer): `relay_vrf_modulo_core`
-          return network::DelayTranche(0ull);
+
+          auto log_ =
+              kagome::log::createLogger("ApprovalDistribution", "parachain");
+          if (parachain::approval::count_ones(claimed_core_indices) != 1) {
+            SL_WARN(log_,
+                    "`RelayVRFModulo` assignment must always claim 1 core.");
+            return ApprovalDistributionError::INVALID_ARGUMENTS;
+          }
+          primitives::Transcript modulo_transcript =
+              relay_vrf_modulo_transcript_v1(relay_vrf_story, sample);
+          primitives::Transcript core_transcript =
+              assigned_core_transcript(first_claimed_core_index);
+          auto res = sr25519_vrf_verify_extra(
+              validator_public.data(),
+              assignment.vrf.output.data(),
+              vrf_proof.data(),
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+              reinterpret_cast<const Strobe128 *>(
+                  modulo_transcript.data().data()),
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+              reinterpret_cast<const Strobe128 *>(
+                  core_transcript.data().data()));
+          if (SR25519_SIGNATURE_RESULT_OK != res.result) {
+            SL_DEBUG(log_,
+                     "VRF verification failed. (result={})",
+                     (size_t)res.result);
+            return ApprovalDistributionError::VRF_VERIFY_AND_GET_TRANCHE;
+          }
+
+          auto core = sr25519_relay_vrf_modulo_core(
+              &res.input_bytes, &res.output_bytes, config.n_cores);
+
+          if (core == first_claimed_core_index) {
+            return DelayTranche(0ull);
+          }
+          SL_DEBUG(log_,
+                   "VRF modulo core mismatch: expected {}, got {}",
+                   first_claimed_core_index,
+                   core);
+          return ApprovalDistributionError::VRF_MODULO_CORE_INDEX_MISMATCH;
         },
-        [&](const parachain::approval::RelayVRFDelay &obj)
-            -> outcome::result<kagome::network::DelayTranche> {
+        [&](const approval::RelayVRFDelay &obj)
+            -> outcome::result<DelayTranche> {
           const auto core_index = obj.core_index;
           if (parachain::approval::count_ones(claimed_core_indices) != 1) {
             return ApprovalDistributionError::INVALID_ARGUMENTS;
@@ -544,7 +651,7 @@ namespace {
           }
 
           // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
-          network::DelayTranche tranche;
+          DelayTranche tranche;
           if (SR25519_SIGNATURE_RESULT_OK
               != sr25519_vrf_verify_and_get_tranche(
                   validator_public.data(),
@@ -561,9 +668,6 @@ namespace {
         });
   }
 
-}  // namespace
-
-namespace kagome::parachain {
   constexpr auto kMetricNoShowsTotal =
       "kagome_parachain_approvals_no_shows_total";
 
@@ -577,7 +681,7 @@ namespace kagome::parachain {
       std::shared_ptr<crypto::KeyStore> keystore,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<network::PeerView> peer_view,
-      std::shared_ptr<ParachainProcessorImpl> parachain_processor,
+      std::shared_ptr<ParachainProcessor> parachain_processor,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
       std::shared_ptr<network::PeerManager> pm,
       std::shared_ptr<network::Router> router,
@@ -588,7 +692,7 @@ namespace kagome::parachain {
       common::MainThreadPool &main_thread_pool,
       LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
       : approval_thread_handler_{poolHandlerReadyMake(
-          this, app_state_manager, approval_thread_pool, logger_)},
+            this, app_state_manager, approval_thread_pool, logger_)},
         worker_pool_handler_{worker_thread_pool.handler(*app_state_manager)},
         parachain_host_(std::move(parachain_host)),
         slots_util_(slots_util),
@@ -678,6 +782,12 @@ namespace kagome::parachain {
   void ApprovalDistribution::store_remote_view(
       const libp2p::peer::PeerId &peer_id, const network::View &view) {
     REINVOKE(*approval_thread_handler_, store_remote_view, peer_id, view);
+
+    SL_TRACE(logger_,
+             "Remote view update. (peer={}, finalized_number={}, heads=[{}])",
+             peer_id,
+             view.finalized_number_,
+             fmt::join(view.heads_, ","));
 
     primitives::BlockNumber old_finalized_number{0ull};
     if (auto it = peer_views_.find(peer_id); it != peer_views_.end()) {
@@ -1606,6 +1716,12 @@ namespace kagome::parachain {
       return;
     }
 
+    for (const auto &h : updated.lost) {
+      if (auto r = block_tree_->getNumberByHash(h); r.has_value()) {
+        std::ignore = storedBlocks().extract(r.value());
+      }
+    }
+
     const auto &relay_parent = updated.new_head.hash();
 
     if (!storedDistribBlockEntries().get(relay_parent)) {
@@ -1986,6 +2102,14 @@ namespace kagome::parachain {
 
     for (const auto &[approval_candidate_index, approved_candidate_hash] :
          approved_candidates_info) {
+      SL_TRACE(logger_,
+               "===> approved index {} hash {} in block {}",
+               approval_candidate_index,
+               approved_candidate_hash,
+               approval.payload.payload.block_hash);
+    }
+    for (const auto &[approval_candidate_index, approved_candidate_hash] :
+         approved_candidates_info) {
       GET_OPT_VALUE_OR_EXIT(
           candidate_entry,
           ApprovalCheckResult::Bad,
@@ -2049,17 +2173,18 @@ namespace kagome::parachain {
     }
     auto &entry = opt_entry->get();
 
-    SL_DEBUG(
-        logger_,
-        "Import assignment. (peer id={}, block hash={}, validator index={})",
-        source ? fmt::format("{}", source->get()) : "our",
-        block_hash,
-        validator_index);
+    SL_DEBUG(logger_,
+             "Import assignment. (peer id={}, block hash={}, validator "
+             "index={}, claimed_candidate_indices={})",
+             source ? fmt::format("{}", source->get()) : "our",
+             block_hash,
+             validator_index,
+             fmt::join(claimed_candidate_indices, ","));
 
     // Compute metadata on the assignment.
     auto message_subject{std::make_tuple(
         block_hash, claimed_candidate_indices, validator_index)};
-    auto message_kind{approval::MessageKind::Assignment};
+    const auto message_kind{approval::MessageKind::Assignment};
 
     if (source) {
       const auto &peer_id = source->get();
@@ -2067,6 +2192,12 @@ namespace kagome::parachain {
       if (auto it = entry.known_by.find(peer_id); it != entry.known_by.end()) {
         if (auto &peer_knowledge = it->second;
             peer_knowledge.contains(message_subject, message_kind)) {
+          SL_TRACE(logger_,
+                   "Peer knowledge contains `assignment`. (peer id={}, "
+                   "block_hash={}, validator index={})",
+                   peer_id,
+                   block_hash,
+                   validator_index);
           if (!peer_knowledge.received.insert(message_subject, message_kind)) {
             SL_TRACE(logger_,
                      "Duplicate assignment. (peer id={}, block_hash={}, "
@@ -2189,12 +2320,21 @@ namespace kagome::parachain {
     };
 
     std::unordered_set<libp2p::peer::PeerId> peers{};
+    std::unordered_set<libp2p::peer::PeerId> kb;
     for (auto &[peer_id, peer_knowledge] : entry.known_by) {
+      if (logger_->level() >= log::Level::TRACE) {
+        kb.insert(peer_id);
+      }
       if (peer_filter(peer_id, peer_knowledge)) {
         peers.insert(peer_id);
         peer_knowledge.sent.insert(message_subject, message_kind);
       }
     }
+
+    SL_TRACE(logger_,
+             "Block known by. (hash={}, peers=[{}])",
+             block_hash,
+             fmt::join(kb, ","));
 
     if (!peers.empty()) {
       runDistributeAssignment(
@@ -2209,6 +2349,14 @@ namespace kagome::parachain {
     const auto &block_hash = vote.payload.payload.block_hash;
     const auto validator_index = vote.payload.ix;
     const auto &candidate_indices = vote.payload.payload.candidate_indices;
+
+    SL_INFO(logger_,
+            "===> source: {}, validator:{} block:{} indicies=[{}] data={}",
+            source ? fmt::format("{}", source->get()) : "our",
+            validator_index,
+            block_hash,
+            fmt::join(candidate_indices, ","),
+            common::Buffer{scale::encode(vote).value()});
 
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
     if (!opt_entry) {
@@ -2230,7 +2378,7 @@ namespace kagome::parachain {
     auto &entry = opt_entry->get();
     auto message_subject{
         std::make_tuple(block_hash, candidate_indices, validator_index)};
-    auto message_kind{approval::MessageKind::Approval};
+    const auto message_kind{approval::MessageKind::Approval};
 
     if (source) {
       const auto &peer_id = source->get();
@@ -2327,21 +2475,27 @@ namespace kagome::parachain {
               res.error());
       return;
     }
-    auto nar = std::move(res.value());
+    const auto &nar = res.value();
+    SL_TRACE(logger_, "NAR. (peers=[{}])", fmt::join(nar.second, ","));
 
     auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
-      const auto &[_, pr] = nar;
       if (source && peer == source->get()) {
         return false;
       }
 
-      /// TODO(iceseer): topology
-      return pr.contains(peer);
+      if (source) {
+        const auto &[_, pr] = nar;
+        /// TODO(iceseer): topology https://github.com/qdrvm/kagome/issues/2404
+        return pr.contains(peer);
+      }
+      return peer_kn.sent.can_send(message_subject, message_kind);
     };
 
     std::unordered_set<libp2p::peer::PeerId> peers{};
     for (auto &[peer_id, peer_knowledge] : entry.known_by) {
+      SL_TRACE(logger_, "Entry known by. (peer={})", peer_id);
       if (peer_filter(peer_id, peer_knowledge)) {
+        SL_TRACE(logger_, "Peer filtered. (peer={})", peer_id);
         peers.insert(peer_id);
         peer_knowledge.sent.insert(message_subject, message_kind);
       }
@@ -2574,8 +2728,13 @@ namespace kagome::parachain {
              std::move(peers));
 
     SL_DEBUG(logger_,
-             "Distributing assignment on candidate (block hash={})",
-             indirect_cert.block_hash);
+             "Distributing assignment on candidate (block hash={}, peers=[{}], "
+             "candidate_indices=[{}], block_hash={}, validator={})",
+             indirect_cert.block_hash,
+             fmt::join(peers, ","),
+             fmt::join(candidate_indices, ","),
+             indirect_cert.block_hash,
+             indirect_cert.validator);
 
     router_->getValidationProtocol()->write(
         peers,
@@ -2671,9 +2830,10 @@ namespace kagome::parachain {
         *main_pool_handler_, runDistributeApproval, vote, std::move(peers));
 
     SL_DEBUG(logger_,
-             "Sending an approval to peers. (block={}, num peers={})",
+             "Sending an approval to peers. (block={}, peers=[{}], data={})",
              vote.payload.payload.block_hash,
-             peers.size());
+             fmt::join(peers, ","),
+             common::Buffer{scale::encode(vote).value()});
 
     router_->getValidationProtocol()->write(peers,
                                             network::vstaging::Approvals{
@@ -2892,9 +3052,10 @@ namespace kagome::parachain {
             };
             return approval::min_or_some(
                 e.next_no_show,
-                (e.last_assignment_tick ? filter(
-                     *e.last_assignment_tick + kApprovalDelay, tick_now)
-                                        : std::optional<Tick>{}));
+                (e.last_assignment_tick
+                     ? filter(*e.last_assignment_tick + kApprovalDelay,
+                              tick_now)
+                     : std::optional<Tick>{}));
           },
           [&](const approval::PendingRequiredTranche &e) {
             std::optional<DelayTranche> next_announced{};
@@ -2972,10 +3133,11 @@ namespace kagome::parachain {
 
     SL_TRACE(logger_,
              "Advance approval state.(candidate {}, block {}, "
-             "validator {})",
+             "validator {}, tick {})",
              candidate_hash,
              block_hash,
-             validator_index);
+             validator_index,
+             tick_now);
 
     auto result = approval_status(block_entry, candidate_entry);
     if (!result) {
@@ -3344,6 +3506,14 @@ namespace kagome::parachain {
               approval_entry.create_assignment_knowledge(block);
 
           if (!peer_knowledge.contains(assignment_knowledge, message_kind)) {
+            SL_TRACE(logger_,
+                     "Want to send assignment. (bitfield=[{}], block_hash={}, "
+                     "valdator={}, block={})",
+                     fmt::join(assignment_message.second, ","),
+                     assignment_message.first.block_hash,
+                     assignment_message.first.validator,
+                     block);
+
             peer_knowledge.sent.insert(assignment_knowledge, message_kind);
             assignments_to_send.emplace_back(network::vstaging::Assignment{
                 .indirect_assignment_cert = assignment_message.first,

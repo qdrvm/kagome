@@ -322,6 +322,8 @@ namespace kagome::parachain {
                                        size_t ancestors) {
     std::vector<fragment::BlockInfoProspectiveParachains> block_info;
     if (ancestors == 0) {
+      SL_TRACE(
+          logger, "`ancestors` is 0. Return. (relay parent={})", relay_hash);
       return block_info;
     }
 
@@ -462,6 +464,11 @@ namespace kagome::parachain {
       };
 
       OUTCOME_TRY(ancestry, fetchAncestry(hash, mode->allowed_ancestry_len));
+      if (ancestry.empty()) {
+        SL_TRACE(logger,
+                 "Failed to get inclusion backing state. (relay parent={})",
+                 hash);
+      }
 
       std::optional<std::reference_wrapper<
           const std::unordered_map<ParachainId, fragment::FragmentChain>>>
@@ -598,6 +605,7 @@ namespace kagome::parachain {
 
     auto r = view().implicit_view.all_allowed_relay_parents();
     std::unordered_set<Hash> remaining{r.begin(), r.end()};
+    SL_TRACE(logger, "Remains RP in PP: {}", remaining.size());
 
     for (auto it = view().per_relay_parent.begin();
          it != view().per_relay_parent.end();) {
@@ -616,8 +624,11 @@ namespace kagome::parachain {
       view_.emplace(View{
           .per_relay_parent = {},
           .active_leaves = {},
-          .implicit_view = ImplicitView(
-              weak_from_this(), parachain_host_, block_tree_, std::nullopt),
+          .implicit_view = ImplicitView(weak_from_this(),
+                                        parachain_host_,
+                                        block_tree_,
+                                        std::nullopt,
+                                        true),
       });
     }
     return *view_;
