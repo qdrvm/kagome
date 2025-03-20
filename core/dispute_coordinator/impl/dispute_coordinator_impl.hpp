@@ -28,6 +28,8 @@
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "network/peer_view.hpp"
+#include "network/reputation_change.hpp"
+#include "network/reputation_repository.hpp"
 #include "parachain/types.hpp"
 #include "primitives/authority_discovery_id.hpp"
 
@@ -94,12 +96,11 @@ namespace kagome::dispute {
     static constexpr uint32_t kPrioritizedSelectionRuntimeVersionRequirement =
         3;
 
-    /// Rate limit on the `receiver` side.
-    ///
+    /// Rate limit on the receiver side.
     /// If messages from one peer come in at a higher rate than every
-    /// `RECEIVE_RATE_LIMIT` on average, we start dropping messages from that
-    /// peer to enforce that limit.
-    static constexpr auto kReceiveRateLimit = std::chrono::milliseconds(100);
+    /// `kReceiveRateLimitMs` on average, we process messages from queues at
+    /// this interval, matching polkadot-sdk behavior.
+    static constexpr uint64_t kReceiveRateLimitMs = 100;
 
     /// It would be nice to draw this from the chain state, but we have no tools
     /// for it right now. On Polkadot this is 1 day, and on Kusama it's 6 hours.
@@ -128,7 +129,8 @@ namespace kagome::dispute {
         std::shared_ptr<network::Router> router,
         std::shared_ptr<network::PeerView> peer_view,
         primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-        LazySPtr<consensus::Timeline> timeline);
+        LazySPtr<consensus::Timeline> timeline,
+        std::shared_ptr<network::ReputationRepository> reputation_repository);
 
     bool tryStart();
 
@@ -246,9 +248,7 @@ namespace kagome::dispute {
     /// This gets one message from each peer that has sent at least one.
     void process_portion_incoming_disputes();
 
-    /// Schedule processing next portion of requests. This function is rate
-    /// limited, if called in sequence it will not return more often than every
-    /// `kReceiveRateLimit`.
+    /// Schedule processing next portion of requests.
     void make_task_for_next_portion();
 
     /// Start importing votes for the given request or batch.
@@ -295,6 +295,7 @@ namespace kagome::dispute {
     std::shared_ptr<network::PeerView> peer_view_;
     primitives::events::ChainSub chain_sub_;
     LazySPtr<consensus::Timeline> timeline_;
+    std::shared_ptr<network::ReputationRepository> reputation_repository_;
     std::shared_ptr<PoolHandler> main_pool_handler_;
     std::shared_ptr<PoolHandlerReady> dispute_thread_handler_;
 
