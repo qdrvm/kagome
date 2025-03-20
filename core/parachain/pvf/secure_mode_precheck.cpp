@@ -21,6 +21,7 @@
 #include "common/buffer.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "macro/feature_macros.hpp"
 #include "parachain/pvf/clone.hpp"
 #include "parachain/pvf/secure_mode.hpp"
 #include "scale/kagome_scale.hpp"
@@ -89,7 +90,7 @@ namespace kagome::parachain {
         {"check-secure-mode", cache_dir.c_str()},
         process_v2::process_environment({
 // LSAN doesn't work in secure mode
-#ifdef KAGOME_WITH_ASAN
+#if KAGOME_WITH_ASAN
             {"ASAN_OPTIONS=detect_leaks=0"}
 #endif
         }),
