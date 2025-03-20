@@ -438,7 +438,6 @@ namespace kagome::parachain {
           mode ? std::move(pruned_h) : std::vector<Hash>{removed};
 
       for (const auto &removed : pruned) {
-        std::cout << fmt::format("---> PRUNED {}\n", removed);
         our_current_state_.state_by_relay_parent.erase(removed);
 
         {  /// remove cancelations
