@@ -27,7 +27,7 @@ namespace kagome::parachain::grid {
   constexpr size_t DEFAULT_RANDOM_SAMPLE_RATE = 25;
 
   /// The number of peers to randomly propagate messages to.
-  constexpr size_t DEFAULT_RANDOM_CIRCULATION = 4;
+  constexpr size_t DEFAULT_RANDOM_CIRCULATION = 20;
 
   /**
    * Numbers arranged into rectangular grid.
