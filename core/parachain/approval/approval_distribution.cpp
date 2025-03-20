@@ -1607,6 +1607,12 @@ namespace kagome::parachain {
       return;
     }
 
+    for (const auto &h : updated.lost) {
+      if (auto r = block_tree_->getNumberByHash(h); r.has_value()) {
+        std::ignore = storedBlocks().extract(r.value());
+      }
+    }
+
     const auto &relay_parent = updated.new_head.hash();
 
     if (!storedDistribBlockEntries().get(relay_parent)) {
