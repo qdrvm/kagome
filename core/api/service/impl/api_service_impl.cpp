@@ -540,20 +540,18 @@ namespace kagome::api {
   void ApiServiceImpl::onSessionClose(Session::SessionId id, SessionType) {
     auto session_subs = findSessionById(id);
     if (session_subs.has_value() and session_subs.value()) {
-      auto &subs = *session_subs.value();
+      auto &[storage_sub, chain_sub, ext_sub, messages] = *session_subs.value();
 
       // Explicitly unsubscribe from all subscriptions to prevent race
       // conditions
-      if (subs.storage_sub) {
-        subs.storage_sub->unsubscribe();
+      if (storage_sub) {
+        storage_sub->unsubscribe();
       }
-
-      if (subs.chain_sub) {
-        subs.chain_sub->unsubscribe();
+      if (chain_sub) {
+        chain_sub->unsubscribe();
       }
-
-      if (subs.ext_sub) {
-        subs.ext_sub->unsubscribe();
+      if (ext_sub) {
+        ext_sub->unsubscribe();
       }
     }
 
