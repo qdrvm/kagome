@@ -98,14 +98,12 @@ namespace kagome::parachain::fragment {
     /// Try getting the full head data associated with this hash.
     Option<HeadData> get_head_data_by_hash(const Hash &head_data_hash) const;
 
-    /// Select `count` candidates after the given `ancestors` which can be
-    /// backed on chain next.
-    ///
+    /// Finds backable candidate in the chain.
     /// The intention of the `ancestors` is to allow queries on the basis of
     /// one or more candidates which were previously pending availability
     /// becoming available or candidates timing out.
-    Vec<std::pair<CandidateHash, Hash>> find_backable_chain(
-        Ancestors ancestors, uint32_t count) const;
+    std::vector<std::pair<CandidateHash, Hash>> find_backable_chain(
+        const Ancestors &ancestors, size_t count) const;
 
     // Tries to orders the ancestors into a viable path from root to the last
     // one. Stops when the ancestors are all used or when a node in the chain is
