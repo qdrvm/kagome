@@ -6,6 +6,7 @@
 
 add_library(runtime_common
     memory_error.cpp
+    runtime_error.cpp
     )
 target_link_libraries(runtime_common
     outcome

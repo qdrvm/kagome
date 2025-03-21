@@ -124,6 +124,10 @@ namespace kagome::storage::trie_pruner {
     void restoreStateAtFinalized(
         const blockchain::BlockTree &block_tree) override;
 
+    size_t getPruneQueueLength() const {
+      return prune_queue_length_;
+    }
+
    private:
     void pruneQueuedStates();
 
