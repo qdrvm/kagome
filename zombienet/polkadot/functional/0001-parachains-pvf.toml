@@ -24,7 +24,7 @@ requests = { memory = "2G", cpu = "1" }
   name = "dave"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--dave", "-lparachain=debug,runtime=debug" ]
+  args = [ "--dave", "--pvf-max-workers 2", "-lparachain=debug,runtime=debug" ]
 
   [[relaychain.nodes]]
   name = "ferdie"
@@ -34,19 +34,19 @@ requests = { memory = "2G", cpu = "1" }
   name = "eve"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--eve", "--wasm-execution Compiled", "-lparachain=trace", "-lruntime=debug", "-lreq_chunk_protocol=trace", "-lgrandpa=trace"]
+  args = [ "--eve", "--pvf-max-workers 2", "-lparachain=trace", "-lruntime=debug", "-lreq_chunk_protocol=trace", "-lgrandpa=trace"]
 
   [[relaychain.nodes]]
   name = "one"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--one", "--wasm-execution Compiled", "-lparachain=trace", "-lruntime=debug", "-lreq_chunk_protocol=trace", "-lgrandpa=trace"]
+  args = [ "--one", "--pvf-max-workers 2", "-lparachain=trace", "-lruntime=debug", "-lreq_chunk_protocol=trace", "-lgrandpa=trace"]
 
   [[relaychain.nodes]]
   name = "two"
   command = "kagome"
   prometheus_prefix = "kagome"
-  args = [ "--two", "--wasm-execution Compiled", "-lparachain=trace", "-lruntime=debug", "-lreq_chunk_protocol=trace", "-lgrandpa=trace"]
+  args = [ "--two", "--pvf-max-workers 2", "-lparachain=trace", "-lruntime=debug", "-lreq_chunk_protocol=trace", "-lgrandpa=trace"]
 
 [[parachains]]
 id = 2000
