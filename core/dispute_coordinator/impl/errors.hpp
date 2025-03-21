@@ -78,6 +78,10 @@ namespace kagome::dispute {
     NotAValidator = 1,
     /// Authority sent messages at a too high rate
     AuthorityFlooding,
+    /// Invalid import
+    InvalidImport,
+    /// Invalid signature
+    InvalidSignature,
   };
 
   enum class BatchError {

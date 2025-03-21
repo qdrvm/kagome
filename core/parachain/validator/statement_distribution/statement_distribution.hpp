@@ -16,6 +16,8 @@
 #include "network/can_disconnect.hpp"
 #include "network/peer_manager.hpp"
 #include "network/peer_view.hpp"
+#include "network/reputation_change.hpp"
+#include "network/reputation_repository.hpp"
 #include "network/router.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
 #include "parachain/validator/impl/candidates.hpp"
@@ -88,6 +90,7 @@ namespace kagome::parachain::statement_distribution {
         std::shared_ptr<network::PeerView> peer_view,
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
+        std::shared_ptr<network::ReputationRepository> reputation_repository,
         primitives::events::PeerSubscriptionEnginePtr peer_events_engine);
 
     void request_attested_candidate(const libp2p::peer::PeerId &peer,
@@ -380,6 +383,7 @@ namespace kagome::parachain::statement_distribution {
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider;
     std::shared_ptr<network::PeerView> peer_view;
     std::shared_ptr<blockchain::BlockTree> block_tree;
+    std::shared_ptr<network::ReputationRepository> reputation_repository;
     LazySPtr<consensus::SlotsUtil> slots_util;
     std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo;
 
