@@ -2000,14 +2000,6 @@ namespace kagome::parachain {
 
     for (const auto &[approval_candidate_index, approved_candidate_hash] :
          approved_candidates_info) {
-      SL_TRACE(logger_,
-               "===> approved index {} hash {} in block {}",
-               approval_candidate_index,
-               approved_candidate_hash,
-               approval.payload.payload.block_hash);
-    }
-    for (const auto &[approval_candidate_index, approved_candidate_hash] :
-         approved_candidates_info) {
       GET_OPT_VALUE_OR_EXIT(
           candidate_entry,
           ApprovalCheckResult::Bad,
@@ -2090,12 +2082,6 @@ namespace kagome::parachain {
       if (auto it = entry.known_by.find(peer_id); it != entry.known_by.end()) {
         if (auto &peer_knowledge = it->second;
             peer_knowledge.contains(message_subject, message_kind)) {
-          SL_TRACE(logger_,
-                   "Peer knowledge contains `assignment`. (peer id={}, "
-                   "block_hash={}, validator index={})",
-                   peer_id,
-                   block_hash,
-                   validator_index);
           if (!peer_knowledge.received.insert(message_subject, message_kind)) {
             SL_TRACE(logger_,
                      "Duplicate assignment. (peer id={}, block_hash={}, "
@@ -2218,21 +2204,12 @@ namespace kagome::parachain {
     };
 
     std::unordered_set<libp2p::peer::PeerId> peers{};
-    std::unordered_set<libp2p::peer::PeerId> kb;
     for (auto &[peer_id, peer_knowledge] : entry.known_by) {
-      if (logger_->level() >= log::Level::TRACE) {
-        kb.insert(peer_id);
-      }
       if (peer_filter(peer_id, peer_knowledge)) {
         peers.insert(peer_id);
         peer_knowledge.sent.insert(message_subject, message_kind);
       }
     }
-
-    SL_TRACE(logger_,
-             "Block known by. (hash={}, peers=[{}])",
-             block_hash,
-             fmt::join(kb, ","));
 
     if (!peers.empty()) {
       runDistributeAssignment(
@@ -2252,18 +2229,21 @@ namespace kagome::parachain {
     if (!opt_entry) {
       logger_->info(
           "Unexpected approval. (peer id={}, block hash={}, validator "
-          "index={})",
+          "index={}, data={})",
           source ? fmt::format("{}", source->get()) : "our",
           block_hash,
-          validator_index);
+          validator_index,
+          common::Buffer{scale::encode(vote).value()});
       return;
     }
 
     SL_DEBUG(logger_,
-             "Import approval. (peer id={}, block hash={}, validator index={})",
+             "Import approval. (peer id={}, block hash={}, validator index={}, "
+             "data={})",
              source ? fmt::format("{}", source->get()) : "our",
              block_hash,
-             validator_index);
+             validator_index,
+             common::Buffer{scale::encode(vote).value()});
 
     auto &entry = opt_entry->get();
     auto message_subject{
@@ -2383,9 +2363,7 @@ namespace kagome::parachain {
 
     std::unordered_set<libp2p::peer::PeerId> peers{};
     for (auto &[peer_id, peer_knowledge] : entry.known_by) {
-      SL_TRACE(logger_, "Entry known by. (peer={})", peer_id);
       if (peer_filter(peer_id, peer_knowledge)) {
-        SL_TRACE(logger_, "Peer filtered. (peer={})", peer_id);
         peers.insert(peer_id);
         peer_knowledge.sent.insert(message_subject, message_kind);
       }
@@ -2618,11 +2596,9 @@ namespace kagome::parachain {
              std::move(peers));
 
     SL_DEBUG(logger_,
-             "Distributing assignment on candidate (block hash={}, peers=[{}], "
-             "candidate_indices=[{}], block_hash={}, validator={})",
+             "Distributing assignment on candidate (block hash={}, "
+             "block_hash={}, validator={})",
              indirect_cert.block_hash,
-             fmt::join(peers, ","),
-             fmt::join(candidate_indices.bits, ","),
              indirect_cert.block_hash,
              indirect_cert.validator);
 
@@ -2720,9 +2696,8 @@ namespace kagome::parachain {
         *main_pool_handler_, runDistributeApproval, vote, std::move(peers));
 
     SL_DEBUG(logger_,
-             "Sending an approval to peers. (block={}, peers=[{}], data={})",
+             "Sending an approval to peers. (block={}, data={})",
              vote.payload.payload.block_hash,
-             fmt::join(peers, ","),
              common::Buffer{scale::encode(vote).value()});
 
     router_->getValidationProtocol()->write(peers,
@@ -3397,9 +3372,8 @@ namespace kagome::parachain {
 
           if (!peer_knowledge.contains(assignment_knowledge, message_kind)) {
             SL_TRACE(logger_,
-                     "Want to send assignment. (bitfield=[{}], block_hash={}, "
+                     "Want to send assignment. (block_hash={}, "
                      "valdator={}, block={})",
-                     fmt::join(assignment_message.second.bits, ","),
                      assignment_message.first.block_hash,
                      assignment_message.first.validator,
                      block);
