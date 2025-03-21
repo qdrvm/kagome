@@ -2340,7 +2340,8 @@ namespace kagome::parachain {
     }
 
     SL_DEBUG(logger_,
-             "Import approval. (peer id={}, block hash={}, validator index={}, data={})",
+             "Import approval. (peer id={}, block hash={}, validator index={}, "
+             "data={})",
              source ? fmt::format("{}", source->get()) : "our",
              block_hash,
              validator_index,
