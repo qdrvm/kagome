@@ -483,7 +483,6 @@ namespace kagome::parachain {
           }
           our_current_state_.state_by_relay_parent.erase(it);
         }
-        std::cout << fmt::format("---> PRUNED {}\n", removed);
 
         {  /// remove cancelations
           auto &container =
