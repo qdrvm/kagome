@@ -2040,7 +2040,7 @@ namespace kagome::dispute {
 
     auto res = handle_import_statements(candidate_receipt, session, statements);
     if (res.has_error()) {
-      return cb(outcome::failure(DisputeProcessingError::InvalidImport));
+      return cb(DisputeProcessingError::InvalidImport);
     }
 
     [[maybe_unused]] auto &valid_import = res.value();
@@ -2426,7 +2426,7 @@ namespace kagome::dispute {
         // Apply reputation penalty for invalid validator index
         reputation_repository_->change(
             peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
-        return outcome::failure(DisputeProcessingError::InvalidSignature);
+        return DisputeProcessingError::InvalidSignature;
       }
       auto validator_public = session_info.validators[validator_index];
 
@@ -2446,13 +2446,13 @@ namespace kagome::dispute {
         // Apply reputation penalty for invalid signature
         reputation_repository_->change(
             peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
-        return outcome::failure(DisputeProcessingError::InvalidSignature);
+        return DisputeProcessingError::InvalidSignature;
       }
       if (not validation_res.value()) {
         // Apply reputation penalty for invalid signature
         reputation_repository_->change(
             peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
-        return outcome::failure(DisputeProcessingError::InvalidSignature);
+        return DisputeProcessingError::InvalidSignature;
       }
 
       checked_valid_vote.payload = {
@@ -2472,7 +2472,7 @@ namespace kagome::dispute {
         // Apply reputation penalty for invalid validator index
         reputation_repository_->change(
             peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
-        return outcome::failure(DisputeProcessingError::InvalidSignature);
+        return DisputeProcessingError::InvalidSignature;
       }
       auto validator_public = session_info.validators[validator_index];
 
@@ -2492,13 +2492,13 @@ namespace kagome::dispute {
         // Apply reputation penalty for invalid signature
         reputation_repository_->change(
             peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
-        return outcome::failure(DisputeProcessingError::InvalidSignature);
+        return DisputeProcessingError::InvalidSignature;
       }
       if (not validation_res.value()) {
         // Apply reputation penalty for invalid signature
         reputation_repository_->change(
             peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
-        return outcome::failure(DisputeProcessingError::InvalidSignature);
+        return DisputeProcessingError::InvalidSignature;
       }
 
       checked_invalid_vote.payload = {
