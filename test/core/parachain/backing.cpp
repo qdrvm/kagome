@@ -588,6 +588,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
   };
 };
 
+// https://github.com/paritytech/polkadot-sdk/blob/06158dd26ba5d75263fbe454a95b73abed6b06d2/polkadot/node/core/backing/src/tests/prospective_parachains.rs#L350
 TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
   TestState test_state;
 
@@ -737,6 +738,7 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_all) {
       candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/06158dd26ba5d75263fbe454a95b73abed6b06d2/polkadot/node/core/backing/src/tests/prospective_parachains.rs#L482
 TEST_F(BackingTest, seconding_sanity_check_disallowed) {
   TestState test_state;
 
@@ -925,6 +927,7 @@ TEST_F(BackingTest, seconding_sanity_check_disallowed) {
       candidate2.to_plain(*hasher_), pov, pvd, leaf_a_hash);
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/06158dd26ba5d75263fbe454a95b73abed6b06d2/polkadot/node/core/backing/src/tests/prospective_parachains.rs#L669
 TEST_F(BackingTest, seconding_sanity_check_allowed_on_at_least_one_leaf) {
   TestState test_state;
 
@@ -1078,6 +1081,7 @@ TEST_F(BackingTest, seconding_sanity_check_allowed_on_at_least_one_leaf) {
       candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/06158dd26ba5d75263fbe454a95b73abed6b06d2/polkadot/node/core/backing/src/tests/prospective_parachains.rs#L800
 TEST_F(BackingTest, prospective_parachains_reject_candidate) {
   TestState test_state;
 
@@ -1230,6 +1234,7 @@ TEST_F(BackingTest, prospective_parachains_reject_candidate) {
       candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/06158dd26ba5d75263fbe454a95b73abed6b06d2/polkadot/node/core/backing/src/tests/prospective_parachains.rs#L963
 TEST_F(BackingTest, second_multiple_candidates_per_relay_parent) {
   TestState test_state;
 
@@ -1377,6 +1382,7 @@ TEST_F(BackingTest, second_multiple_candidates_per_relay_parent) {
   process_candidate(candidate_b);
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/06158dd26ba5d75263fbe454a95b73abed6b06d2/polkadot/node/core/backing/src/tests/prospective_parachains.rs#L1620
 TEST_F(BackingTest, occupied_core_assignment) {
   TestState test_state;
 
@@ -1523,6 +1529,7 @@ TEST_F(BackingTest, occupied_core_assignment) {
       candidate.to_plain(*hasher_), pov, pvd, leaf_a_hash);
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/06158dd26ba5d75263fbe454a95b73abed6b06d2/polkadot/node/core/backing/src/tests/prospective_parachains.rs#L1487
 TEST_F(BackingTest, seconding_sanity_check_occupy_same_depth) {
   TestState test_state;
 
@@ -1662,6 +1669,7 @@ TEST_F(BackingTest, seconding_sanity_check_occupy_same_depth) {
   }
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/06158dd26ba5d75263fbe454a95b73abed6b06d2/polkadot/node/core/backing/src/tests/prospective_parachains.rs#L1085
 TEST_F(BackingTest, backing_works) {
   TestState test_state;
 
@@ -1819,6 +1827,7 @@ TEST_F(BackingTest, backing_works) {
   parachain_processor_->handleStatement(leaf_parent, signed_statement_b);
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/06158dd26ba5d75263fbe454a95b73abed6b06d2/polkadot/node/core/backing/src/tests/prospective_parachains.rs#L1227
 TEST_F(BackingTest, concurrent_dependent_candidates) {
   TestState test_state;
 
