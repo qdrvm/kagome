@@ -303,13 +303,7 @@ TEST_F(VRFProviderTest, VrfVerifyExtraWithGarbageKey) {
   auto pubkey_init_res = kagome::crypto::Sr25519PublicKey::fromSpan(garbage_key_bytes);
 
   // The key initialization might fail, but we need a key object to pass to the verify function
-  kagome::crypto::Sr25519PublicKey garbage_key;
-  if (pubkey_init_res.has_value()) {
-    garbage_key = pubkey_init_res.value();
-  } else {
-    // If fromSpan fails, create a default key - the verification should still fail
-    garbage_key = kagome::crypto::Sr25519PublicKey{};
-  }
+  kagome::crypto::Sr25519PublicKey garbage_key = pubkey_init_res.value();
 
   RelayVRFStory relay_vrf_story{.data = {
                                     40,  81,  9,   6,   181, 210, 226, 0,
