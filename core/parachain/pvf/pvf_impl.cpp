@@ -289,7 +289,8 @@ namespace kagome::parachain {
                          .descriptor = receipt.descriptor,
                          .commitments = commitments,
                      },
-                     transposeClaimQueue(*claims)));
+                     transposeClaimQueue(
+                         *claims, parachain::DEFAULT_SCHEDULING_LOOKAHEAD)));
                }
                cb(std::make_pair(std::move(commitments), data));
              }});

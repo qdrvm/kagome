@@ -120,8 +120,10 @@ namespace kagome::parachain::statement_distribution {
       LazySPtr<consensus::SlotsUtil> _slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> _babe_config_repo,
       primitives::events::PeerSubscriptionEnginePtr _peer_events_engine)
-      : implicit_view(
-          _prospective_parachains, _parachain_host, _block_tree, std::nullopt),
+      : implicit_view(_prospective_parachains,
+                      _parachain_host,
+                      _block_tree,
+                      std::nullopt),
         per_session(RefCache<SessionIndex, PerSessionState>::create()),
         signer_factory(std::move(sf)),
         peer_use_count(
@@ -430,7 +432,15 @@ namespace kagome::parachain::statement_distribution {
       OUTCOME_TRY(maybe_claim_queue, parachain_host->claim_queue(relay_parent));
       TransposedClaimQueue transposed_claim_queue;
       if (maybe_claim_queue) {
-        transposed_claim_queue = transposeClaimQueue(*maybe_claim_queue);
+        auto scheduling_lookahead_result =
+            parachain_host->scheduling_lookahead(relay_parent);
+        uint32_t scheduling_lookahead =
+            scheduling_lookahead_result.has_value()
+                ? scheduling_lookahead_result.value()
+                : parachain::DEFAULT_SCHEDULING_LOOKAHEAD;
+
+        transposed_claim_queue =
+            transposeClaimQueue(*maybe_claim_queue, scheduling_lookahead);
       }
       OUTCOME_TRY(node_features, parachain_host->node_features(relay_parent));
 

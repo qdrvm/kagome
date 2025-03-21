@@ -30,7 +30,8 @@ namespace kagome::parachain {
   struct ImplicitView {
     enum Error : uint8_t {
       ALREADY_KNOWN,
-      NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS
+      NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS,
+      NO_COLLATING_FOR
     };
 
     struct FetchSummary {
