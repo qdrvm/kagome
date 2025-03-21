@@ -92,6 +92,8 @@ namespace kagome::dispute {
 }
 
 namespace kagome::parachain {
+  using libp2p::PeerId;
+
   struct BlockedCollationId {
     /// Para id.
     ParachainId para_id;
@@ -536,7 +538,8 @@ namespace kagome::parachain {
      * advertisement was inserted successfully, or an error otherwise.
      */
     outcome::result<std::pair<CollatorId, ParachainId>> insertAdvertisement(
-        network::PeerState &peer_data,
+        const PeerId &peer_id,
+        ParachainId para_id,
         const RelayHash &relay_parent,
         const ProspectiveParachainsModeOpt &relay_parent_mode,
         const std::optional<std::reference_wrapper<const CandidateHash>>

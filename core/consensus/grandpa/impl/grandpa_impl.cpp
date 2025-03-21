@@ -1353,9 +1353,10 @@ namespace kagome::consensus::grandpa {
         }
         auto &peer = waiting.peer;
         if (auto msg = boost::get<network::VoteMessage>(&waiting.msg)) {
-          auto info = self->peer_manager_->getPeerState(peer);
-          self->onVoteMessage(
-              peer, compactFromRefToOwn(info), std::move(*msg), false);
+          self->onVoteMessage(peer,
+                              self->peer_manager_->getGrandpaInfo(peer),
+                              std::move(*msg),
+                              false);
         } else if (auto msg =
                        boost::get<network::CatchUpResponse>(&waiting.msg)) {
           self->onCatchUpResponse(peer, std::move(*msg), false);
@@ -1411,7 +1412,7 @@ namespace kagome::consensus::grandpa {
       auto *index = vote.is<Prevote>()   ? &votes.prevote_idx
                   : vote.is<Precommit>() ? &votes.precommit_idx
                                          : nullptr;
-      if (index and not *index) {
+      if (index and not*index) {
         *index = votes.seen.size();
       }
     }

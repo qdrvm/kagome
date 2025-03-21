@@ -73,19 +73,7 @@ namespace kagome::parachain {
         continue;
       }
       const auto &peer_id = peer.value().id;
-
-      auto peer_state = [&]() {
-        auto res = pm_->getPeerState(peer_id);
-        if (!res) {
-          SL_TRACE(log(),
-                   "No PeerState of peer {}. Default one has created",
-                   peer_id);
-          res = pm_->createDefaultPeerState(peer_id);
-        }
-        return res;
-      }();
-
-      auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
+      auto req_chunk_version = pm_->getReqChunkVersion(peer_id).value_or(
           network::ReqChunkVersion::V2);
 
       switch (req_chunk_version) {

@@ -40,6 +40,7 @@ namespace kagome::network {
   using OurView = network::View;
 
   struct PeerStateCompact {
+    Roles roles;
     std::optional<RoundNumber> round_number;
     std::optional<VoterSetId> set_id;
     BlockNumber last_finalized;
@@ -79,6 +80,7 @@ namespace kagome::network {
 
     PeerStateCompact compact() const {
       return PeerStateCompact{
+          .roles = roles,
           .round_number = round_number,
           .set_id = set_id,
           .last_finalized = last_finalized,

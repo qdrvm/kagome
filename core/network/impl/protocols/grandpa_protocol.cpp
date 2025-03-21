@@ -71,9 +71,10 @@ namespace kagome::network {
         std::move(message),
         [&](network::GrandpaVote &&vote_message) {
           SL_VERBOSE(log_, "VoteMessage has received from {}", peer_id);
-          auto info = peer_manager_->getPeerState(peer_id);
           grandpa_observer_->onVoteMessage(
-              peer_id, compactFromRefToOwn(info), std::move(vote_message));
+              peer_id,
+              peer_manager_->getGrandpaInfo(peer_id),
+              std::move(vote_message));
         },
         [&](FullCommitMessage &&commit_message) {
           SL_VERBOSE(log_, "CommitMessage has received from {}", peer_id);
@@ -83,20 +84,18 @@ namespace kagome::network {
         [&](GrandpaNeighborMessage &&neighbor_message) {
           if (peer_id != own_info_.id) {
             SL_VERBOSE(log_, "NeighborMessage has received from {}", peer_id);
-            auto info = peer_manager_->getPeerState(peer_id);
             grandpa_observer_->onNeighborMessage(
                 peer_id,
-                compactFromRefToOwn(info),
+                peer_manager_->getGrandpaInfo(peer_id),
                 // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
                 std::move(neighbor_message));
           }
         },
         [&](network::CatchUpRequest &&catch_up_request) {
           SL_VERBOSE(log_, "CatchUpRequest has received from {}", peer_id);
-          auto info = peer_manager_->getPeerState(peer_id);
           grandpa_observer_->onCatchUpRequest(
               peer_id,
-              compactFromRefToOwn(info),
+              peer_manager_->getGrandpaInfo(peer_id),
               // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
               std::move(catch_up_request));
         },
@@ -124,7 +123,7 @@ namespace kagome::network {
              vote_message.round_number);
 
     auto filter = [&, &msg = vote_message](const PeerId &peer_id,
-                                           const PeerState &info) {
+                                           const PeerStateCompact &info) {
       if (info.roles.isLight()) {
         return false;
       }
@@ -209,7 +208,7 @@ namespace kagome::network {
                    set_changed,
                    set_id = msg.voter_set_id,
                    round_number = msg.round_number](const PeerId &peer_id) {
-      auto info_opt = peer_manager_->getPeerState(peer_id);
+      auto info_opt = peer_manager_->getGrandpaInfo(peer_id);
       if (not info_opt.has_value()) {
         SL_DEBUG(log_,
                  "Neighbor message with set_id={} in round={} "
@@ -219,7 +218,7 @@ namespace kagome::network {
                  peer_id);
         return false;
       }
-      const auto &info = info_opt.value().get();
+      const auto &info = info_opt.value();
 
       if (not set_changed and info.roles.isLight()) {
         return false;
@@ -246,7 +245,7 @@ namespace kagome::network {
                    set_id = msg.set_id,
                    round_number = msg.round,
                    finalizing = msg.message.target_number](
-                      const PeerId &peer_id, const PeerState &info) {
+                      const PeerId &peer_id, const PeerStateCompact &info) {
       if (not info.set_id.has_value() or not info.round_number.has_value()) {
         SL_DEBUG(log_,
                  "Commit with set_id={} in round={} "
@@ -316,7 +315,7 @@ namespace kagome::network {
         peer_id,
         catch_up_request.round_number);
 
-    auto info_opt = peer_manager_->getPeerState(peer_id);
+    auto info_opt = peer_manager_->getGrandpaInfo(peer_id);
     if (not info_opt.has_value()) {
       SL_DEBUG(log_,
                "Catch-up-request with set_id={} in round={} "
@@ -326,7 +325,7 @@ namespace kagome::network {
                peer_id);
       return;
     }
-    const auto &info = info_opt.value().get();
+    const auto &info = info_opt.value();
 
     if (not info.set_id.has_value() or not info.round_number.has_value()) {
       SL_DEBUG(log_,
@@ -410,7 +409,7 @@ namespace kagome::network {
              "Send catch-up response: beginning with grandpa round number {}",
              catch_up_response.round_number);
 
-    auto info_opt = peer_manager_->getPeerState(peer_id);
+    auto info_opt = peer_manager_->getGrandpaInfo(peer_id);
     if (not info_opt.has_value()) {
       SL_DEBUG(log_,
                "Catch-up-response with set_id={} in round={} "
@@ -420,7 +419,7 @@ namespace kagome::network {
                peer_id);
       return;
     }
-    const auto &info = info_opt.value().get();
+    const auto &info = info_opt.value();
 
     if (not info.set_id.has_value() or not info.round_number.has_value()) {
       SL_DEBUG(log_,
@@ -494,8 +493,8 @@ namespace kagome::network {
     constexpr size_t kAny = 4;
     std::deque<PeerId> authorities, any;
     notifications_->peersOut([&](const PeerId &peer_id, size_t) {
-      if (auto info_ref = peer_manager_->getPeerState(peer_id)) {
-        auto &info = info_ref->get();
+      if (auto info_ref = peer_manager_->getGrandpaInfo(peer_id)) {
+        auto &info = info_ref.value();
         if (predicate(peer_id, info)) {
           (info.roles.isAuthority() ? authorities : any).emplace_back(peer_id);
         }

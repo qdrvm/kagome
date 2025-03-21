@@ -19,7 +19,8 @@
 
 // TODO(turuslan): https://github.com/qdrvm/kagome/issues/1989
 #define PROTOCOL_V1(protocol) \
-  {}
+  {                           \
+  }
 
 namespace kagome::network {
   // https://github.com/paritytech/polkadot-sdk/blob/edf79aa972bcf2e043e18065a9bb860ecdbd1a6e/polkadot/node/network/protocol/src/peer_set.rs#L118-L119
@@ -66,7 +67,7 @@ namespace kagome::network {
       size_t limit_in,
       size_t limit_out)
       : notifications_{inject.notifications_factory->make(
-          std::move(protocols_groups), limit_in, limit_out)},
+            std::move(protocols_groups), limit_in, limit_out)},
         collation_versions_{CollationVersion::VStaging, CollationVersion::V1},
         roles_{inject.roles},
         peer_manager_{inject.peer_manager},
@@ -82,9 +83,8 @@ namespace kagome::network {
                                       bool out,
                                       Buffer &&handshake) {
     TRY_FALSE(scale::decode<Roles>(handshake));
-    auto state = peer_manager_->createDefaultPeerState(peer_id);
-    state.value().get().collation_version =
-        collation_versions_.at(protocol_group);
+    peer_manager_->setCollationVersion(peer_id,
+                                       collation_versions_.at(protocol_group));
     if (out) {
       notifications_->write(
           peer_id, protocol_group, encodeView(peer_view_->getMyViewStripped()));
