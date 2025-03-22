@@ -30,6 +30,7 @@ namespace kagome::network {
   class SendDisputeProtocol;
   class BeefyProtocol;
   class FetchAttestedCandidateProtocol;
+  class IReqPovProtocol;
   using Ping = libp2p::protocol::Ping;
 }  // namespace kagome::network
 
@@ -50,7 +51,7 @@ namespace kagome::network {
         const = 0;
     virtual std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const = 0;
-    virtual std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const = 0;
+    virtual std::shared_ptr<IReqPovProtocol> getReqPovProtocol() const = 0;
     virtual std::shared_ptr<FetchChunkProtocol> getFetchChunkProtocol()
         const = 0;
     virtual std::shared_ptr<FetchChunkProtocolObsolete>

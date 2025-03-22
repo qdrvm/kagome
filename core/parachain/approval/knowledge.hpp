@@ -49,6 +49,16 @@ namespace kagome::parachain::approval {
     std::unordered_map<MessageSubject, MessageKind, MessageSubjectHash>
         known_messages{};
 
+    bool can_send(const MessageSubject &message,
+      const MessageKind &kind) const {
+        auto it = known_messages.find(message);
+        if (it == known_messages.end()) {
+          return MessageKind::Assignment == kind;
+        }
+
+        return (kind == MessageKind::Approval && it->second == MessageKind::Assignment);
+    }
+
     bool contains(const MessageSubject &message,
                   const MessageKind &kind) const {
       auto it = known_messages.find(message);

@@ -34,6 +34,7 @@
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "macro/feature_macros.hpp"
 #include "parachain/pvf/clone.hpp"
 #include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
@@ -74,7 +75,7 @@ namespace kagome::parachain {
   }  // namespace
 
   bool checkEnvVarsEmpty(const char **env) {
-#ifdef KAGOME_WITH_ASAN
+#if KAGOME_WITH_ASAN
     //  explicitly allow to disable LSAN, because LSAN doesn't work in secure
     //  mode, since it wants to access /proc
     if (*env != nullptr

@@ -15,6 +15,7 @@
 #include "application/app_configuration.hpp"
 #include "common/main_thread_pool.hpp"
 #include "filesystem/common.hpp"
+#include "macro/feature_macros.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "utils/get_exe_path.hpp"
 #include "utils/weak_macro.hpp"
@@ -39,15 +40,15 @@ namespace kagome::parachain {
                     const std::string &unix_socket_path,
                     const Config &config)
         : process{
-            exe,
-            boost::process::args({"pvf-worker", unix_socket_path}),
-            boost::process::env(boost::process::environment()),
+              exe,
+              boost::process::args({"pvf-worker", unix_socket_path}),
+              boost::process::env(boost::process::environment()),
 // LSAN doesn't work in secure mode
-#ifdef KAGOME_WITH_ASAN
-            boost::process::env["ASAN_OPTIONS"] =
-                config.disable_lsan ? "detect_leaks=0" : "",
+#if KAGOME_WITH_ASAN
+              boost::process::env["ASAN_OPTIONS"] =
+                  config.disable_lsan ? "detect_leaks=0" : "",
 #endif
-        } {
+          } {
     }
 
     void write(Buffer data, auto cb) {
@@ -148,7 +149,7 @@ namespace kagome::parachain {
       }
       auto used = std::make_shared<Used>(*this);
       ProcessAndPipes::Config config{};
-#if defined(__linux__) && defined(KAGOME_WITH_ASAN)
+#if defined(__linux__) && KAGOME_WITH_ASAN
       config.disable_lsan = !worker_config_.force_disable_secure_mode;
 #endif
       auto unix_socket_path = filesystem::unique_path(
@@ -204,7 +205,7 @@ namespace kagome::parachain {
     if (it == free_.end()) {
       it = free_.begin();
     }
-    auto worker = std::move(*it);
+    auto worker = *it;
     free_.erase(it);
     lock.unlock();
     writeCode(std::move(job), std::move(worker), std::make_shared<Used>(*this));

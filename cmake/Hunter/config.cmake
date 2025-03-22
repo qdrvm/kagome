@@ -28,33 +28,34 @@ hunter_config(
     backward-cpp
     URL https://github.com/bombela/backward-cpp/archive/refs/tags/v1.6.zip
     SHA1 93c4c843fc9308e62ac462459077d87dc6dd9885
-    CMAKE_ARGS BACKWARD_TESTS=OFF
+    CMAKE_ARGS
+      BACKWARD_TESTS=OFF
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     rocksdb
     VERSION 9.6.1
-    CMAKE_ARGS WITH_GFLAGS=OFF USE_RTTI=ON
+    CMAKE_ARGS
+      WITH_GFLAGS=OFF
+      USE_RTTI=ON
 )
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       fmt
-      URL
-          https://github.com/fmtlib/fmt/archive/refs/tags/10.2.1.tar.gz
-      SHA1
-          d223964b782d2562d6722ffe67027204c6035453
+      URL  https://github.com/fmtlib/fmt/archive/refs/tags/10.2.1.tar.gz
+      SHA1 d223964b782d2562d6722ffe67027204c6035453
       CMAKE_ARGS
-          CMAKE_POSITION_INDEPENDENT_CODE=TRUE
+        CMAKE_POSITION_INDEPENDENT_CODE=TRUE
   )
 
   hunter_config(
       spdlog
       VERSION 1.12.0-p0
       CMAKE_ARGS
-          SPDLOG_BUILD_PIC=ON
-          SPDLOG_FMT_EXTERNAL=ON
+        SPDLOG_BUILD_PIC=ON
+        SPDLOG_FMT_EXTERNAL=ON
   )
 
   hunter_config(
@@ -95,8 +96,8 @@ endif ()
 
 hunter_config(
     kagome-crates
-    URL  https://github.com/qdrvm/kagome-crates/archive/fce83df7999a220afa23073d200ea0c5cf6a88d0.tar.gz
-    SHA1 ded55add59f489ca8bae38f7ac2792bd1bbec579
+    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/v1.0.5.tar.gz
+    SHA1 81248ac44aef8c6249f11de1b0e9b5be6b7c810d
 )
 
 hunter_config(

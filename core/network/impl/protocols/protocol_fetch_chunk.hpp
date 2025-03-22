@@ -40,12 +40,11 @@ namespace kagome::network {
     static constexpr std::chrono::seconds kRequestTimeout{1};
 
    public:
-    FetchChunkProtocolImpl(
-        RequestResponseInject inject,
-        const application::ChainSpec & /*chain_spec*/,
-        const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::ParachainProcessorImpl> pp,
-        std::shared_ptr<PeerManager> pm)
+    FetchChunkProtocolImpl(RequestResponseInject inject,
+                           const application::ChainSpec & /*chain_spec*/,
+                           const blockchain::GenesisBlockHash &genesis_hash,
+                           std::shared_ptr<parachain::ParachainStorage> pp,
+                           std::shared_ptr<PeerManager> pm)
         : RequestResponseProtocolImpl<
             FetchChunkRequest,
             FetchChunkResponse,
@@ -122,7 +121,7 @@ namespace kagome::network {
                  peer_id);
       }
 
-      return std::move(res);
+      return res;
     }
 
     void onTxRequest(const RequestType &request) override {
@@ -133,7 +132,7 @@ namespace kagome::network {
     }
 
     inline static const auto kFetchChunkProtocolName = "FetchChunkProtocol_v2"s;
-    std::shared_ptr<parachain::ParachainProcessorImpl> pp_;
+    std::shared_ptr<parachain::ParachainStorage> pp_;
     std::shared_ptr<PeerManager> pm_;
   };
 
