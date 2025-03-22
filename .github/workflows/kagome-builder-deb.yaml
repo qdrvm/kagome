@@ -11,18 +11,8 @@ on:
   #    - cron: '0 2 * * 0' # Every Sunday at 2:00 AM
   workflow_dispatch:
     inputs:
-      kagome_image_rebuild:
-        description: 'Rebuild Kagome Builder image if exists'
-        required: false
-        default: 'false'
-        type: 'boolean'
-      runtime_cache_rebuild:
-        description: 'Rebuild Kagome Runtime cache'
-        required: false
-        default: 'false'
-        type: 'boolean'
       builder_latest_tag:
-        description: 'Kagome Builder tag'
+        description: 'Kagome Builder tag (latest or date "20251201")'
         default: 'latest'
         required: false
         type: 'string'
@@ -70,38 +60,27 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Check if image tag exists"
-        id: check-tag
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: |
-          make configure
-          exists=$(make kagome_builder_check_tag)
-          echo "Image Exists: $exists"
-          echo "exists=$exists" >> $GITHUB_ENV
-
       - name: "Versions Info"
         if: always()
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
+          make configure
           make kagome_builder_image_info
 
       - name: "Build Kagome Builder"
         working-directory: ./housekeeping/docker/kagome-dev
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         run: |
           make kagome_builder && \
           make kagome_builder_push
           
       - name: "Login to Docker Hub"
         uses: docker/login-action@v3
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
         
       - name: "Push Kagome Builder (DockerHub)"
         working-directory: ./housekeeping/docker/kagome-dev
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         run: |
           make kagome_builder_push_dockerhub
         
@@ -133,36 +112,25 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Check if image tag exists using Makefile"
-        id: check-tag
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: |
-          make configure
-          exists=$(make kagome_builder_check_tag)
-          echo "Image Exists: $exists"
-          echo "exists=$exists" >> $GITHUB_ENV
-
       - name: "Versions Info"
         if: always()
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
+          make configure
           make kagome_builder_image_info
 
       - name: "Push Kagome Builder Manifest (GCR)"
         working-directory: ./housekeeping/docker/kagome-dev
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         run: |
           make kagome_builder_push_manifest
           
       - name: "Login to Docker Hub"
         uses: docker/login-action@v3
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: "Push Kagome Builder Manifest (DockerHub)"
         working-directory: ./housekeeping/docker/kagome-dev
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         run: |
           make kagome_builder_push_dockerhub_manifest
