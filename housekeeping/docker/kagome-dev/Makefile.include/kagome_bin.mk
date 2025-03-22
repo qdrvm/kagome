@@ -105,7 +105,7 @@ upload_apt_package:
 	if [ "$(IS_MAIN_OR_TAG)" = "true" ] && [ "$(GIT_REF_NAME)" != "master" ] && [ "$(BUILD_TYPE)" = "Release" ]; then \
 	  	echo "-- Uploading Kagome release binary to Google Cloud Storage..." ; \
 	  	gcloud artifacts versions delete $(KAGOME_DEB_RELEASE_PACKAGE_VERSION) --package=kagome-dev --quiet || true ; \
-		gcloud artifacts apt upload $(PUBLIC_ARTIFACTS_REPO) --source=$(BUILD_DIR)/pkg/KAGOME_DEB_RELEASE_PACKAGE_NAME ; \
+		gcloud artifacts apt upload $(PUBLIC_ARTIFACTS_REPO) --source=$(BUILD_DIR)/pkg/$(KAGOME_DEB_RELEASE_PACKAGE_NAME) ; \
 	fi;
 
 kagome_deb_package_info:
