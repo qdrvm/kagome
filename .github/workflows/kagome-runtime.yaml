@@ -18,7 +18,7 @@ on:
         type: 'string'
       kagome_for_runtime_gen_deb_package_version:
         description: 'Custom Kagome for runtime gen deb package version'
-        default: '20250224-b7c20d9-Release'
+        default: '20250316-7b5015c-Release'
         required: false
         type: 'string'
 
