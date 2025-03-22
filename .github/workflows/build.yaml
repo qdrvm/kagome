@@ -1,6 +1,11 @@
 name: "Kagome Build"
 
 on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
   workflow_dispatch:
     inputs:
       build_amd64:
@@ -104,8 +109,8 @@ env:
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   GIT_REF_NAME: ${{ github.ref_name }}
-
   IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
+  GIT_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
 
 jobs:
   setup_matrix:
@@ -258,6 +263,14 @@ jobs:
         if: github.ref != 'refs/heads/master'
         run: |
           git fetch origin master:master || true
+          
+      - name: "Print Git ref info"
+        run: |
+          echo "GitHub ref: ${{ github.ref }}"
+          echo "GitHub ref_name: ${{ github.ref_name }}"
+          echo "IS_MAIN_OR_TAG: ${{ env.IS_MAIN_OR_TAG }}"
+          echo "GIT_REF_NAME: ${{ env.GIT_REF_NAME }}"
+          echo "GIT_TAG: ${{ env.GIT_TAG }}"
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -327,6 +340,12 @@ jobs:
             echo "Release manifest:"
             docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_release:${SHORT_COMMIT_HASH} || echo "Release manifest not found!"
             docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_release:latest || echo "Release latest manifest not found!"
+            
+            # Check tag manifest if this is a tag push
+            if [[ -n "${{ env.GIT_TAG }}" ]]; then
+              echo "Tag manifest (${{ env.GIT_TAG }}):"
+              docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_release:${{ env.GIT_TAG }} || echo "Tag manifest not found!"
+            fi
           fi
           
           if [[ "${{ inputs.build_debug || github.event.inputs.build_debug || 'true' }}" == "true" ]]; then
@@ -346,6 +365,12 @@ jobs:
             echo "DockerHub manifest:"
             docker manifest inspect ${DOCKERHUB_REGISTRY_PATH}:${SHORT_COMMIT_HASH} || echo "DockerHub manifest not found!"
             docker manifest inspect ${DOCKERHUB_REGISTRY_PATH}:latest || echo "DockerHub latest manifest not found!"
+            
+            # Check tag manifest if this is a tag push
+            if [[ -n "${{ env.GIT_TAG }}" ]]; then
+              echo "DockerHub tag manifest (${{ env.GIT_TAG }}):"
+              docker manifest inspect ${DOCKERHUB_REGISTRY_PATH}:${{ env.GIT_TAG }} || echo "DockerHub tag manifest not found!"
+            fi
           fi
           
       - name: "Display image information"
