@@ -47,7 +47,7 @@ on:
         description: "Custom Builder tag"
         type: string
         required: false
-        default: "latest"
+        default: "20250322" # Default to latest
 
   workflow_call:
     inputs:
@@ -81,7 +81,7 @@ on:
         required: true
       builder_latest_tag:
         type: string
-        default: "latest"
+        default: "20250322" # Default to latest
         required: false
     secrets:
       GCP_SERVICE_ACCOUNT_KEY:
