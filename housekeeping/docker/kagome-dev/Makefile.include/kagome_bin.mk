@@ -11,7 +11,7 @@
 	$(MAKE) clean_container
 
 stop_container:
-	@echo "-- Stopping and removing polkadot_builder container..."
+	@echo "-- Stopping and removing previous build container..."
 	docker stop $(CONTAINER_NAME) || true
 
 clean_container: stop_container
@@ -51,7 +51,7 @@ docker_run: clean_container
 		-v $(CACHE_DIR)/.cargo/git:$(IN_DOCKER_HOME)/.cargo/git \
 		-v $(CACHE_DIR)/.hunter:$(IN_DOCKER_HOME)/.hunter \
 		-v $(CACHE_DIR)/.cache/ccache:$(IN_DOCKER_HOME)/.cache/ccache \
-		$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_IMAGE_TAG) \
+		$(DOCKER_REGISTRY_PATH)kagome_builder_deb:$(BUILDER_LATEST_TAG) \
 		tail -f /dev/null ; \
 	until [ "$$(docker inspect --format='{{.State.Health.Status}}' $(CONTAINER_NAME))" = "healthy" ]; do \
 	  echo "Health is: \"$$(docker inspect --format='{{.State.Health.Status}}' $(CONTAINER_NAME))\"" ; \

@@ -97,9 +97,6 @@ env:
   CACHE_PATH: ./build_docker_ci/cache
   DOCKER_BUILD_DIR_NAME: build_docker_ci
 
-  # 1) inputs.<...> (workflow_dispatch, где boolean)
-  # 2) github.event.inputs.<...> (workflow_call, где string)
-  # 3) fallback
   USE_CACHE: ${{ inputs.use_cache || github.event.inputs.use_cache || 'true' }}
   CACHE_UPLOAD_ALLOWED: ${{ inputs.cache_upload_allowed || github.event.inputs.cache_upload_allowed || 'false' }}
   BUILDER_LATEST_TAG: ${{ inputs.builder_latest_tag || github.event.inputs.builder_latest_tag || 'latest' }}
@@ -215,6 +212,9 @@ jobs:
       working-directory: ./housekeeping/docker/kagome-dev
       run: |
         make upload_apt_package BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: "Set up Docker Buildx"
+      uses: docker/setup-buildx-action@v3.6.1
 
     - name: "Build Docker Image"
       working-directory: ./housekeeping/docker/kagome-dev
