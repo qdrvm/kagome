@@ -9,7 +9,7 @@ ARG REGION=europe-north1
 
 ARG KAGOME_DEB_PACKAGE_VERSION
 
-FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG} AS base
+FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG} AS kagome_base
 
 ARG AUTHOR
 ENV AUTHOR=${AUTHOR}
@@ -80,8 +80,14 @@ RUN install_packages \
 CMD ["/usr/bin/tini", "--", "/bin/bash", "-c"]
 
 
-FROM base AS debug
+FROM kagome_base AS release
+ARG AUTHOR
+ENV AUTHOR=${AUTHOR}
+LABEL org.opencontainers.image.authors="${AUTHOR}"
+LABEL org.opencontainers.image.description="Kagome release image"
 
+
+FROM kagome_base AS debug
 ARG AUTHOR
 ENV AUTHOR=${AUTHOR}
 LABEL org.opencontainers.image.authors="${AUTHOR}"

@@ -3,9 +3,11 @@
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	BUILD_TYPE_LOWER=$$(echo $(BUILD_TYPE) | tr '[:upper:]' '[:lower:]'); \
 	BUILD_TARGET=""; \
-	if [ "$(BUILD_TYPE)" = "Debug" ] || [ "$(BUILD_TYPE)" = "RelWithDebInfo" ]; then \
-		BUILD_TARGET="--target debug"; \
-	fi; \
+    if [ "$(BUILD_TYPE)" = "Debug" ] || [ "$(BUILD_TYPE)" = "RelWithDebInfo" ]; then \
+        BUILD_TARGET="--target debug"; \
+    else \
+        BUILD_TARGET="--target release"; \
+    fi; \
 	docker build --platform $(PLATFORM) \
 		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH}-$(ARCHITECTURE) \
 		--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
