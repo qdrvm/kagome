@@ -71,7 +71,7 @@ define sanitizer_cache_check_and_upload
 	@if [ "$(CACHE_UPLOAD_ALLOWED)" = "false" ] && ( [ "$(CACHE_ONLY_MASTER)" = "false" ] || [ "$(GIT_REF_NAME)" = "master" ] ); then \
 		if $(call sanitizer_cache_check_age,$(1)); then \
 			echo "-- $(1) cache is older than $(CACHE_LIFETIME_DAYS) days or missing - enabling upload"; \
-			$(call sanitizer_cache_upload,$(1)) CACHE_UPLOAD_ALLOWED=true; \
+			 $(MAKE) kagome_cache_upload_$(1) CACHE_UPLOAD_ALLOWED=true; \
 		else \
 			NEWEST_CACHE=$$(gcloud storage ls "gs://$(CACHE_BUCKET)/build-cache-*-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE_SANITIZERS)-$(1).tar.zst" 2>/dev/null | sort -r | head -n1); \
 			echo "-- $(1) cache is fresh (< $(CACHE_LIFETIME_DAYS)d) - skipping upload"; \
