@@ -5,7 +5,7 @@ endef
 # run_test takes arguments:
 # (1) test file path
 define run_test
-	@CONTAINER_NAME=zombietest_$$(openssl rand -hex 6); \
+	CONTAINER_NAME=zombietest_$$(openssl rand -hex 6); \
 	echo "Running test in container $$CONTAINER_NAME with params \n test:$(1) and \n Kagome package version: $(KAGOME_PACKAGE_VERSION)"; \
 	START_TIME=$$(date +%s); \
 	TEST_PATH=$$(echo $(1) | xargs); \
@@ -14,6 +14,7 @@ define run_test
 		--platform $(PLATFORM) \
 		--entrypoint "/bin/bash" \
 		-v $(WORKING_DIR):/opt/kagome \
+		-w /opt/kagome \
 		-v $(GOOGLE_APPLICATION_CREDENTIALS):/root/.gcp/google_creds.json \
 		-e USER_ID=$(USER_ID) \
 		-e GROUP_ID=$(GROUP_ID) \
