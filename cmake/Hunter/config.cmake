@@ -114,10 +114,23 @@ hunter_config(
     KEEP_PACKAGE_SOURCES
 )
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(BORINGSSL_C_FLAGS -Wno-stringop-overflow)
+  set(BORINGSSL_CXX_FLAGS -Wno-stringop-overflow)
+else()
+  set(BORINGSSL_C_FLAGS -Wno-error)
+  set(BORINGSSL_CXX_FLAGS -Wno-error)
+endif()
+
 hunter_config(
     BoringSSL
     VERSION qdrvm1
     CMAKE_ARGS
-      CMAKE_C_FLAGS=-Wno-stringop-overflow
-      CMAKE_CXX_FLAGS=-Wno-stringop-overflow
+      CMAKE_C_FLAGS=${BORINGSSL_C_FLAGS}
+      CMAKE_CXX_FLAGS=${BORINGSSL_CXX_FLAGS}
+      CMAKE_THREAD_LIBS_INIT=-lpthread
+      CMAKE_HAVE_THREADS_LIBRARY=1
+      CMAKE_USE_WIN32_THREADS_INIT=0
+      CMAKE_USE_PTHREADS_INIT=1
+      THREADS_PREFER_PTHREAD_FLAG=ON
 )
