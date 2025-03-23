@@ -122,6 +122,10 @@ kagome_docker_build_ubsan:
 	$(call sanitizer_container_create,ubsan)
 	$(call sanitizer_build_exec,ubsan)
 
+kagome_docker_build_asanubsan:
+	$(call sanitizer_container_create,asanubsan)
+	$(call sanitizer_build_exec,asanubsan)
+
 # Clean container targets
 kagome_clean_asan:
 	$(call sanitizer_clean_container,asan)
@@ -132,6 +136,9 @@ kagome_clean_tsan:
 kagome_clean_ubsan:
 	$(call sanitizer_clean_container,ubsan)
 
+kagome_clean_asanubsan:
+	$(call sanitizer_clean_container,asanubsan)
+
 # Package upload targets
 kagome_upload_asan_package:
 	$(call sanitizer_upload_package,asan)
@@ -141,6 +148,9 @@ kagome_upload_tsan_package:
 
 kagome_upload_ubsan_package:
 	$(call sanitizer_upload_package,ubsan)
+
+kagome_upload_asanubsan_package:
+	$(call sanitizer_upload_package,asanubsan)
 
 # Sanitizer builds with test but without packaging
 kagome_test_asan:
@@ -155,8 +165,12 @@ kagome_test_ubsan:
 	@echo "-- Building and testing with Undefined Behavior Sanitizer..."
 	$(MAKE) kagome_docker_build_ubsan
 
+kagome_test_asanubsan:
+	@echo "-- Building and testing with Address and Undefined Behavior Sanitizers..."
+	$(MAKE) kagome_docker_build_asanubsan
+
 # Run all sanitizer tests
-kagome_test_all_sanitizers: kagome_test_asan kagome_test_tsan kagome_test_ubsan
+kagome_test_all_sanitizers: kagome_test_asan kagome_test_tsan kagome_test_ubsan kagome_test_asanubsan
 	@echo "-- All sanitizer tests completed."
 
 # Legacy sanitizer target for backwards compatibility

@@ -97,6 +97,9 @@ kagome_cache_upload_tsan:
 kagome_cache_upload_ubsan:
 	$(call sanitizer_cache_upload,ubsan)
 
+kagome_cache_upload_asanubsan:
+	$(call sanitizer_cache_upload,asanubsan)
+
 kagome_cache_get_asan:
 	$(call sanitizer_cache_get,asan)
 
@@ -105,6 +108,9 @@ kagome_cache_get_tsan:
 
 kagome_cache_get_ubsan:
 	$(call sanitizer_cache_get,ubsan)
+
+kagome_cache_get_asanubsan:
+	$(call sanitizer_cache_get,asanubsan)
 
 kagome_cache_check_and_upload_asan:
 	$(call sanitizer_cache_check_and_upload,asan)
@@ -115,12 +121,16 @@ kagome_cache_check_and_upload_tsan:
 kagome_cache_check_and_upload_ubsan:
 	$(call sanitizer_cache_check_and_upload,ubsan)
 
+kagome_cache_check_and_upload_asanubsan:
+	$(call sanitizer_cache_check_and_upload,asanubsan)
+
 # Display sanitizer cache info
 sanitizer_cache_info:
 	@echo "Sanitizer Cache Configuration:"
 	@echo "  ASAN Cache Tag: $(call sanitizer_cache_tag,asan)"
 	@echo "  TSAN Cache Tag: $(call sanitizer_cache_tag,tsan)" 
 	@echo "  UBSAN Cache Tag: $(call sanitizer_cache_tag,ubsan)"
+	@echo "  ASANUBSAN Cache Tag: $(call sanitizer_cache_tag,asanubsan)"
 	@echo "  Cache lifetime: $(CACHE_LIFETIME_DAYS) days"
 	@echo "  Upload allowed: $(CACHE_UPLOAD_ALLOWED)"
 	@echo "  Cache bucket: gs://$(CACHE_BUCKET)/"

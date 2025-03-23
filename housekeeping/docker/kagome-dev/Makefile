@@ -48,17 +48,21 @@ include Makefile.include/cache.mk
 # - kagome_docker_build_asan: Build with ASAN and generate package
 # - kagome_docker_build_tsan: Build with TSAN and generate package
 # - kagome_docker_build_ubsan: Build with UBSAN and generate package
+# - kagome_docker_build_asanubsan: Build with ASAN+UBSAN and generate package
 # - kagome_upload_asan_package: Upload ASAN package
 # - kagome_upload_tsan_package: Upload TSAN package
 # - kagome_upload_ubsan_package: Upload UBSAN package
+# - kagome_upload_asanubsan_package: Upload ASAN+UBSAN package
 # - kagome_image_build_asan: Build ASAN docker image
 # - kagome_image_build_tsan: Build TSAN docker image
 # - kagome_image_build_ubsan: Build UBSAN docker image
+# - kagome_image_build_asanubsan: Build ASAN+UBSAN docker image
 # - kagome_cache_upload_asan: Upload ASAN cache
 # - kagome_cache_get_asan: Download ASAN cache
 # - kagome_asan_all: Complete ASAN workflow (build, upload, image)
 # - kagome_tsan_all: Complete TSAN workflow (build, upload, image)
 # - kagome_ubsan_all: Complete UBSAN workflow (build, upload, image)
+# - kagome_asanubsan_all: Complete ASAN+UBSAN workflow (build, upload, image)
 # - kagome_sanitizers_all: Build all sanitizer variants
 
 # Run the configure target to generate the version files

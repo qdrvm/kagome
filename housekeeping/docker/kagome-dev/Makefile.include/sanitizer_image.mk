@@ -49,6 +49,9 @@ kagome_image_build_tsan:
 kagome_image_build_ubsan:
 	$(call sanitizer_image_build,ubsan)
 
+kagome_image_build_asanubsan:
+	$(call sanitizer_image_build,asanubsan)
+
 # Image push targets
 kagome_image_push_asan:
 	$(call sanitizer_image_push,asan)
@@ -58,6 +61,9 @@ kagome_image_push_tsan:
 
 kagome_image_push_ubsan:
 	$(call sanitizer_image_push,ubsan)
+
+kagome_image_push_asanubsan:
+	$(call sanitizer_image_push,asanubsan)
 
 # Build and push convenience targets
 kagome_image_all_asan: kagome_image_build_asan kagome_image_push_asan
@@ -69,6 +75,9 @@ kagome_image_all_tsan: kagome_image_build_tsan kagome_image_push_tsan
 kagome_image_all_ubsan: kagome_image_build_ubsan kagome_image_push_ubsan
 	@echo "-- UBSAN Docker image build and push completed."
 
+kagome_image_all_asanubsan: kagome_image_build_asanubsan kagome_image_push_asanubsan
+	@echo "-- ASAN+UBSAN Docker image build and push completed."
+
 # Complete workflow targets - build package and image
 kagome_asan_all: kagome_docker_build_asan kagome_upload_asan_package kagome_image_all_asan
 	@echo "-- Complete ASAN build workflow completed."
@@ -79,6 +88,9 @@ kagome_tsan_all: kagome_docker_build_tsan kagome_upload_tsan_package kagome_imag
 kagome_ubsan_all: kagome_docker_build_ubsan kagome_upload_ubsan_package kagome_image_all_ubsan
 	@echo "-- Complete UBSAN build workflow completed."
 
+kagome_asanubsan_all: kagome_docker_build_asanubsan kagome_upload_asanubsan_package kagome_image_all_asanubsan
+	@echo "-- Complete ASAN+UBSAN build workflow completed."
+
 # Build all sanitizers
-kagome_sanitizers_all: kagome_asan_all kagome_tsan_all kagome_ubsan_all
+kagome_sanitizers_all: kagome_asan_all kagome_tsan_all kagome_ubsan_all kagome_asanubsan_all
 	@echo "-- All sanitizer builds completed."
