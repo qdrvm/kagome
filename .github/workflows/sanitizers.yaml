@@ -121,45 +121,14 @@ jobs:
 
       - name: "Generate sanitizer matrix"
         id: matrix
-        run: |
-          build_tsan="${{ inputs.build_tsan || github.event.inputs.build_tsan || 'true' }}"
-          build_asanubsan="${{ inputs.build_asanubsan || github.event.inputs.build_asanubsan || 'true' }}"
-          build_amd64="${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}"
-          build_arm64="${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'false' }}"
-          
-          # Initialize the matrix array
-          matrix_configs=()
-          
-          # AMD64 configurations
-          if [[ "$build_amd64" == "true" ]]; then
-            if [[ "$build_tsan" == "true" ]]; then
-              matrix_configs+=('{"sanitizer":"tsan","platform":"linux/amd64","runs_on":"actions-runner-controller"}')
-            fi
-            if [[ "$build_asanubsan" == "true" ]]; then
-              matrix_configs+=('{"sanitizer":"asanubsan","platform":"linux/amd64","runs_on":"actions-runner-controller"}')
-            fi
-          fi
-          
-          # ARM64 configurations (if enabled)
-          if [[ "$build_arm64" == "true" ]]; then
-            if [[ "$build_tsan" == "true" ]]; then
-              matrix_configs+=('{"sanitizer":"tsan","platform":"linux/arm64","runs_on":["self-hosted","qdrvm-arm64"]}')
-            fi
-            if [[ "$build_asanubsan" == "true" ]]; then
-              matrix_configs+=('{"sanitizer":"asanubsan","platform":"linux/arm64","runs_on":["self-hosted","qdrvm-arm64"]}')
-            fi
-          fi
-          
-          # Join the array items with commas
-          joined_configs=$(printf ",%s" "${matrix_configs[@]}")
-          joined_configs=${joined_configs:1}  # Remove the leading comma
-          
-          # Construct the matrix JSON
-          matrix_json="{\"include\":[$joined_configs]}"
-          echo "Matrix JSON: $matrix_json"
-          
-          # Set the output
-          echo "matrix=$matrix_json" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/matrix-san
+        with:
+          build_tsan: ${{ inputs.build_tsan || github.event.inputs.build_tsan || 'true' }}
+          build_asanubsan: ${{ inputs.build_asanubsan || github.event.inputs.build_asanubsan || 'true' }}
+          build_amd64: ${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}
+          build_arm64: ${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'false' }}
+          amd64_runner: '"actions-runner-controller"'
+          arm64_runner: '["self-hosted","qdrvm-arm64"]'
           
       - name: "Debug matrix configuration"
         run: |
