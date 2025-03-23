@@ -9,6 +9,9 @@ name: Kagome Runtime
 on:
   workflow_dispatch:
     inputs:
+      zombie_tester_latest_tag:
+        description: 'Zombie Tester tag'
+        default: 'latest'
       kagome_for_runtime_gen_deb_package_version:
         description: 'Custom Kagome for runtime gen deb package version'
         default: '20250323-9b65150-Release'
@@ -17,6 +20,11 @@ on:
   
   workflow_call:
     inputs:
+      zombie_tester_latest_tag:
+        description: 'Zombie Tester tag'
+        type: 'string'
+        default: 'latest'
+        required: true
       kagome_for_runtime_gen_deb_package_version:
         description: 'Custom Kagome for runtime gen deb package version'
         type: string
@@ -33,6 +41,7 @@ on:
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+  TESTER_LATEST_TAG: ${{ inputs.zombie_tester_latest_tag || github.event.inputs.zombie_tester_latest_tag || 'latest' }}
   KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH: ${{ inputs.kagome_for_runtime_gen_deb_package_version || github.event.inputs.kagome_for_runtime_gen_deb_package_version || '20250323-9b65150-Release' }}
   
   GIT_REF_NAME: ${{ github.ref_name }}
@@ -68,6 +77,7 @@ jobs:
           echo "GIT_REF_NAME: ${{ env.GIT_REF_NAME }}"
           echo "GIT_TAG: ${{ env.GIT_TAG }}"
           echo "KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH: ${{ env.KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH }}"
+          echo "TESTER_LATEST_TAG: ${{ env.TESTER_LATEST_TAG }}"
 
       - name : "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
