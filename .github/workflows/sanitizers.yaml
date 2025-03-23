@@ -4,46 +4,357 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-name: (Dummy) Sanitizers
+name: "Kagome Sanitizers"
 
 on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
   workflow_dispatch:
     inputs:
-      message:
-        description: 'Custom message to display'
+      build_tsan:
+        description: "Build with TSAN?"
+        type: boolean
         required: false
-        default: 'Hello World!'
-        type: 'string'
-      show_env:
-        description: 'Show environment information'
+        default: true
+      build_asanubsan:
+        description: "Build with ASAN+UBSAN?"
+        type: boolean
         required: false
-        default: 'false'
-        type: 'choice'
-        options:
-          - 'true'
-          - 'false'
+        default: true
+      build_amd64:
+        description: "Build linux/amd64?"
+        type: boolean
+        required: false
+        default: true
+      build_arm64:
+        description: "Build linux/arm64?"
+        type: boolean
+        required: false
+        default: false
+      use_cache:
+        description: "Use cache?"
+        type: boolean
+        required: false
+        default: true
+      cache_upload_allowed:
+        description: "Force cache upload?"
+        type: boolean
+        required: false
+        default: false
+      builder_latest_tag:
+        description: "Custom Builder tag"
+        type: string
+        required: false
+        default: "20250322" # Default to latest
+
+  workflow_call:
+    inputs:
+      build_tsan:
+        type: string
+        default: "true"
+        required: true
+      build_asanubsan:
+        type: string
+        default: "true"
+        required: true
+      build_amd64:
+        type: string
+        default: "true"
+        required: true
+      build_arm64:
+        type: string
+        default: "false"
+        required: true
+      use_cache:
+        type: string
+        default: "true"
+        required: true
+      cache_upload_allowed:
+        type: string
+        default: "false"
+        required: true
+      builder_latest_tag:
+        type: string
+        default: "20250322" # Default to latest
+        required: false
+    secrets:
+      GCP_SERVICE_ACCOUNT_KEY:
+        required: true
+      GCP_REGISTRY:
+        required: true
+      GCP_PROJECT:
+        required: true
+      HUNTER_USERNAME:
+        required: true
+      HUNTER_TOKEN:
+        required: true
+
+env:
+  DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+  CI: true
+  CACHE_PATH: ./build_docker_sanitizers_ci/cache
+  DOCKER_BUILD_DIR_NAME: build_docker_sanitizers_ci
+  BUILD_TYPE_SANITIZERS: RelWithDebInfo
+
+  USE_CACHE: ${{ inputs.use_cache || github.event.inputs.use_cache || 'true' }}
+  CACHE_UPLOAD_ALLOWED: ${{ inputs.cache_upload_allowed || github.event.inputs.cache_upload_allowed || 'false' }}
+  BUILDER_LATEST_TAG: ${{ inputs.builder_latest_tag || github.event.inputs.builder_latest_tag || '20250322' }}
+
+  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+  GIT_REF_NAME: ${{ github.ref_name }}
+  IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
+  GIT_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
 
 jobs:
-  dummy-job:
+  setup_matrix:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
-      - name: Checkout repository
+      - name: "Checkout repository"
         uses: actions/checkout@v4
-        
-      - name: Display message
-        run: echo "${{ github.event.inputs.message }}"
-        
-      - name: Show workflow information
+
+      - name: "Generate sanitizer matrix"
+        id: matrix
         run: |
-          echo "Running on branch: ${{ github.ref_name }}"
-          echo "Triggered by: ${{ github.actor }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Workflow run ID: ${{ github.run_id }}"
+          build_tsan="${{ inputs.build_tsan || github.event.inputs.build_tsan || 'true' }}"
+          build_asanubsan="${{ inputs.build_asanubsan || github.event.inputs.build_asanubsan || 'true' }}"
+          build_amd64="${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}"
+          build_arm64="${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'false' }}"
           
-      - name: Show environment information
-        if: ${{ github.event.inputs.show_env == 'true' }}
+          # Initialize the matrix array
+          matrix_configs=()
+          
+          # AMD64 configurations
+          if [[ "$build_amd64" == "true" ]]; then
+            if [[ "$build_tsan" == "true" ]]; then
+              matrix_configs+=('{"sanitizer":"tsan","platform":"linux/amd64","runs_on":"actions-runner-controller"}')
+            fi
+            if [[ "$build_asanubsan" == "true" ]]; then
+              matrix_configs+=('{"sanitizer":"asanubsan","platform":"linux/amd64","runs_on":"actions-runner-controller"}')
+            fi
+          fi
+          
+          # ARM64 configurations (if enabled)
+          if [[ "$build_arm64" == "true" ]]; then
+            if [[ "$build_tsan" == "true" ]]; then
+              matrix_configs+=('{"sanitizer":"tsan","platform":"linux/arm64","runs_on":["self-hosted","qdrvm-arm64"]}')
+            fi
+            if [[ "$build_asanubsan" == "true" ]]; then
+              matrix_configs+=('{"sanitizer":"asanubsan","platform":"linux/arm64","runs_on":["self-hosted","qdrvm-arm64"]}')
+            fi
+          fi
+          
+          # Join the array items with commas
+          joined_configs=$(printf ",%s" "${matrix_configs[@]}")
+          joined_configs=${joined_configs:1}  # Remove the leading comma
+          
+          # Construct the matrix JSON
+          matrix_json="{\"include\":[$joined_configs]}"
+          echo "Matrix JSON: $matrix_json"
+          
+          # Set the output
+          echo "matrix=$matrix_json" >> $GITHUB_OUTPUT
+          
+      - name: "Debug matrix configuration"
         run: |
-          echo "Current directory: $(pwd)"
-          echo "Current time: $(date)"
-          echo "Node.js version: $(node --version)"
-          echo "OS information: $(uname -a)"
+          echo "Input parameters:"
+          echo "build_tsan: ${{ inputs.build_tsan || github.event.inputs.build_tsan || 'true' }}"
+          echo "build_asanubsan: ${{ inputs.build_asanubsan || github.event.inputs.build_asanubsan || 'true' }}"
+          echo "build_amd64: ${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}"
+          echo "build_arm64: ${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'false' }}"
+          echo "use_cache: ${{ env.USE_CACHE }}"
+          echo "---"
+          echo "Matrix output: ${{ steps.matrix.outputs.matrix }}"
+
+  build_sanitizers:
+    needs: setup_matrix
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup_matrix.outputs.matrix) }}
+
+    runs-on: ${{ matrix.runs_on }}
+    timeout-minutes: 180
+
+    env:
+      PLATFORM: ${{ matrix.platform }}
+      SANITIZER: ${{ matrix.sanitizer }}
+      ARCHITECTURE: ${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+
+    steps:
+    - name: "Checkout"
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: "Get master branch"
+      if: ${{ github.ref != 'refs/heads/master' }}
+      run: git fetch origin master:master || true
+
+    - name: "Authenticate with Google Cloud"
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+    - name: "Set up Cloud SDK"
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: "Configure Docker for GCR"
+      run: |
+        gcloud auth configure-docker --quiet
+        gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+    - name: "Get commit version"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: make configure
+
+    - name: "Install zstd"
+      run: |
+        if ! command -v zstd &> /dev/null; then
+          echo "zstd not found, installing..."
+          sudo apt-get update && sudo apt-get install -y zstd || echo "Failed to install zstd, but continuing..."
+        else
+          echo "zstd is already installed"
+        fi
+
+    - name: "Get Sanitizer Cache"
+      if: ${{ env.USE_CACHE == 'true' }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make kagome_cache_get_${{ matrix.sanitizer }} || true
+
+    - name: "Build and Test Sanitizer"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        echo "Building for PLATFORM=${{ matrix.platform }}, SANITIZER=${{ matrix.sanitizer }}"
+        make kagome_docker_build_${{ matrix.sanitizer }}
+        echo "Build and test finished!"
+
+    - name: "Upload Sanitizer Cache"
+      if: ${{ success() }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make kagome_cache_check_and_upload_${{ matrix.sanitizer }} || true
+
+    - name: "Push Sanitizer APT Package"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make kagome_upload_${{ matrix.sanitizer }}_package
+
+    - name: "Set up Docker Buildx"
+      uses: docker/setup-buildx-action@v3.6.1
+
+    - name: "Build Sanitizer Docker Image"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make kagome_image_build_${{ matrix.sanitizer }}
+
+    - name: "Push Sanitizer Docker Image to GCR"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make kagome_image_push_${{ matrix.sanitizer }}
+
+  docker_manifest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    needs: [build_sanitizers]
+    if: ${{ inputs.build_amd64 || github.event.inputs.build_amd64 || true }} && ${{ inputs.build_arm64 || github.event.inputs.build_arm64 || false }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Fetch master branch"
+        if: github.ref != 'refs/heads/master'
+        run: |
+          git fetch origin master:master || true
+          
+      - name: "Print Git ref info"
+        run: |
+          echo "GitHub ref: ${{ github.ref }}"
+          echo "GitHub ref_name: ${{ github.ref_name }}"
+          echo "IS_MAIN_OR_TAG: ${{ env.IS_MAIN_OR_TAG }}"
+          echo "GIT_REF_NAME: ${{ env.GIT_REF_NAME }}"
+          echo "GIT_TAG: ${{ env.GIT_TAG }}"
+
+      - name: "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+      - name: "Get commit version"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make configure
+
+      - name: "Create Sanitizer Manifests"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+          BUILD_TYPE_LOWER=$(echo $BUILD_TYPE_SANITIZERS | tr '[:upper:]' '[:lower:]')
+          
+          # Create manifests for each sanitizer type
+          if [[ "${{ inputs.build_tsan || github.event.inputs.build_tsan || 'true' }}" == "true" ]]; then
+            echo "Creating TSAN manifest"
+            docker manifest create ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:${SHORT_COMMIT_HASH} \
+              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:${SHORT_COMMIT_HASH}-amd64 \
+              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:${SHORT_COMMIT_HASH}-arm64
+            
+            docker manifest create ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:latest \
+              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:latest-amd64 \
+              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:latest-arm64
+            
+            docker manifest push ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:${SHORT_COMMIT_HASH}
+            docker manifest push ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:latest
+          fi
+          
+          if [[ "${{ inputs.build_asanubsan || github.event.inputs.build_asanubsan || 'true' }}" == "true" ]]; then
+            echo "Creating ASANUBSAN manifest"
+            docker manifest create ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:${SHORT_COMMIT_HASH} \
+              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:${SHORT_COMMIT_HASH}-amd64 \
+              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:${SHORT_COMMIT_HASH}-arm64
+            
+            docker manifest create ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:latest \
+              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:latest-amd64 \
+              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:latest-arm64
+            
+            docker manifest push ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:${SHORT_COMMIT_HASH}
+            docker manifest push ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:latest
+          fi
+
+      - name: "Check sanitizer manifest status"
+        working-directory: ./housekeeping/docker/kagome-dev
+        if: always()
+        run: |
+          echo "Verifying manifests were created successfully..."
+          make configure
+          
+          # Get current version info
+          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+          BUILD_TYPE_LOWER=$(echo $BUILD_TYPE_SANITIZERS | tr '[:upper:]' '[:lower:]')
+          
+          echo "=== Sanitizer Manifests ==="
+          if [[ "${{ inputs.build_tsan || github.event.inputs.build_tsan || 'true' }}" == "true" ]]; then
+            echo "TSAN manifest:"
+            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:${SHORT_COMMIT_HASH} || echo "TSAN manifest not found!"
+            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:latest || echo "TSAN latest manifest not found!"
+          fi
+          
+          if [[ "${{ inputs.build_asanubsan || github.event.inputs.build_asanubsan || 'true' }}" == "true" ]]; then
+            echo "ASANUBSAN manifest:"
+            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:${SHORT_COMMIT_HASH} || echo "ASANUBSAN manifest not found!"
+            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:latest || echo "ASANUBSAN latest manifest not found!"
+          fi
