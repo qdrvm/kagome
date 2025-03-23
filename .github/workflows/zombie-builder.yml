@@ -167,7 +167,7 @@ jobs:
           echo "Image Exists: $exists"
           echo "exists=$exists" >> $GITHUB_ENV
 
-      - name: "Build Polkadot Builder"
+      - name: "Push Polkadot Builder Manifest"
         working-directory: ./zombienet/docker
         if: env.exists == 'false' || env.skip != 'true'
         run: |
