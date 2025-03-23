@@ -11,7 +11,7 @@ on:
     inputs:
       zombie_tester_latest_tag:
         description: 'Zombie Tester tag'
-        default: 'latest'
+        default: '20250323' # Or 'latest'
       kagome_for_runtime_gen_deb_package_version:
         description: 'Custom Kagome for runtime gen deb package version'
         default: '20250323-9b65150-Release'
@@ -23,7 +23,7 @@ on:
       zombie_tester_latest_tag:
         description: 'Zombie Tester tag'
         type: 'string'
-        default: 'latest'
+        default: '20250323'
         required: true
       kagome_for_runtime_gen_deb_package_version:
         description: 'Custom Kagome for runtime gen deb package version'
@@ -41,7 +41,7 @@ on:
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-  TESTER_LATEST_TAG: ${{ inputs.zombie_tester_latest_tag || github.event.inputs.zombie_tester_latest_tag || 'latest' }}
+  TESTER_LATEST_TAG: ${{ inputs.zombie_tester_latest_tag || github.event.inputs.zombie_tester_latest_tag || '20250323' }} # Or 'latest'
   KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH: ${{ inputs.kagome_for_runtime_gen_deb_package_version || github.event.inputs.kagome_for_runtime_gen_deb_package_version || '20250323-9b65150-Release' }}
   
   GIT_REF_NAME: ${{ github.ref_name }}
