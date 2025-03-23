@@ -12,6 +12,9 @@ define sanitizer_image_build
 	$(MAKE) get_versions; \
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	BUILD_TYPE_LOWER=$$(echo $(BUILD_TYPE_SANITIZER_IMAGES) | tr '[:upper:]' '[:lower:]'); \
+	SANITIZER_PACKAGE_VERSION="$(KAGOME_DEB_PACKAGE_VERSION)-$(1)"; \
+	SANITIZER_PACKAGE_NAME="kagome-$(1)"; \
+	echo "Using package: $${SANITIZER_PACKAGE_NAME}=$${SANITIZER_PACKAGE_VERSION}"; \
 	docker build --platform $(PLATFORM) \
 		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}_$(1):$${SHORT_COMMIT_HASH} \
 		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}_$(1):latest \
@@ -20,8 +23,8 @@ define sanitizer_image_build
 		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
 		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
 		--build-arg ARCHITECTURE=$(ARCHITECTURE) \
-		--build-arg KAGOME_PACKAGE_VERSION=$(KAGOME_DEB_PACKAGE_VERSION)-$(1) \
-		--build-arg PACKAGE_NAME=kagome-$(1) \
+		--build-arg KAGOME_PACKAGE_VERSION="$${SANITIZER_PACKAGE_VERSION}" \
+		--build-arg PACKAGE_NAME="$${SANITIZER_PACKAGE_NAME}" \
 		--build-arg PROJECT_ID=$(PROJECT_ID) \
 		--target runner . && \
 	echo "-- $(1) Docker image built successfully." || \

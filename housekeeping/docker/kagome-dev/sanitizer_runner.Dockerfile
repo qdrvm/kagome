@@ -63,9 +63,12 @@ RUN mkdir -p /root/.gcp
 ARG KAGOME_PACKAGE_VERSION
 ENV KAGOME_PACKAGE_VERSION=${KAGOME_PACKAGE_VERSION}
 
+ARG PACKAGE_NAME
+ENV PACKAGE_NAME=${PACKAGE_NAME}
+
 RUN --mount=type=secret,id=google_creds,target=/root/.gcp/google_creds.json \
       install_packages \
-        ${PACKAGE_NAME}=${KAGOME_PACKAGE_VERSION} && \
+        "${PACKAGE_NAME}=${KAGOME_PACKAGE_VERSION}" && \
         sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
 
 RUN install_packages \
