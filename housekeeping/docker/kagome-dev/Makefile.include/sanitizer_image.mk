@@ -8,7 +8,7 @@ endef
 
 # Common function for building sanitizer images
 define sanitizer_image_build
-	@echo "-- Building Docker image for $(1)..."; \
+	echo "-- Building Docker image for $(1)..."; \
 	$(MAKE) get_versions; \
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	BUILD_TYPE_LOWER=$$(echo $(BUILD_TYPE_SANITIZER_IMAGES) | tr '[:upper:]' '[:lower:]'); \
@@ -16,15 +16,16 @@ define sanitizer_image_build
 		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}_$(1):$${SHORT_COMMIT_HASH} \
 		-t $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}_$(1):latest \
 		--secret id=google_creds,src=$(GOOGLE_APPLICATION_CREDENTIALS) \
-		-f kagome_runner.Dockerfile \
+		-f sanitizer_runner.Dockerfile \
 		--build-arg BASE_IMAGE=$(OS_IMAGE_NAME) \
 		--build-arg BASE_IMAGE_TAG=$(OS_IMAGE_TAG_WITH_HASH) \
 		--build-arg ARCHITECTURE=$(ARCHITECTURE) \
 		--build-arg KAGOME_PACKAGE_VERSION=$(KAGOME_DEB_PACKAGE_VERSION)-$(1) \
 		--build-arg PACKAGE_NAME=kagome-$(1) \
 		--build-arg PROJECT_ID=$(PROJECT_ID) \
-		--target debug .; \
-	echo "-- $(1) Docker image built successfully."
+		--target runner . && \
+	echo "-- $(1) Docker image built successfully." || \
+	{ echo "-- ERROR: $(1) Docker image build FAILED!"; exit 1; }
 endef
 
 # Common function for pushing sanitizer images
