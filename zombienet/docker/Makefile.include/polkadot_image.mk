@@ -17,6 +17,18 @@ polkadot_builder_push:
 
 polkadot_builder_push_manifest:
 	echo "-- Creating and pushing manifest for polkadot_builder image..." ; \
+	AMD64_IMAGE_EXISTS=$$(docker manifest inspect $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-amd64 > /dev/null 2>&1 && echo "true" || echo "false"); \
+	ARM64_IMAGE_EXISTS=$$(docker manifest inspect $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-arm64 > /dev/null 2>&1 && echo "true" || echo "false"); \
+	if [ "$$AMD64_IMAGE_EXISTS" = "false" ]; then \
+		echo "ERROR: AMD64 image not found: $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-amd64"; \
+	fi; \
+	if [ "$$ARM64_IMAGE_EXISTS" = "false" ]; then \
+		echo "ERROR: ARM64 image not found: $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-arm64"; \
+	fi; \
+	if [ "$$AMD64_IMAGE_EXISTS" = "false" ] || [ "$$ARM64_IMAGE_EXISTS" = "false" ]; then \
+		echo "ERROR: One or more architecture-specific images are missing. Cannot create manifest."; \
+		exit 1; \
+	fi; \
 	docker manifest create $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION) \
 		--amend $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-amd64 \
 		--amend $(DOCKER_REGISTRY_PATH)polkadot_builder:$(CURRENT_DATE)-rust$(RUST_VERSION)-arm64 && \
