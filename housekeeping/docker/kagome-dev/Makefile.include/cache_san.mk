@@ -15,7 +15,7 @@ endef
 
 # Cache management functions for sanitizers
 define sanitizer_cache_upload
-	@if [ "$(CACHE_UPLOAD_ALLOWED)" = "true" ]; then \
+	if [ "$(CACHE_UPLOAD_ALLOWED)" = "true" ]; then \
 		echo "-- Preparing $(1) cache archive..."; \
 		cd $(WORKING_DIR); \
 		SANITIZER_BUILD_DIR=build_docker_$(ARCHITECTURE)_$(BUILD_TYPE_SANITIZERS)_$(1); \
@@ -36,8 +36,8 @@ define sanitizer_cache_upload
 endef
 
 define sanitizer_cache_get
-	@echo "-- Searching for $(1) cache in gs://$(CACHE_BUCKET)..."
-	@SANITIZER_CACHE_TAG=$(call sanitizer_cache_tag,$(1)); \
+	echo "-- Searching for $(1) cache in gs://$(CACHE_BUCKET)..." ; \
+	SANITIZER_CACHE_TAG=$(call sanitizer_cache_tag,$(1)); \
 	FOUND_CACHE=$$(gcloud storage ls "gs://$(CACHE_BUCKET)/build-cache-*-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE_SANITIZERS)-$(1).tar.zst" 2>/dev/null | sort -r | head -n1); \
 	if [ -n "$$FOUND_CACHE" ]; then \
 		echo "-- Found suitable $(1) cache: $$FOUND_CACHE"; \
@@ -67,24 +67,24 @@ define sanitizer_cache_check_age
 endef
 
 define sanitizer_cache_check_and_upload
-	@echo "-- Checking $(1) cache upload conditions..."
-	@if [ "$(CACHE_UPLOAD_ALLOWED)" = "false" ] && ( [ "$(CACHE_ONLY_MASTER)" = "false" ] || [ "$(GIT_REF_NAME)" = "master" ] ); then \
-		if $(call sanitizer_cache_check_age,$(1)); then \
-			echo "-- $(1) cache is older than $(CACHE_LIFETIME_DAYS) days or missing - enabling upload"; \
-			 $(MAKE) kagome_cache_upload_$(1) CACHE_UPLOAD_ALLOWED=true; \
-		else \
-			NEWEST_CACHE=$$(gcloud storage ls "gs://$(CACHE_BUCKET)/build-cache-*-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE_SANITIZERS)-$(1).tar.zst" 2>/dev/null | sort -r | head -n1); \
-			echo "-- $(1) cache is fresh (< $(CACHE_LIFETIME_DAYS)d) - skipping upload"; \
-			echo "-- Latest $(1) cache: $$NEWEST_CACHE"; \
-		fi; \
-	else \
-		if [ "$(CACHE_UPLOAD_ALLOWED)" = "true" ]; then \
-			echo "-- $(1) cache upload is already allowed - proceeding with upload"; \
-			$(call sanitizer_cache_upload,$(1)); \
-		else \
-			echo "-- $(1) cache upload not allowed (not on master branch)"; \
-		fi; \
-	fi
+    echo "-- Checking $(1) cache upload conditions..." ; \
+    if [ "$(CACHE_UPLOAD_ALLOWED)" = "false" ] && { [ "$(CACHE_ONLY_MASTER)" = "false" ] || [ "$(GIT_REF_NAME)" = "master" ]; }; then \
+        if $(call sanitizer_cache_check_age,$(1)); then \
+            echo "-- $(1) cache is older than $(CACHE_LIFETIME_DAYS) days or missing - enabling upload"; \
+            $(MAKE) kagome_cache_upload_$(1) CACHE_UPLOAD_ALLOWED=true; \
+        else \
+            NEWEST_CACHE=$$(gcloud storage ls "gs://$(CACHE_BUCKET)/build-cache-*-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE_SANITIZERS)-$(1).tar.zst" 2>/dev/null | sort -r | head -n1); \
+            echo "-- $(1) cache is fresh (< $(CACHE_LIFETIME_DAYS)d) - skipping upload"; \
+            echo "-- Latest $(1) cache: $$NEWEST_CACHE"; \
+        fi; \
+    else \
+        if [ "$(CACHE_UPLOAD_ALLOWED)" = "true" ]; then \
+            echo "-- $(1) cache upload is already allowed - proceeding with upload"; \
+            $(call sanitizer_cache_upload,$(1)); \
+        else \
+            echo "-- $(1) cache upload not allowed (not on master branch)"; \
+        fi; \
+    fi
 endef
 
 # Cache management targets for sanitizers
