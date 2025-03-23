@@ -120,4 +120,9 @@ hunter_config(
     CMAKE_ARGS
       CMAKE_C_FLAGS=-Wno-stringop-overflow
       CMAKE_CXX_FLAGS=-Wno-stringop-overflow
+      CMAKE_THREAD_LIBS_INIT=-lpthread
+      CMAKE_HAVE_THREADS_LIBRARY=1
+      CMAKE_USE_WIN32_THREADS_INIT=0
+      CMAKE_USE_PTHREADS_INIT=1
+      THREADS_PREFER_PTHREAD_FLAG=ON
 )
