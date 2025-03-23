@@ -135,11 +135,6 @@ jobs:
       - name: "Set up Cloud SDK"
         uses: 'google-github-actions/setup-gcloud@v2'
 
-      - name: "Configure Docker for GCR"
-        run: |
-          gcloud auth configure-docker --quiet
-          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
-
       - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
         run: make configure
