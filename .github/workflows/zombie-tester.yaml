@@ -18,12 +18,12 @@ on:
         type: 'string'
       zombienet_release:
         description: 'Custom zombienet release'
-        default: '1.3.119'
+        default: '1.3.127'
         required: false
         type: 'string'
       polkadot_package_version:
         description: 'Custom Polkadot package version'
-        default: '20250211-24121'
+        default: '20250323-24123'
         required: false
         type: 'string'
 
@@ -33,8 +33,8 @@ env:
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_tag || 'latest' }}
-  ZOMBIENET_RELEASE: ${{ github.event.inputs.zombienet_release || '1.3.119' }}
-  POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.polkadot_package_version || '20250211-24121' }}
+  ZOMBIENET_RELEASE: ${{ github.event.inputs.zombienet_release || '1.3.127' }}
+  POLKADOT_DEB_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.polkadot_package_version || '20250323-24123' }}
   SCCACHE_GCS_BUCKET: ${{ secrets.SCCACHE_GCS_BUCKET }}
   DOCKER_BUILD_DIR_NAME: build_docker_ci
 #  CACHE_VERSION: v001
