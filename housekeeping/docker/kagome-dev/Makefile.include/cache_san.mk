@@ -1,100 +1,140 @@
-# Sanitizer cache paths
+# Sanitizer-specific cache directories and functions
+
+# Define sanitizer cache directories and files
 define sanitizer_cache_dir
-$(CACHE_PATH)/$(ARCHITECTURE)_$(1)
+$(call sanitizer_build_dir,$(1))/cache
 endef
 
-# Cache upload allowed check
-CACHE_UPLOAD_ALLOWED ?= false
-CAN_UPLOAD_CACHE := $(shell if [ "$(CACHE_UPLOAD_ALLOWED)" = "true" ] || [ "$(GIT_REF_NAME)" = "master" ] || $(IS_TAG); then echo true; else echo false; fi)
-
-# Cache files for sanitizers
-define sanitizer_cache_file
-$(call sanitizer_cache_dir,$(1))/cache_$(ARCHITECTURE)_$(BUILD_TYPE_SANITIZERS)_$(1).tar.zst
+define sanitizer_cache_tag
+$(CURRENT_DATE)-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE_SANITIZERS)-$(1)
 endef
 
-# Generate cache for a specific sanitizer
-define generate_sanitizer_cache
-	@echo "-- Generating $(1) cache archive..."
-	mkdir -p $(call sanitizer_cache_dir,$(1))
-	cd $(CACHE_PATH) && tar -cf - \
-		--use-compress-program="zstd -19 -T$(COMPRESSION_THREADS)" \
-		$(ARCHITECTURE)_$(1)/.cargo \
-		$(ARCHITECTURE)_$(1)/.hunter \
-		$(ARCHITECTURE)_$(1)/.cache > $(call sanitizer_cache_file,$(1))
-	@echo "-- $(1) cache generated at $(call sanitizer_cache_file,$(1))"
+define sanitizer_cache_archive
+build-cache-$(call sanitizer_cache_tag,$(1)).tar.zst
 endef
 
-# Extract cache for a specific sanitizer
-define extract_sanitizer_cache
-	@echo "-- Extracting $(1) cache archive..."
-	if [ -f $(call sanitizer_cache_file,$(1)) ]; then \
-		mkdir -p $(call sanitizer_cache_dir,$(1)); \
-		cd $(CACHE_PATH) && tar -xf $(call sanitizer_cache_file,$(1)) -v --use-compress-program="zstd -d"; \
-		echo "-- $(1) cache extracted."; \
+# Cache management functions for sanitizers
+define sanitizer_cache_upload
+	if [ "$(CACHE_UPLOAD_ALLOWED)" = "true" ]; then \
+		echo "-- Preparing $(1) cache archive..."; \
+		cd $(WORKING_DIR); \
+		SANITIZER_BUILD_DIR=build_docker_$(ARCHITECTURE)_$(BUILD_TYPE_SANITIZERS)_$(1); \
+		SANITIZER_CACHE_ARCHIVE=$(call sanitizer_cache_archive,$(1)); \
+		$(call measure_time,tar cf - \
+			--exclude="$$SANITIZER_BUILD_DIR/node/kagome" \
+			--exclude="$$SANITIZER_BUILD_DIR/kagome_binary" \
+			--exclude="$$SANITIZER_BUILD_DIR/pkg" \
+			$$SANITIZER_BUILD_DIR | \
+			zstd -$(ZSTD_LEVEL) -T$(ZSTD_THREADS) > "$$SANITIZER_CACHE_ARCHIVE") && \
+		echo "-- Uploading $(1) cache to gs://$(CACHE_BUCKET)/" && \
+		$(call measure_time,gcloud storage cp "$$SANITIZER_CACHE_ARCHIVE" "gs://$(CACHE_BUCKET)/") && \
+		rm -f "$$SANITIZER_CACHE_ARCHIVE" && \
+		echo "-- $(1) cache uploaded successfully"; \
+	else \
+		echo "-- $(1) cache upload not allowed (not on main branch or cache too recent)"; \
+	fi
+endef
+
+define sanitizer_cache_get
+	echo "-- Searching for $(1) cache in gs://$(CACHE_BUCKET)..." ; \
+	SANITIZER_CACHE_TAG=$(call sanitizer_cache_tag,$(1)); \
+	FOUND_CACHE=$$(gcloud storage ls "gs://$(CACHE_BUCKET)/build-cache-*-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE_SANITIZERS)-$(1).tar.zst" 2>/dev/null | sort -r | head -n1); \
+	if [ -n "$$FOUND_CACHE" ]; then \
+		echo "-- Found suitable $(1) cache: $$FOUND_CACHE"; \
+		mkdir -p $(call sanitizer_build_dir,$(1)) && \
+		cd $(WORKING_DIR); \
+		SANITIZER_CACHE_ARCHIVE=$(call sanitizer_cache_archive,$(1)); \
+		echo "-- Downloading $(1) cache..."; \
+		$(call measure_time,gcloud storage cp "$$FOUND_CACHE" "$$SANITIZER_CACHE_ARCHIVE") && \
+		echo "-- Extracting $(1) cache archive..." && \
+		$(call measure_time,zstd -d "$$SANITIZER_CACHE_ARCHIVE" --stdout | tar xf -) && \
+		rm -f "$$SANITIZER_CACHE_ARCHIVE" && \
+		echo "-- $(1) cache downloaded and extracted successfully"; \
+	else \
+		echo "-- No suitable $(1) cache found"; \
+	fi
+endef
+
+define sanitizer_cache_check_age
+	NEWEST_CACHE=$$(gcloud storage ls "gs://$(CACHE_BUCKET)/build-cache-*-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE_SANITIZERS)-$(1).tar.zst" 2>/dev/null | sort -r | head -n1); \
+	if [ -n "$$NEWEST_CACHE" ]; then \
+		CACHE_DATE=$$(echo "$$NEWEST_CACHE" | sed -n 's/.*build-cache-\([0-9]\{8\}\).*/\1/p'); \
+		DAYS_OLD=$$(( ( $$(date -d "$(CURRENT_DATE)" +%s) - $$(date -d "$$CACHE_DATE" +%s) ) / 86400 )); \
+		[ $$DAYS_OLD -gt $(CACHE_LIFETIME_DAYS) ]; \
+	else \
 		true; \
-	else \
-		echo "-- $(1) cache file not found."; \
-		false; \
 	fi
 endef
 
-# Get cache for a specific sanitizer
-define get_sanitizer_cache
-	@echo "-- Getting $(1) cache..."
-	if [ "$(USE_CACHE)" = "true" ]; then \
-		mkdir -p $(CACHE_PATH); \
-		gsutil -q -m cp gs://$(GCS_BUCKET)/$(1)/cache_$(ARCHITECTURE)_$(BUILD_TYPE_SANITIZERS)_$(1).tar.zst \
-			$(call sanitizer_cache_file,$(1)) || true; \
-		$(call extract_sanitizer_cache,$(1)) || true; \
-	else \
-		echo "-- Cache usage disabled."; \
-	fi
+define sanitizer_cache_check_and_upload
+    echo "-- Checking $(1) cache upload conditions..." ; \
+    if [ "$(CACHE_UPLOAD_ALLOWED)" = "false" ] && { [ "$(CACHE_ONLY_MASTER)" = "false" ] || [ "$(GIT_REF_NAME)" = "master" ]; }; then \
+        if $(call sanitizer_cache_check_age,$(1)); then \
+            echo "-- $(1) cache is older than $(CACHE_LIFETIME_DAYS) days or missing - enabling upload"; \
+            $(MAKE) kagome_cache_upload_$(1) CACHE_UPLOAD_ALLOWED=true; \
+        else \
+            NEWEST_CACHE=$$(gcloud storage ls "gs://$(CACHE_BUCKET)/build-cache-*-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE_SANITIZERS)-$(1).tar.zst" 2>/dev/null | sort -r | head -n1); \
+            echo "-- $(1) cache is fresh (< $(CACHE_LIFETIME_DAYS)d) - skipping upload"; \
+            echo "-- Latest $(1) cache: $$NEWEST_CACHE"; \
+        fi; \
+    else \
+        if [ "$(CACHE_UPLOAD_ALLOWED)" = "true" ]; then \
+            echo "-- $(1) cache upload is already allowed - proceeding with upload"; \
+            $(call sanitizer_cache_upload,$(1)); \
+        else \
+            echo "-- $(1) cache upload not allowed (not on master branch)"; \
+        fi; \
+    fi
 endef
 
-# Check if sanitizer cache should be uploaded
-define check_and_upload_sanitizer_cache
-	@echo "-- Checking if $(1) cache upload is allowed..."
-	if [ "$(USE_CACHE)" = "true" ] && [ "$(CAN_UPLOAD_CACHE)" = "true" ]; then \
-		echo "-- Preparing $(1) cache upload..."; \
-		$(call generate_sanitizer_cache,$(1)); \
-		echo "-- Uploading $(1) cache to GCS..."; \
-		mkdir -p $(CACHE_PATH)/$(1); \
-		gsutil -q -m cp $(call sanitizer_cache_file,$(1)) gs://$(GCS_BUCKET)/$(1)/cache_$(ARCHITECTURE)_$(BUILD_TYPE_SANITIZERS)_$(1).tar.zst; \
-		echo "-- $(1) cache uploaded."; \
-	else \
-		echo "-- $(1) cache upload not allowed or disabled."; \
-	fi
-endef
+# Cache management targets for sanitizers
+kagome_cache_upload_asan:
+	$(call sanitizer_cache_upload,asan)
 
-# Sanitizer cache handling for each sanitizer type
-kagome_cache_get_tsan:
-	$(call get_sanitizer_cache,tsan)
+kagome_cache_upload_tsan:
+	$(call sanitizer_cache_upload,tsan)
+
+kagome_cache_upload_ubsan:
+	$(call sanitizer_cache_upload,ubsan)
+
+kagome_cache_upload_asanubsan:
+	$(call sanitizer_cache_upload,asanubsan)
 
 kagome_cache_get_asan:
-	$(call get_sanitizer_cache,asan)
+	$(call sanitizer_cache_get,asan)
+
+kagome_cache_get_tsan:
+	$(call sanitizer_cache_get,tsan)
 
 kagome_cache_get_ubsan:
-	$(call get_sanitizer_cache,ubsan)
+	$(call sanitizer_cache_get,ubsan)
 
 kagome_cache_get_asanubsan:
-	$(call get_sanitizer_cache,asanubsan)
-
-kagome_cache_check_and_upload_tsan:
-	$(call check_and_upload_sanitizer_cache,tsan)
+	$(call sanitizer_cache_get,asanubsan)
 
 kagome_cache_check_and_upload_asan:
-	$(call check_and_upload_sanitizer_cache,asan)
+	$(call sanitizer_cache_check_and_upload,asan)
+
+kagome_cache_check_and_upload_tsan:
+	$(call sanitizer_cache_check_and_upload,tsan)
 
 kagome_cache_check_and_upload_ubsan:
-	$(call check_and_upload_sanitizer_cache,ubsan)
+	$(call sanitizer_cache_check_and_upload,ubsan)
 
 kagome_cache_check_and_upload_asanubsan:
-	$(call check_and_upload_sanitizer_cache,asanubsan)
+	$(call sanitizer_cache_check_and_upload,asanubsan)
 
-# Target for getting all sanitizer caches
-kagome_cache_get_all_sanitizers: kagome_cache_get_asan kagome_cache_get_tsan kagome_cache_get_ubsan kagome_cache_get_asanubsan
-	@echo "-- All sanitizer caches retrieved."
+# Display sanitizer cache info
+sanitizer_cache_info:
+	@echo "Sanitizer Cache Configuration:"
+	@echo "  ASAN Cache Tag: $(call sanitizer_cache_tag,asan)"
+	@echo "  TSAN Cache Tag: $(call sanitizer_cache_tag,tsan)" 
+	@echo "  UBSAN Cache Tag: $(call sanitizer_cache_tag,ubsan)"
+	@echo "  ASANUBSAN Cache Tag: $(call sanitizer_cache_tag,asanubsan)"
+	@echo "  Cache lifetime: $(CACHE_LIFETIME_DAYS) days"
+	@echo "  Upload allowed: $(CACHE_UPLOAD_ALLOWED)"
+	@echo "  Cache bucket: gs://$(CACHE_BUCKET)/"
 
-# Target for uploading all sanitizer caches
-kagome_cache_upload_all_sanitizers: kagome_cache_check_and_upload_asan kagome_cache_check_and_upload_tsan kagome_cache_check_and_upload_ubsan kagome_cache_check_and_upload_asanubsan
-	@echo "-- All sanitizer caches uploaded."
+sanitizer_cache_list:
+	@echo "Available sanitizer caches in gs://$(CACHE_BUCKET)/:"
+	@gcloud storage ls "gs://$(CACHE_BUCKET)/build-cache-*-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE_SANITIZERS)-*.tar.zst" 2>/dev/null || echo "No sanitizer caches found"
