@@ -4,46 +4,155 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-name: (Dummy) Auto-Tests Custom Workflow
+name: "Kagome Tidy"
 
 on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
   workflow_dispatch:
     inputs:
-      message:
-        description: 'Custom message to display'
+      build_amd64:
+        description: "Run on linux/amd64?"
+        type: boolean
         required: false
-        default: 'Hello World!'
-        type: 'string'
-      show_env:
-        description: 'Show environment information'
+        default: true
+      build_arm64:
+        description: "Run on linux/arm64?"
+        type: boolean
         required: false
-        default: 'false'
-        type: 'choice'
-        options:
-          - 'true'
-          - 'false'
+        default: false
+      builder_latest_tag:
+        description: "Custom Builder tag"
+        type: string
+        required: false
+        default: "20250322" # Default to latest
+
+  workflow_call:
+    inputs:
+      build_amd64:
+        type: string
+        default: "true"
+        required: false
+      build_arm64:
+        type: string
+        default: "false"
+        required: false
+      builder_latest_tag:
+        type: string
+        default: "20250322" # Default to latest
+        required: false
+    secrets:
+      GCP_SERVICE_ACCOUNT_KEY:
+        required: true
+      GCP_REGISTRY:
+        required: true
+      GCP_PROJECT:
+        required: true
+      HUNTER_USERNAME:
+        required: true
+      HUNTER_TOKEN:
+        required: true
+
+env:
+  DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+  CI: true
+  BUILD_TYPE: Release
+  BUILDER_LATEST_TAG: ${{ inputs.builder_latest_tag || github.event.inputs.builder_latest_tag || '20250322' }}
+  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
 
 jobs:
-  dummy-job:
+  setup_matrix:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
-      - name: Checkout repository
+      - name: "Checkout repository"
         uses: actions/checkout@v4
-        
-      - name: Display message
-        run: echo "${{ github.event.inputs.message }}"
-        
-      - name: Show workflow information
-        run: |
-          echo "Running on branch: ${{ github.ref_name }}"
-          echo "Triggered by: ${{ github.actor }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Workflow run ID: ${{ github.run_id }}"
+
+      - name: "Generate platform matrix"
+        id: matrix
+        uses: ./.github/actions/matrix
+        with:
+          run_amd64: ${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}
+          run_arm64: ${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'false' }}
+          amd64_runner: '"actions-runner-controller"'
+          arm64_runner: '["self-hosted","qdrvm-arm64"]'
           
-      - name: Show environment information
-        if: ${{ github.event.inputs.show_env == 'true' }}
+      - name: "Debug matrix configuration"
         run: |
-          echo "Current directory: $(pwd)"
-          echo "Current time: $(date)"
-          echo "Node.js version: $(node --version)"
-          echo "OS information: $(uname -a)"
+          echo "Input parameters:"
+          echo "build_amd64: ${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}"
+          echo "build_arm64: ${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'false' }}"
+          echo "build_type: Release (fixed)"
+          echo "builder_latest_tag: ${{ env.BUILDER_LATEST_TAG }}"
+          echo "---"
+          echo "Matrix output: ${{ steps.matrix.outputs.matrix }}"
+
+  tidy:
+    needs: setup_matrix
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup_matrix.outputs.matrix) }}
+
+    runs-on: ${{ matrix.runs_on }}
+    timeout-minutes: 60
+
+    env:
+      PLATFORM: ${{ matrix.platform }}
+
+    steps:
+    - name: "Checkout"
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: "Get master branch"
+      if: ${{ github.ref != 'refs/heads/master' }}
+      run: git fetch origin master:master || true
+
+    - name: "Authenticate with Google Cloud"
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+    - name: "Set up Cloud SDK"
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: "Configure Docker for GCR"
+      run: |
+        gcloud auth configure-docker --quiet
+        gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+    - name: "Get commit version"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: make configure
+
+    - name: "Display architecture and platform info"
+      run: |
+        echo "Running tidy check on:"
+        echo "PLATFORM: ${{ matrix.platform }}"
+        echo "BUILD_TYPE: ${{ env.BUILD_TYPE }} (fixed)"
+        echo "BUILDER_TAG: ${{ env.BUILDER_LATEST_TAG }}"
+
+    - name: "Run Clang Tidy"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        echo "Running clang-tidy for PLATFORM=${{ matrix.platform }}"
+        make kagome_dev_docker_build_tidy PLATFORM=${{ matrix.platform }}
+        echo "Tidy check finished!"
+
+    - name: "Report Status"
+      if: always()
+      run: |
+        if [[ "${{ job.status }}" == "success" ]]; then
+          echo "✅ Tidy check passed successfully!"
+        else
+          echo "❌ Tidy check failed! Please fix the issues above."
+          exit 1
+        fi
+

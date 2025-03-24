@@ -9,12 +9,15 @@
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
 	DOCKER_EXEC_RESULT=0 ; \
 	echo "Build type: $(BUILD_TYPE)"; \
+	echo "Architecture: $(ARCHITECTURE) (Platform: $(PLATFORM))"; \
 	docker run -d --name $$CONTAINER_NAME \
 		--platform $(PLATFORM) \
 		--entrypoint "/bin/bash" \
 		-e SHORT_COMMIT_HASH=$$SHORT_COMMIT_HASH \
 		-e BUILD_TYPE=$(BUILD_TYPE) \
 		-e PACKAGE_ARCHITECTURE=$(PACKAGE_ARCHITECTURE) \
+		-e ARCHITECTURE=$(ARCHITECTURE) \
+		-e PLATFORM=$(PLATFORM) \
 		-e GITHUB_HUNTER_USERNAME=$(GITHUB_HUNTER_USERNAME) \
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
 		-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
@@ -26,13 +29,14 @@
 		$(DOCKERHUB_BUILDER_PATH):$(BUILDER_IMAGE_TAG) \
 		-c "tail -f /dev/null"; \
 	docker exec -t $$CONTAINER_NAME /bin/bash -c \
-		"clang --version && \
+		"echo \"Running on architecture: \$$(arch)\" && \
+		clang --version && \
 		cd /opt/kagome && \
 		git config --global --add safe.directory /opt/kagome && \
 		git config --global --add safe.directory /root/.hunter/_Base/Cache/meta && \
 		source /venv/bin/activate && \
 		git submodule update --init && \
-		echo \"Building in $$(pwd)\" && \
+		echo \"Building in \$$(pwd) for architecture \$$(arch)\" && \
 		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
 		cmake --build \"$(BUILD_DIR)\" --target generated -- -j$(BUILD_THREADS) && \
 		cd /opt/kagome/ && export CI='$(CI)' && ./housekeeping/clang-tidy-diff.sh \
