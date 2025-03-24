@@ -40,7 +40,7 @@ namespace kagome::parachain {
     struct ProspectiveView;
   }  // namespace fragment
 
-  // Define the structures needed for FragmentChainAccessor
+  // Define the structures needed for the prospective parachains
   namespace fragment {
     struct RelayBlockViewData {
       std::unordered_map<ParachainId, FragmentChain> fragment_chains;
@@ -227,35 +227,5 @@ namespace kagome::parachain {
                              crypto::Blake2b_StreamHasher<32>> &pvd,
         const CandidateHash &candidate_hash) override;
   };
-
-  // Helper class to access fragment chains from a view
-  namespace fragment {
-    class FragmentChainAccessor {
-     public:
-      explicit FragmentChainAccessor(ProspectiveView &view) : view_(view) {}
-
-      std::optional<std::reference_wrapper<FragmentChain>> find(
-          ParachainId para_id, const Hash &relay_parent) {
-        if (!view_.active_leaves.contains(relay_parent)) {
-          return std::nullopt;
-        }
-
-        auto view_data = utils::get(view_.per_relay_parent, relay_parent);
-        if (!view_data) {
-          return std::nullopt;
-        }
-
-        auto chains_it = utils::get(view_data->get().fragment_chains, para_id);
-        if (!chains_it) {
-          return std::nullopt;
-        }
-
-        return std::ref(*chains_it);
-      }
-
-     private:
-      ProspectiveView &view_;
-    };
-  }  // namespace fragment
 
 }  // namespace kagome::parachain

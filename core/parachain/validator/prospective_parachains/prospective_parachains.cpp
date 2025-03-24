@@ -142,12 +142,10 @@ namespace kagome::parachain {
 
     auto scheduling_lookahead_result =
         parachain_host_->scheduling_lookahead(relay_parent);
-    uint32_t scheduling_lookahead;
+    uint32_t scheduling_lookahead = parachain::DEFAULT_SCHEDULING_LOOKAHEAD;
 
     if (scheduling_lookahead_result) {
       scheduling_lookahead = scheduling_lookahead_result.value();
-    } else {
-      scheduling_lookahead = parachain::DEFAULT_SCHEDULING_LOOKAHEAD;
     }
 
     const auto claim_queue_result = parachain_host_->claim_queue(relay_parent);

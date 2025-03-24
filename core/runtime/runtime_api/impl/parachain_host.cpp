@@ -328,9 +328,8 @@ namespace kagome::runtime {
     if (optional_result.has_value() && optional_result.value().has_value()) {
       // Both optionals have values, return the inner value
       return optional_result.value().value();
-    } else {
-      // Either optional is empty, return the default
-      return parachain::DEFAULT_SCHEDULING_LOOKAHEAD;
     }
+
+    return parachain::DEFAULT_SCHEDULING_LOOKAHEAD;
   }
 }  // namespace kagome::runtime
