@@ -129,8 +129,11 @@ namespace kagome::storage::trie_pruner {
   }
 
   bool TriePrunerImpl::start() {
-    prune_thread_handler_->execute(
-        [self = shared_from_this()]() { self->pruneQueuedStates(); });
+    prune_thread_handler_->execute([self = weak_from_this()]() {
+      if (auto locked_self = self.lock()) {
+        locked_self->pruneQueuedStates();
+      }
+    });
     return true;
   }
 
@@ -169,14 +172,16 @@ namespace kagome::storage::trie_pruner {
       }
     }
     prune_thread_handler_->withIoContext(
-        [self = shared_from_this()](auto &io_ctx) {
+        [self = weak_from_this()](auto &io_ctx) {
           // to let new blocks pass through, otherwise new blocks wait too long
           // for pruner mutex
           auto timer = std::make_shared<boost::asio::steady_timer>(
               io_ctx, std::chrono::milliseconds(10));
 
           timer->async_wait([self, timer](boost::system::error_code) {
-            self->pruneQueuedStates();
+            if (auto locked_self = self.lock()) {
+              locked_self->pruneQueuedStates();
+            }
           });
         });
   }

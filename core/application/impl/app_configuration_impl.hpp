@@ -386,8 +386,7 @@ namespace kagome::application {
     std::optional<BenchmarkConfigSection> benchmark_config_;
     AllowUnsafeRpc allow_unsafe_rpc_ = AllowUnsafeRpc::kAuto;
     uint32_t parachain_runtime_instance_cache_size_ = 100;
-    uint32_t parachain_precompilation_thread_num_ =
-        std::thread::hardware_concurrency() / 2;
+    uint32_t parachain_precompilation_thread_num_ = 4;
     bool should_precompile_parachain_modules_{true};
     bool use_pvf_subprocess_{true};
     size_t pvf_max_workers_{

@@ -783,6 +783,12 @@ namespace kagome::parachain {
       const libp2p::peer::PeerId &peer_id, const network::View &view) {
     REINVOKE(*approval_thread_handler_, store_remote_view, peer_id, view);
 
+    SL_TRACE(logger_,
+             "Remote view update. (peer={}, finalized_number={}, heads=[{}])",
+             peer_id,
+             view.finalized_number_,
+             fmt::join(view.heads_, ","));
+
     primitives::BlockNumber old_finalized_number{0ull};
     if (auto it = peer_views_.find(peer_id); it != peer_views_.end()) {
       old_finalized_number = it->second.finalized_number_;
@@ -1710,6 +1716,12 @@ namespace kagome::parachain {
       return;
     }
 
+    for (const auto &h : updated.lost) {
+      if (auto r = block_tree_->getNumberByHash(h); r.has_value()) {
+        std::ignore = storedBlocks().extract(r.value());
+      }
+    }
+
     const auto &relay_parent = updated.new_head.hash();
 
     if (!storedDistribBlockEntries().get(relay_parent)) {
@@ -2153,17 +2165,18 @@ namespace kagome::parachain {
     }
     auto &entry = opt_entry->get();
 
-    SL_DEBUG(
-        logger_,
-        "Import assignment. (peer id={}, block hash={}, validator index={})",
-        source ? fmt::format("{}", source->get()) : "our",
-        block_hash,
-        validator_index);
+    SL_DEBUG(logger_,
+             "Import assignment. (peer id={}, block hash={}, validator "
+             "index={}, claimed_candidate_indices={})",
+             source ? fmt::format("{}", source->get()) : "our",
+             block_hash,
+             validator_index,
+             fmt::join(claimed_candidate_indices, ","));
 
     // Compute metadata on the assignment.
     auto message_subject{std::make_tuple(
         block_hash, claimed_candidate_indices, validator_index)};
-    auto message_kind{approval::MessageKind::Assignment};
+    const auto message_kind{approval::MessageKind::Assignment};
 
     if (source) {
       const auto &peer_id = source->get();
@@ -2318,23 +2331,26 @@ namespace kagome::parachain {
     if (!opt_entry) {
       logger_->info(
           "Unexpected approval. (peer id={}, block hash={}, validator "
-          "index={})",
+          "index={}, data={})",
           source ? fmt::format("{}", source->get()) : "our",
           block_hash,
-          validator_index);
+          validator_index,
+          common::Buffer{scale::encode(vote).value()});
       return;
     }
 
     SL_DEBUG(logger_,
-             "Import approval. (peer id={}, block hash={}, validator index={})",
+             "Import approval. (peer id={}, block hash={}, validator index={}, "
+             "data={})",
              source ? fmt::format("{}", source->get()) : "our",
              block_hash,
-             validator_index);
+             validator_index,
+             common::Buffer{scale::encode(vote).value()});
 
     auto &entry = opt_entry->get();
     auto message_subject{
         std::make_tuple(block_hash, candidate_indices, validator_index)};
-    auto message_kind{approval::MessageKind::Approval};
+    const auto message_kind{approval::MessageKind::Approval};
 
     if (source) {
       const auto &peer_id = source->get();
@@ -2431,16 +2447,20 @@ namespace kagome::parachain {
               res.error());
       return;
     }
-    auto nar = std::move(res.value());
+    const auto &nar = res.value();
+    SL_TRACE(logger_, "NAR. (peers=[{}])", fmt::join(nar.second, ","));
 
     auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
-      const auto &[_, pr] = nar;
       if (source && peer == source->get()) {
         return false;
       }
 
-      /// TODO(iceseer): topology
-      return pr.contains(peer);
+      if (source) {
+        const auto &[_, pr] = nar;
+        /// TODO(iceseer): topology https://github.com/qdrvm/kagome/issues/2404
+        return pr.contains(peer);
+      }
+      return peer_kn.sent.can_send(message_subject, message_kind);
     };
 
     std::unordered_set<libp2p::peer::PeerId> peers{};
@@ -2678,8 +2698,11 @@ namespace kagome::parachain {
              std::move(peers));
 
     SL_DEBUG(logger_,
-             "Distributing assignment on candidate (block hash={})",
-             indirect_cert.block_hash);
+             "Distributing assignment on candidate (block hash={}, "
+             "block_hash={}, validator={})",
+             indirect_cert.block_hash,
+             indirect_cert.block_hash,
+             indirect_cert.validator);
 
     router_->getValidationProtocol()->write(
         peers,
@@ -2775,9 +2798,9 @@ namespace kagome::parachain {
         *main_pool_handler_, runDistributeApproval, vote, std::move(peers));
 
     SL_DEBUG(logger_,
-             "Sending an approval to peers. (block={}, num peers={})",
+             "Sending an approval to peers. (block={}, data={})",
              vote.payload.payload.block_hash,
-             peers.size());
+             common::Buffer{scale::encode(vote).value()});
 
     router_->getValidationProtocol()->write(peers,
                                             network::vstaging::Approvals{
@@ -3077,10 +3100,11 @@ namespace kagome::parachain {
 
     SL_TRACE(logger_,
              "Advance approval state.(candidate {}, block {}, "
-             "validator {})",
+             "validator {}, tick {})",
              candidate_hash,
              block_hash,
-             validator_index);
+             validator_index,
+             tick_now);
 
     auto result = approval_status(block_entry, candidate_entry);
     if (!result) {
@@ -3449,6 +3473,13 @@ namespace kagome::parachain {
               approval_entry.create_assignment_knowledge(block);
 
           if (!peer_knowledge.contains(assignment_knowledge, message_kind)) {
+            SL_TRACE(logger_,
+                     "Want to send assignment. (block_hash={}, "
+                     "valdator={}, block={})",
+                     assignment_message.first.block_hash,
+                     assignment_message.first.validator,
+                     block);
+
             peer_knowledge.sent.insert(assignment_knowledge, message_kind);
             assignments_to_send.emplace_back(network::vstaging::Assignment{
                 .indirect_assignment_cert = assignment_message.first,

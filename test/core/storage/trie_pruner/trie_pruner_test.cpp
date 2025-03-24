@@ -6,15 +6,16 @@
 
 #include <gtest/gtest.h>
 
-#include <iostream>
-#include <libp2p/crypto/key.hpp>
+#include <functional>
 #include <memory>
 #include <random>
 #include <utility>
 
+#include <libp2p/crypto/key.hpp>
 #include <qtils/test/outcome.hpp>
 
 #include "crypto/hasher/hasher_impl.hpp"
+#include "gmock/gmock.h"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -25,6 +26,7 @@
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_backend_mock.hpp"
 #include "mock/core/storage/write_batch_mock.hpp"
+#include "primitives/common.hpp"
 #include "storage/database_error.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory_impl.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
@@ -33,6 +35,7 @@
 #include "storage/trie_pruner/impl/trie_pruner_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/pool_handler.hpp"
 
 using namespace kagome::storage;
 using namespace kagome::storage::trie_pruner;
@@ -65,9 +68,7 @@ auto hash_from_header(BlockHeader &header) {
 
 class PolkadotTrieMock final : public trie::PolkadotTrie {
  public:
-  explicit PolkadotTrieMock(NodePtr root) : root{std::move(root)} {
-    BOOST_ASSERT(this->root != nullptr);
-  }
+  explicit PolkadotTrieMock(NodePtr root) : root{std::move(root)} {}
 
   outcome::result<bool> contains(const face::View<Buffer> &key) const override {
     throw std::runtime_error{"Not implemented"};
@@ -166,9 +167,10 @@ class TriePrunerTest : public testing::Test {
     testutil::prepareLoggers(soralog::Level::DEBUG);
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();
-    ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
-    ON_CALL(*config_mock, enableThoroughPruning()).WillByDefault(Return(true));
-
+    EXPECT_CALL(*config_mock, statePruningDepth()).WillRepeatedly(Return(16));
+    EXPECT_CALL(*config_mock, enableThoroughPruning())
+        .WillRepeatedly(Return(true));
+    io_ctx = std::make_shared<boost::asio::io_context>();
     trie_node_storage_mock.reset(
         new testing::NiceMock<trie::TrieStorageBackendMock>());
     persistent_storage_mock.reset(
@@ -190,8 +192,21 @@ class TriePrunerTest : public testing::Test {
     ON_CALL(*persistent_storage_mock, getSpace(kDefault))
         .WillByDefault(Invoke([this](auto) { return pruner_space; }));
 
-    pruner = std::make_unique<TriePrunerImpl>(
-        std::make_shared<kagome::application::AppStateManagerMock>(),
+    app_state_manager = std::make_shared<
+        testing::NiceMock<kagome::application::AppStateManagerMock>>();
+
+    // two important object do something at launch here:
+    // pruner schedules pruning tasks to its thread pool and
+    // pruner's pool handle must be started in order for these tasks to be
+    // scheduled since test thread pool doesn't actually do anything, tests run
+    // io context themselves  if they want pruning tasks to be executed
+    EXPECT_CALL(*app_state_manager, atLaunch(_))
+        .WillRepeatedly(Invoke([this](kagome::application::Action &&callback) {
+          on_start_callbacks.emplace_back(std::move(callback));
+        }));
+
+    pruner = std::make_shared<TriePrunerImpl>(
+        app_state_manager,
         trie_node_storage_mock,
         serializer_mock,
         codec_mock,
@@ -199,7 +214,13 @@ class TriePrunerTest : public testing::Test {
         hasher,
         config_mock,
         std::make_shared<kagome::common::WorkerThreadPool>(
-            kagome::TestThreadPool{}));
+            kagome::TestThreadPool{io_ctx}));
+
+    for (auto &cb : on_start_callbacks) {
+      cb();
+    }
+    on_start_callbacks.clear();
+
     ASSERT_TRUE(pruner->prepare());
   }
 
@@ -207,8 +228,9 @@ class TriePrunerTest : public testing::Test {
                              const kagome::blockchain::BlockTree &block_tree) {
     auto config_mock =
         std::make_shared<kagome::application::AppConfigurationMock>();
-    ON_CALL(*config_mock, statePruningDepth()).WillByDefault(Return(16));
-    ON_CALL(*config_mock, enableThoroughPruning()).WillByDefault(Return(true));
+    EXPECT_CALL(*config_mock, statePruningDepth()).WillRepeatedly(Return(16));
+    EXPECT_CALL(*config_mock, enableThoroughPruning())
+        .WillRepeatedly(Return(true));
     trie_pruner::TriePrunerImpl::TriePrunerInfo info{.last_pruned_block =
                                                          last_pruned};
 
@@ -218,8 +240,8 @@ class TriePrunerTest : public testing::Test {
         .WillByDefault(
             Return(outcome::success(std::make_optional(Buffer{info_enc}))));
 
-    pruner = std::make_unique<TriePrunerImpl>(
-        std::make_shared<kagome::application::AppStateManagerMock>(),
+    pruner = std::make_shared<TriePrunerImpl>(
+        app_state_manager,
         trie_node_storage_mock,
         serializer_mock,
         codec_mock,
@@ -227,8 +249,8 @@ class TriePrunerTest : public testing::Test {
         hasher,
         config_mock,
         std::make_shared<kagome::common::WorkerThreadPool>(
-            kagome::TestThreadPool{}));
-    BOOST_ASSERT(pruner->prepare());
+            kagome::TestThreadPool{io_ctx}));
+    ASSERT_TRUE(pruner->prepare());
     ASSERT_OUTCOME_SUCCESS(pruner->recoverState(block_tree));
   }
 
@@ -265,14 +287,16 @@ class TriePrunerTest : public testing::Test {
     BOOST_ASSERT(desc.type != DUMMY);
     return std::static_pointer_cast<trie::TrieNode>(makeNode(desc));
   }
-
-  std::unique_ptr<TriePrunerImpl> pruner;
+  std::shared_ptr<boost::asio::io_context> io_ctx;
+  std::shared_ptr<TriePrunerImpl> pruner;
+  std::shared_ptr<kagome::application::AppStateManagerMock> app_state_manager;
   std::shared_ptr<trie::TrieSerializerMock> serializer_mock;
   std::shared_ptr<trie::TrieStorageBackendMock> trie_node_storage_mock;
   std::shared_ptr<testing::NiceMock<SpacedStorageMock>> persistent_storage_mock;
   std::shared_ptr<trie::CodecMock> codec_mock;
   std::shared_ptr<crypto::Hasher> hasher;
   std::shared_ptr<testing::NiceMock<BufferStorageMock>> pruner_space;
+  std::vector<std::function<void()>> on_start_callbacks;
 };
 
 struct NodeRetriever {
@@ -784,7 +808,11 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
                          trie::Codec::TraversePolicy::UncachedOnly)
             .value());
 
-    BlockHeader block_header{n, hashes[n - 1], block_state_root, {}, {}};
+    BlockHeader block_header{.number = n,
+                             .parent_hash = hashes[n - 1],
+                             .state_root = block_state_root,
+                             .extrinsics_root = {},
+                             .digest = {}};
 
     auto hash = hash_from_header(block_header);
     headers.push_back(block_header);
@@ -844,5 +872,26 @@ TEST_F(TriePrunerTest, FastSyncScenario) {
 
     ASSERT_OUTCOME_SUCCESS(
         pruner->pruneFinalized(headers[n].state_root, headers[n].blockInfo()));
+  }
+}
+
+TEST_F(TriePrunerTest, SchedulePrune) {
+  EXPECT_CALL(*serializer_mock, retrieveTrie("root"_hash256, _))
+      .WillRepeatedly(
+          testing::Return(std::make_shared<PolkadotTrieMock>(nullptr)));
+
+  ON_CALL(*trie_node_storage_mock, batch()).WillByDefault(Invoke([&]() {
+    auto batch = std::make_unique<
+        testing::NiceMock<face::WriteBatchMock<Buffer, Buffer>>>();
+    ON_CALL(*batch, commit()).WillByDefault(Return(outcome::success()));
+    return batch;
+  }));
+
+  for (int i = 0; i < 100; ++i) {
+    pruner->schedulePrune(
+        "root"_hash256, BlockInfo{"hash"_hash256, 42}, PruneReason::Finalized);
+  }
+  while (pruner->getPruneQueueLength() > 0) {
+    io_ctx->run_one();
   }
 }
