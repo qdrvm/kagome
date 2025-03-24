@@ -125,7 +125,8 @@ namespace kagome::network {
     static crypto::Ed25519ProviderImpl ed25519{nullptr};
     auto &vote = j.items.at(0);
     while (true) {
-      auto m = scale::encode(vote.message, j.round_number, set).value();
+      auto m =
+          scale::encode(std::tie(vote.message, j.round_number, set)).value();
       auto ok = ed25519.verify(vote.signature, m, vote.id);
       if (ok and ok.value()) {
         break;
