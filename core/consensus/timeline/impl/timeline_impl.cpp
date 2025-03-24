@@ -480,27 +480,27 @@ namespace kagome::consensus {
         return true;
       }
       unsafe_sync_busy_ = true;
+      auto busy = toSptr(libp2p::common::MovableFinalAction{[WEAK_SELF] {
+        WEAK_LOCK(self);
+        self->unsafe_sync_busy_ = false;
+      }});
       using S = network::Synchronizer;
       synchronizer_->unsafe(
           peer_id,
           *unsafe_sync_->number,
-          [=,
-           this,
-           self{shared_from_this()},
-           busy{toSptr(libp2p::common::MovableFinalAction{[WEAK_SELF] {
-             WEAK_LOCK(self);
-             self->unsafe_sync_busy_ = false;
-           }})}](S::UnsafeRes r) mutable {
+          [WEAK_SELF, peer_id, block_number, busy{std::move(busy)}](
+              S::UnsafeRes res) mutable {
+            WEAK_LOCK(self);
             busy.reset();
-            if (auto *ok = std::get_if<S::UnsafeOk>(&r)) {
-              warp_sync_->unsafe(ok->first, ok->second);
-              unsafe_sync_.reset();
-              current_state_ = SyncState::HEADERS_LOADED;
-              startStateSyncing(peer_id);
+            if (auto *ok = std::get_if<S::UnsafeOk>(&res)) {
+              self->warp_sync_->unsafe(ok->first, ok->second);
+              self->unsafe_sync_.reset();
+              self->current_state_ = SyncState::HEADERS_LOADED;
+              self->startStateSyncing(peer_id);
               return;
             }
-            unsafe_sync_->number = std::get<BlockNumber>(r);
-            warpSync(peer_id, block_number);
+            self->unsafe_sync_->number = std::get<BlockNumber>(res);
+            self->warpSync(peer_id, block_number);
           });
       return true;
     }
