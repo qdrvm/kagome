@@ -5,9 +5,13 @@
 		$(CACHE_DIR)/.cargo/registry \
 		$(CACHE_DIR)/.hunter \
 		$(CACHE_DIR)/.cache/ccache  ; \
-	CONTAINER_NAME=kagome_dev_build_$$(openssl rand -hex 6); \
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+	CONTAINER_NAME=kagome_dev_tidy_$(ARCHITECTURE)_$$(echo $(PLATFORM) | sha256sum | cut -c1-8); \
+	echo "Using container name: $$CONTAINER_NAME"; \
+	echo "Removing any existing container with the same name..."; \
+	docker rm -f $$CONTAINER_NAME > /dev/null 2>&1 || true; \
 	DOCKER_EXEC_RESULT=0 ; \
+	trap 'echo "Cleaning up container $$CONTAINER_NAME"; docker rm -f $$CONTAINER_NAME > /dev/null 2>&1 || true' EXIT INT TERM; \
 	echo "Build type: $(BUILD_TYPE)"; \
 	echo "Architecture: $(ARCHITECTURE) (Platform: $(PLATFORM))"; \
 	docker run -d --name $$CONTAINER_NAME \
@@ -42,9 +46,9 @@
 		cmake --build \"$(BUILD_DIR)\" --target generated -- -j$(BUILD_THREADS) && \
 		cd /opt/kagome/ && export CI='$(CI)' && ./housekeeping/clang-tidy-diff.sh \
 		" || DOCKER_EXEC_RESULT=$$? ; \
+	docker stop $$CONTAINER_NAME || true; \
+	docker rm $$CONTAINER_NAME || true; \
 	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
 		echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
-		docker stop $$CONTAINER_NAME; \
 		exit $$DOCKER_EXEC_RESULT; \
-	fi; \
-	docker stop $$CONTAINER_NAME
+	fi
