@@ -1412,7 +1412,7 @@ namespace kagome::consensus::grandpa {
       auto *index = vote.is<Prevote>()   ? &votes.prevote_idx
                   : vote.is<Precommit>() ? &votes.precommit_idx
                                          : nullptr;
-      if (index and not*index) {
+      if (index != nullptr and not index->has_value()) {
         *index = votes.seen.size();
       }
     }
