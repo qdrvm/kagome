@@ -7,7 +7,10 @@
 #include "crypto/key_store/key_store_impl.hpp"
 
 #include <gmock/gmock.h>
+
 #include <optional>
+
+#include <qtils/test/outcome.hpp>
 
 #include "crypto/bandersnatch/bandersnatch_provider_impl.hpp"
 #include "crypto/bip39/impl/bip39_provider_impl.hpp"
@@ -17,10 +20,7 @@
 #include "crypto/pbkdf2/impl/pbkdf2_provider_impl.hpp"
 #include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
-
 #include "mock/core/application/app_state_manager_mock.hpp"
-
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
@@ -90,8 +90,8 @@ struct KeyStoreTest : public test::BaseFS_Test {
         std::make_shared<BandersnatchProviderImpl>(hasher);
 
     auto pbkdf2_provider = std::make_shared<Pbkdf2ProviderImpl>();
-    bip39_provider =
-        std::make_shared<Bip39ProviderImpl>(std::move(pbkdf2_provider), hasher);
+    bip39_provider = std::make_shared<Bip39ProviderImpl>(
+        std::move(pbkdf2_provider), csprng, hasher);
 
     std::shared_ptr key_file_storage =
         kagome::crypto::KeyFileStorage::createAt(crypto_store_test_directory)
@@ -122,19 +122,21 @@ struct KeyStoreTest : public test::BaseFS_Test {
     mnemonic =
         "ozone drill grab fiber curtain grace pudding thank cruise elder eight "
         "picnic";
-    EXPECT_OUTCOME_TRUE(e, Buffer::fromHex("9e885d952ad362caeb4efe34a8e91bd2"));
+    ASSERT_OUTCOME_SUCCESS(e,
+                           Buffer::fromHex("9e885d952ad362caeb4efe34a8e91bd2"));
     entropy = std::move(e);
-    EXPECT_OUTCOME_TRUE(s,
-                        Blob<32>::fromHex("a4681403ba5b6a3f3bd0b0604ce439a78244"
-                                          "c7d43b127ec35cd8325602dd47fd"));
+    ASSERT_OUTCOME_SUCCESS(
+        s,
+        Blob<32>::fromHex("a4681403ba5b6a3f3bd0b0604ce439a78244"
+                          "c7d43b127ec35cd8325602dd47fd"));
     seed = s;
     key_type = KeyTypes::BABE;
 
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         sr_publ,
         Sr25519PublicKey::fromHex("56a03c8afc0e7a3a8b1d53bcc875ba5b6364754f9045"
                                   "16009b57ef3adf96f61f"));
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         sr_secr,
         Sr25519SecretKey::fromHex(SecureCleanGuard{
             "ec96cb0816b67b045baae21841952a61ecb0612a109293e10c5453b950659c0a8b"
@@ -169,8 +171,8 @@ TEST_F(KeyStoreTest, generateEd25519KeypairMnemonicSuccess) {
   auto res = key_store->ed25519().findKeypair(key_type, ed_pair.public_key);
   ASSERT_EQ(res, std::nullopt);
 
-  EXPECT_OUTCOME_TRUE(pair,
-                      key_store->ed25519().generateKeypair(key_type, mnemonic));
+  ASSERT_OUTCOME_SUCCESS(
+      pair, key_store->ed25519().generateKeypair(key_type, mnemonic));
   ASSERT_EQ(pair, ed_pair);
 
   // check that created pair is now contained in memory
@@ -188,8 +190,8 @@ TEST_F(KeyStoreTest, generateEd25519KeypairMnemonicSuccess) {
  * @and generated key pair is stored in memory
  */
 TEST_F(KeyStoreTest, generateSr25519KeypairMnemonicSuccess) {
-  EXPECT_OUTCOME_TRUE(pair,
-                      key_store->sr25519().generateKeypair(key_type, mnemonic));
+  ASSERT_OUTCOME_SUCCESS(
+      pair, key_store->sr25519().generateKeypair(key_type, mnemonic));
   ASSERT_EQ(pair, sr_pair);
 
   // check that created pair is now contained in memory
@@ -209,9 +211,10 @@ TEST_F(KeyStoreTest, generateEd25519KeypairSeedSuccess) {
   auto res = key_store->ed25519().findKeypair(key_type, ed_pair.public_key);
   ASSERT_EQ(res, std::nullopt);
 
-  EXPECT_OUTCOME_TRUE(pair,
-                      key_store->ed25519().generateKeypair(
-                          key_type, Ed25519Seed::from(SecureCleanGuard{seed})));
+  ASSERT_OUTCOME_SUCCESS(
+      pair,
+      key_store->ed25519().generateKeypair(
+          key_type, Ed25519Seed::from(SecureCleanGuard{seed})));
   ASSERT_EQ(pair, ed_pair);
 
   // check that created pair is now contained in memory
@@ -231,9 +234,10 @@ TEST_F(KeyStoreTest, generateSr25519KeypairSeedSuccess) {
   auto res = key_store->sr25519().findKeypair(key_type, sr_pair.public_key);
   ASSERT_EQ(res, std::nullopt);
 
-  EXPECT_OUTCOME_TRUE(pair,
-                      key_store->sr25519().generateKeypair(
-                          key_type, Sr25519Seed::from(SecureCleanGuard{seed})));
+  ASSERT_OUTCOME_SUCCESS(
+      pair,
+      key_store->sr25519().generateKeypair(
+          key_type, Sr25519Seed::from(SecureCleanGuard{seed})));
   ASSERT_EQ(pair, sr_pair);
 
   // check that created pair is now contained in memory
@@ -250,8 +254,8 @@ TEST_F(KeyStoreTest, generateSr25519KeypairSeedSuccess) {
  * @then a new ed25519 key pair is generated and stored on disk
  */
 TEST_F(KeyStoreTest, generateEd25519KeypairStoreSuccess) {
-  EXPECT_OUTCOME_TRUE(pair,
-                      key_store->ed25519().generateKeypairOnDisk(key_type));
+  ASSERT_OUTCOME_SUCCESS(pair,
+                         key_store->ed25519().generateKeypairOnDisk(key_type));
 
   // check that created pair is contained in the storage on disk
   auto found = key_store->ed25519().findKeypair(key_type, pair.public_key);
@@ -267,8 +271,8 @@ TEST_F(KeyStoreTest, generateEd25519KeypairStoreSuccess) {
  * @then a new ed25519 key pair is generated and stored on disk
  */
 TEST_F(KeyStoreTest, generateSr25519KeypairStoreSuccess) {
-  EXPECT_OUTCOME_TRUE(pair,
-                      key_store->sr25519().generateKeypairOnDisk(key_type));
+  ASSERT_OUTCOME_SUCCESS(pair,
+                         key_store->sr25519().generateKeypairOnDisk(key_type));
 
   // check that created pair is contained in the storage on disk
   auto found = key_store->sr25519().findKeypair(key_type, pair.public_key);
@@ -284,9 +288,9 @@ TEST_F(KeyStoreTest, generateSr25519KeypairStoreSuccess) {
  * @then collection of all ed25519 public keys of provided type is returned
  */
 TEST_F(KeyStoreTest, getEd25519PublicKeysSuccess) {
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       pair1, key_store->ed25519().generateKeypairOnDisk(KeyTypes::BABE));
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       pair2, key_store->ed25519().generateKeypairOnDisk(KeyTypes::BABE));
   EXPECT_OUTCOME_SUCCESS(
       pair4, key_store->sr25519().generateKeypairOnDisk(KeyTypes::BABE));
@@ -307,9 +311,9 @@ TEST_F(KeyStoreTest, getEd25519PublicKeysSuccess) {
  * @then collection of all sr25519 public keys of provided type is returned
  */
 TEST_F(KeyStoreTest, getSr25519PublicKeysSuccess) {
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       pair1, key_store->sr25519().generateKeypairOnDisk(KeyTypes::BABE));
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       pair2, key_store->sr25519().generateKeypairOnDisk(KeyTypes::BABE));
   EXPECT_OUTCOME_SUCCESS(
       pair4, key_store->ed25519().generateKeypairOnDisk(KeyTypes::BABE));

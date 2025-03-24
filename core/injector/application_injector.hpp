@@ -59,12 +59,13 @@ namespace kagome {
 
   namespace parachain {
     class ParachainObserver;
-    class ParachainProcessorImpl;
+    class ParachainProcessor;
     class ApprovalDistribution;
 
     namespace statement_distribution {
       class StatementDistribution;
-    }
+      class IStatementDistribution;
+    }  // namespace statement_distribution
   }  // namespace parachain
 
   namespace runtime {
@@ -108,6 +109,10 @@ namespace kagome {
     class Key;
   }
 
+  namespace state_metrics {
+    class StateMetrics;
+  }
+
   class Watchdog;
 }  // namespace kagome
 
@@ -138,8 +143,7 @@ namespace kagome::injector {
     std::shared_ptr<network::SyncProtocolObserver> injectSyncObserver();
     std::shared_ptr<network::StateProtocolObserver> injectStateObserver();
     std::shared_ptr<parachain::ParachainObserver> injectParachainObserver();
-    std::shared_ptr<parachain::ParachainProcessorImpl>
-    injectParachainProcessor();
+    std::shared_ptr<parachain::ParachainProcessor> injectParachainProcessor();
     std::shared_ptr<parachain::statement_distribution::StatementDistribution>
     injectStatementDistribution();
     std::shared_ptr<parachain::ApprovalDistribution>
@@ -166,6 +170,7 @@ namespace kagome::injector {
     std::shared_ptr<application::mode::RecoveryMode> injectRecoveryMode();
     std::shared_ptr<benchmark::BlockExecutionBenchmark> injectBlockBenchmark();
     std::shared_ptr<key::Key> injectKey();
+    std::shared_ptr<state_metrics::StateMetrics> injectStateMetrics();
 
    protected:
     std::shared_ptr<class KagomeNodeInjectorImpl> pimpl_;

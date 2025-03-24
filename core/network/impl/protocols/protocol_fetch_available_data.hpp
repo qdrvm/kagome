@@ -28,25 +28,24 @@ namespace kagome::network {
                                            ScaleMessageReadWriter> {
    public:
     static constexpr const char *kName = "FetchAvailableDataProtocol";
+    static constexpr std::chrono::seconds kRequestTimeout{2};
 
     FetchAvailableDataProtocolImpl(
-        libp2p::Host &host,
+        RequestResponseInject inject,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::AvailabilityStore> av_store,
-        common::MainThreadPool &main_thread_pool)
+        std::shared_ptr<parachain::AvailabilityStore> av_store)
         : RequestResponseProtocolImpl<
-              FetchAvailableDataRequest,
-              FetchAvailableDataResponse,
-              ScaleMessageReadWriter>{kName,
-                                      host,
-                                      make_protocols(
-                                          kFetchAvailableDataProtocol,
-                                          genesis_hash,
-                                          kProtocolPrefixPolkadot),
-                                      log::createLogger(
-                                          kName, "req_available_data_protocol"),
-                                      main_thread_pool},
+            FetchAvailableDataRequest,
+            FetchAvailableDataResponse,
+            ScaleMessageReadWriter>{kName,
+                                    std::move(inject),
+                                    make_protocols(kFetchAvailableDataProtocol,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(
+                                        kName, "req_available_data_protocol"),
+                                    kRequestTimeout},
           av_store_{std::move(av_store)} {}
 
    private:
@@ -73,24 +72,24 @@ namespace kagome::network {
                                            ScaleMessageReadWriter> {
    public:
     static constexpr const char *kName = "FetchStatementProtocol";
+    static constexpr std::chrono::seconds kRequestTimeout{1};
 
     StatementFetchingProtocol(
-        libp2p::Host &host,
+        RequestResponseInject inject,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::BackingStore> backing_store,
-        common::MainThreadPool &main_thread_pool)
+        std::shared_ptr<parachain::BackingStore> backing_store)
         : RequestResponseProtocolImpl<
-              FetchStatementRequest,
-              FetchStatementResponse,
-              ScaleMessageReadWriter>{kName,
-                                      host,
-                                      make_protocols(kFetchStatementProtocol,
-                                                     genesis_hash,
-                                                     kProtocolPrefixPolkadot),
-                                      log::createLogger(
-                                          kName, "req_statement_protocol"),
-                                      main_thread_pool},
+            FetchStatementRequest,
+            FetchStatementResponse,
+            ScaleMessageReadWriter>{kName,
+                                    std::move(inject),
+                                    make_protocols(kFetchStatementProtocol,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(kName,
+                                                      "req_statement_protocol"),
+                                    kRequestTimeout},
           backing_store_{std::move(backing_store)} {}
 
    private:

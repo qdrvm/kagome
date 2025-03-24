@@ -356,12 +356,16 @@ TEST_F(VotingRoundTest, EquivocateDoesNotDoubleCount) {
   // Another vote in the same round; should be ignored, cause already reported
   round_->onPrevote({}, alice3, Propagation::NEEDLESS);
 
-  round_->update(false, true, false);
+  round_->update(IsPreviousRoundChanged{false},
+                 IsPrevotesChanged{true},
+                 IsPrecommitsChanged{false});
 
   ASSERT_EQ(round_->prevoteGhost(), std::nullopt);
   auto bob = preparePrevote(kBob, kBobSignature, Prevote{7, "FA"_H});
   round_->onPrevote({}, bob, Propagation::NEEDLESS);
-  round_->update(false, true, false);
+  round_->update(IsPreviousRoundChanged{false},
+                 IsPrevotesChanged{true},
+                 IsPrecommitsChanged{false});
   ASSERT_EQ(round_->prevoteGhost(), (BlockInfo{7, "FA"_H}));
 }
 
@@ -390,7 +394,9 @@ TEST_F(VotingRoundTest, HistoricalVotesWorks) {
               saveHistoricalVote(
                   round_->voterSetId(), round_->roundNumber(), alice2, true));
   round_->onPrevote({}, alice2, Propagation::NEEDLESS);
-  round_->update(false, true, true);
+  round_->update(IsPreviousRoundChanged{false},
+                 IsPrevotesChanged{true},
+                 IsPrecommitsChanged{true});
 }
 
 /**

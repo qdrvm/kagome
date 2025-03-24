@@ -71,7 +71,7 @@ namespace kagome::offchain {
 
 namespace kagome::parachain {
   class BitfieldStore;
-  class ParachainProcessorImpl;
+  class ParachainProcessor;
   struct BackedCandidatesSource;
 }  // namespace kagome::parachain
 

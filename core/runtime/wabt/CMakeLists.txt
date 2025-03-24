@@ -14,5 +14,6 @@ target_link_libraries(wasm_instrument
     outcome
     primitives
     wabt::wabt
+    runtime_common
     )
 kagome_install(wasm_instrument)

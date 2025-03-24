@@ -57,9 +57,9 @@ namespace kagome::parachain {
       if (auto self = weak.lock()) {
         self->pvf_thread_handler_->execute([weak] {
           if (auto self = weak.lock()) {
-            auto r = self->onBlock();
-            if (r.has_error()) {
-              SL_DEBUG(self->logger_, "onBlock error {}", r.error());
+            auto res = self->onBlock();
+            if (res.has_error()) {
+              SL_DEBUG(self->logger_, "onBlock error {}", res.error());
             }
           }
         });
@@ -69,10 +69,12 @@ namespace kagome::parachain {
 
   outcome::result<void> PvfPrecheck::onBlock() {
     auto block = block_tree_->bestBlock();
-    OUTCOME_TRY(signer, signer_factory_->at(block.hash));
-    if (not signer.has_value()) {
+    OUTCOME_TRY(opt_signer, signer_factory_->at(block.hash));
+    if (!opt_signer) {
       return outcome::success();
     }
+    auto &signer = *opt_signer;
+
     if (not session_code_accept_.empty()
         and signer->getSessionIndex() < session_code_accept_.begin()->first) {
       SL_WARN(logger_, "past session");
@@ -85,8 +87,8 @@ namespace kagome::parachain {
         continue;
       }
       std::optional<bool> accepted;
-      for (auto &p : session_code_accept_) {
-        if (auto it = p.second.find(code_hash); it != p.second.end()) {
+      for (auto &code_hashes : session_code_accept_ | std::views::values) {
+        if (auto it = code_hashes.find(code_hash); it != code_hashes.end()) {
           accepted = it->second;
           break;
         }
@@ -100,7 +102,8 @@ namespace kagome::parachain {
         auto &code_zstd = *code_zstd_res.value();
         auto res = [&]() -> outcome::result<void> {
           OUTCOME_TRY(config, sessionParams(*parachain_api_, block.hash));
-          OUTCOME_TRY(pvf_pool_->precompile(code_hash, code_zstd, config.context_params));
+          OUTCOME_TRY(pvf_pool_->precompile(
+              code_hash, code_zstd, config.context_params));
           return outcome::success();
         }();
         if (res) {

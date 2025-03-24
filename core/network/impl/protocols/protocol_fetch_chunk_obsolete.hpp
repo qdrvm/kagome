@@ -16,6 +16,7 @@
 #include "blockchain/genesis_block_hash.hpp"
 #include "log/logger.hpp"
 #include "network/common.hpp"
+#include "network/helpers/scale_message_read_writer.hpp"
 #include "network/impl/protocols/request_response_protocol.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "utils/non_copyable.hpp"
@@ -37,25 +38,26 @@ namespace kagome::network {
                                            ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
+    static constexpr std::chrono::seconds kRequestTimeout{1};
+
    public:
     FetchChunkProtocolObsoleteImpl(
-        libp2p::Host &host,
+        const RequestResponseInject &inject,
         const application::ChainSpec & /*chain_spec*/,
         const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::ParachainProcessorImpl> pp,
+        std::shared_ptr<parachain::ParachainStorage> pp,
         common::MainThreadPool &main_thread_pool)
         : RequestResponseProtocolImpl<
-              FetchChunkRequest,
-              FetchChunkResponseObsolete,
-              ScaleMessageReadWriter>{kFetchChunkProtocolName,
-                                      host,
-                                      make_protocols(
-                                          kFetchChunkProtocolObsolete,
-                                          genesis_hash,
-                                          kProtocolPrefixPolkadot),
-                                      log::createLogger(kFetchChunkProtocolName,
-                                                        "req_chunk_protocol"),
-                                      main_thread_pool},
+            FetchChunkRequest,
+            FetchChunkResponseObsolete,
+            ScaleMessageReadWriter>{kFetchChunkProtocolName,
+                                    inject,
+                                    make_protocols(kFetchChunkProtocolObsolete,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(kFetchChunkProtocolName,
+                                                      "req_chunk_protocol"),
+                                    kRequestTimeout},
           pp_{std::move(pp)} {
       BOOST_ASSERT(pp_);
     }
@@ -106,7 +108,7 @@ namespace kagome::network {
                  peer_id);
       }
 
-      return std::move(res);
+      return res;
     }
 
     void onTxRequest(const RequestType &request) override {
@@ -117,7 +119,7 @@ namespace kagome::network {
     }
 
     inline static const auto kFetchChunkProtocolName = "FetchChunkProtocol_v1"s;
-    std::shared_ptr<parachain::ParachainProcessorImpl> pp_;
+    std::shared_ptr<parachain::ParachainStorage> pp_;
   };
 
 }  // namespace kagome::network

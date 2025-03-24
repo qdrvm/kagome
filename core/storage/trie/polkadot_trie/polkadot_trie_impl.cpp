@@ -7,10 +7,12 @@
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 
 #include <functional>
+#include <memory>
 #include <utility>
 
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 
 using kagome::common::Buffer;
 
@@ -35,12 +37,18 @@ namespace kagome::storage::trie {
           root_{std::move(root)} {}
 
     static outcome::result<std::unique_ptr<OpaqueNodeStorage>> createAt(
-        std::shared_ptr<OpaqueTrieNode> root,
+        std::shared_ptr<OpaqueTrieNode> opaque_root,
         const PolkadotTrie::NodeRetrieveFunction &node_retriever,
         PolkadotTrie::ValueRetrieveFunction value_retriever) {
-      OUTCOME_TRY(root_node, node_retriever(root));
+      std::shared_ptr<TrieNode> root;
+      if (opaque_root->isDummy()) {
+        OUTCOME_TRY(root_node, node_retriever(opaque_root->asDummy()));
+        root = root_node;
+      } else {
+        root = std::static_pointer_cast<TrieNode>(opaque_root);
+      }
       return std::make_unique<OpaqueNodeStorage>(
-          node_retriever, std::move(value_retriever), std::move(root_node));
+          node_retriever, std::move(value_retriever), std::move(root));
     }
 
     [[nodiscard]] const std::shared_ptr<TrieNode> &getRoot() {
@@ -62,10 +70,12 @@ namespace kagome::storage::trie {
       // nodes are meant to hide their content
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       auto &mut_parent = const_cast<BranchNode &>(parent);
-      auto &opaque_child = parent.children.at(idx);
-      OUTCOME_TRY(child, retrieve_node_(opaque_child));
-      mut_parent.children.at(idx) = child;
-      return child;
+      const auto &opaque_child = parent.getChild(idx);
+      if (opaque_child != nullptr && opaque_child->isDummy()) {
+        OUTCOME_TRY(child, retrieve_node_(opaque_child->asDummy()));
+        mut_parent.replaceDummyUnsafe(idx, child);
+      }
+      return std::static_pointer_cast<const TrieNode>(parent.getChild(idx));
     }
 
     [[nodiscard]] outcome::result<std::shared_ptr<TrieNode>> getChild(
@@ -109,7 +119,7 @@ namespace {
     if (!parent->isBranch()) {
       return outcome::success();
     }
-    auto &branch = dynamic_cast<BranchNode &>(*parent);
+    auto &branch = parent->asBranch();
     auto bitmap = branch.childrenBitmap();
     if (bitmap == 0) {
       if (parent->getValue()) {
@@ -136,13 +146,15 @@ namespace {
                  "handleDeletion: turn a branch with single leaf child into "
                  "its child");
       } else {
-        branch.children = dynamic_cast<BranchNode &>(*child).children;
+        branch.setChildren(child->asBranch().getChildren());
         parent->setValue(child->getValue());
         SL_TRACE(logger,
                  "handleDeletion: turn a branch with single branch child into "
                  "its child");
       }
-      parent->getMutKeyNibbles().putUint8(idx).put(child->getKeyNibbles());
+      auto nibbles = parent->getKeyNibbles();
+      nibbles.putUint8(idx).put(child->getKeyNibbles());
+      parent->setKeyNibbles(std::move(nibbles));
     }
     return outcome::success();
   }
@@ -164,7 +176,7 @@ namespace {
              sought_key);
 
     if (node->isBranch()) {
-      auto &branch = dynamic_cast<BranchNode &>(*node);
+      auto &branch = node->asBranch();
       if (node->getKeyNibbles() == sought_key) {
         SL_TRACE(logger, "deleteNode: deleting value in branch; stop");
         node->setValue(ValueAndHash{});
@@ -179,7 +191,7 @@ namespace {
         OUTCOME_TRY(deleteNode(
             logger, child, sought_key.subspan(length + 1), node_storage));
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-        branch.children[sought_key[length]] = child;
+        branch.setChild(sought_key[length], child);
       }
       OUTCOME_TRY(handleDeletion(logger, node, node_storage));
     } else if (node->getKeyNibbles() == sought_key) {
@@ -193,7 +205,7 @@ namespace {
       PolkadotTrie::NodePtr &node,
       const PolkadotTrie::OnDetachCallback &callback) {
     auto key = node->getKeyNibbles().toByteBuffer();
-    OUTCOME_TRY(callback(key, std::move(node->getMutableValue().value)));
+    OUTCOME_TRY(callback(key, std::move(*node).getValue().value));
     return outcome::success();
   }
 
@@ -228,11 +240,11 @@ namespace {
               prefix.begin(), prefix.end(), parent->getKeyNibbles().begin())) {
         // remove all children one by one according to limit
         if (parent->isBranch()) {
-          auto &branch = dynamic_cast<BranchNode &>(*parent);
+          auto &branch = parent->asBranch();
           for (uint8_t child_idx = 0; child_idx < branch.kMaxChildren;
                child_idx++) {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-            if (branch.children[child_idx] != nullptr) {
+            if (branch.getChild(child_idx) != nullptr) {
               OUTCOME_TRY(child_node, node_storage.getChild(branch, child_idx));
               OUTCOME_TRY(detachNode(logger,
                                      child_node,
@@ -244,13 +256,15 @@ namespace {
                                      trie,
                                      node_storage));
               // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-              branch.children[child_idx] = child_node;
+              branch.setChild(child_idx, child_node);
             }
           }
         }
         if (not limit or count < limit.value()) {
           if (parent->getValue()) {
-            OUTCOME_TRY(trie.retrieveValue(parent->getMutableValue()));
+            ValueAndHash value_and_hash = parent->getValue();
+            OUTCOME_TRY(trie.retrieveValue(value_and_hash));
+            parent->setValue(std::move(value_and_hash));
             OUTCOME_TRY(notifyOnDetached(parent, callback));
             ++count;
           }
@@ -277,8 +291,8 @@ namespace {
 
     if (parent->isBranch()) {
       const auto length = parent->getKeyNibbles().size();
-      auto &branch = dynamic_cast<BranchNode &>(*parent);
-      auto &child = branch.children.at(prefix[length]);
+      auto &branch = parent->asBranch();
+      const auto &child = branch.getChild(prefix[length]);
       if (child != nullptr) {
         OUTCOME_TRY(child_node, node_storage.getChild(branch, prefix[length]));
         OUTCOME_TRY(detachNode(logger,
@@ -291,7 +305,7 @@ namespace {
                                trie,
                                node_storage));
         // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-        branch.children[prefix[length]] = child_node;
+        branch.setChild(prefix[length], child_node);
         OUTCOME_TRY(handleDeletion(logger, parent, node_storage));
       }
     }
@@ -319,17 +333,17 @@ namespace kagome::storage::trie {
 
   PolkadotTrieImpl::PolkadotTrieImpl(RetrieveFunctions retrieve_functions)
       : nodes_{std::make_unique<OpaqueNodeStorage>(
-            std::move(retrieve_functions.retrieve_node),
-            std::move(retrieve_functions.retrieve_value),
-            nullptr)},
+          std::move(retrieve_functions.retrieve_node),
+          std::move(retrieve_functions.retrieve_value),
+          nullptr)},
         logger_{log::createLogger("PolkadotTrie", "trie")} {}
 
   PolkadotTrieImpl::PolkadotTrieImpl(NodePtr root,
                                      RetrieveFunctions retrieve_functions)
       : nodes_{std::make_unique<OpaqueNodeStorage>(
-            std::move(retrieve_functions.retrieve_node),
-            std::move(retrieve_functions.retrieve_value),
-            std::move(root))},
+          std::move(retrieve_functions.retrieve_node),
+          std::move(retrieve_functions.retrieve_value),
+          std::move(root))},
         logger_{log::createLogger("PolkadotTrie", "trie")} {}
 
   //  PolkadotTrieImpl::~PolkadotTrieImpl() {}
@@ -415,7 +429,7 @@ namespace kagome::storage::trie {
       // child to the new branch
       if (parent->getKeyNibbles().size() > key_nibbles.size()) {
         parent->setKeyNibbles(parent->getKeyNibbles().subbuffer(length + 1));
-        br->children.at(parentKey[length]) = parent;
+        br->setChild(parentKey[length], parent);
       }
 
       return br;
@@ -427,13 +441,13 @@ namespace kagome::storage::trie {
       // if leaf's key is covered by this branch, then make the leaf's
       // value the value at this branch
       br->setValue(parent->getValue());
-      br->children.at(key_nibbles[length]) = node;
+      br->setChild(key_nibbles[length], node);
     } else {
       // otherwise, make the leaf a child of the branch and update its
       // partial key
       parent->setKeyNibbles(parent->getKeyNibbles().subbuffer(length + 1));
-      br->children.at(parentKey[length]) = parent;
-      br->children.at(key_nibbles[length]) = node;
+      br->setChild(parentKey[length], parent);
+      br->setChild(key_nibbles[length], node);
     }
 
     return br;
@@ -452,11 +466,11 @@ namespace kagome::storage::trie {
       OUTCOME_TRY(child, retrieveChild(*parent, key_nibbles[length]));
       if (child) {
         OUTCOME_TRY(n, insert(child, key_nibbles.subspan(length + 1), node));
-        parent->children.at(key_nibbles[length]) = n;
+        parent->setChild(key_nibbles[length], n);
         return parent;
       }
       node->setKeyNibbles(KeyNibbles{key_nibbles.subspan(length + 1)});
-      parent->children.at(key_nibbles[length]) = node;
+      parent->setChild(key_nibbles[length], node);
       return parent;
     }
     auto br =
@@ -465,13 +479,13 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(
         new_branch,
         insert(nullptr, parent->getKeyNibbles().subspan(length + 1), parent));
-    br->children.at(parentIdx) = new_branch;
+    br->setChild(parentIdx, new_branch);
     if (key_nibbles.size() <= length) {
       br->setValue(node->getValue());
     } else {
       OUTCOME_TRY(new_child,
                   insert(nullptr, key_nibbles.subspan(length + 1), node));
-      br->children.at(key_nibbles[length]) = new_child;
+      br->setChild(key_nibbles[length], new_child);
     }
     return br;
   }

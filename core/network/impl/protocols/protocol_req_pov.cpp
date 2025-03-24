@@ -20,22 +20,23 @@ namespace kagome::network {
                                     ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
-    ReqPovProtocolImpl(libp2p::Host &host,
+    static constexpr std::chrono::seconds kRequestTimeout{2};
+
+    ReqPovProtocolImpl(RequestResponseInject &&inject,
                        const application::ChainSpec &chain_spec,
                        const blockchain::GenesisBlockHash &genesis_hash,
-                       std::shared_ptr<ReqPovObserver> observer,
-                       common::MainThreadPool &main_thread_pool)
+                       std::shared_ptr<ReqPovObserver> observer)
         : RequestResponseProtocolImpl<
-              RequestPov,
-              ResponsePov,
-              ScaleMessageReadWriter>{kReqPovProtocolName,
-                                      host,
-                                      make_protocols(kReqPovProtocol,
-                                                     genesis_hash,
-                                                     kProtocolPrefixPolkadot),
-                                      log::createLogger(kReqPovProtocolName,
-                                                        "req_pov_protocol"),
-                                      main_thread_pool},
+            RequestPov,
+            ResponsePov,
+            ScaleMessageReadWriter>{kReqPovProtocolName,
+                                    std::move(inject),
+                                    make_protocols(kReqPovProtocol,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(kReqPovProtocolName,
+                                                      "req_pov_protocol"),
+                                    kRequestTimeout},
           observer_{std::move(observer)} {}
 
    protected:
@@ -70,16 +71,12 @@ namespace kagome::network {
   };
 
   ReqPovProtocol::ReqPovProtocol(
-      libp2p::Host &host,
+      RequestResponseInject inject,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
-      std::shared_ptr<ReqPovObserver> observer,
-      common::MainThreadPool &main_thread_pool)
-      : impl_{std::make_shared<ReqPovProtocolImpl>(host,
-                                                   chain_spec,
-                                                   genesis_hash,
-                                                   std::move(observer),
-                                                   main_thread_pool)} {}
+      std::shared_ptr<ReqPovObserver> observer)
+      : impl_{std::make_shared<ReqPovProtocolImpl>(
+          std::move(inject), chain_spec, genesis_hash, std::move(observer))} {}
 
   const Protocol &ReqPovProtocol::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");

@@ -14,13 +14,13 @@
 #include <wabt/wast-lexer.h>
 #include <wabt/wast-parser.h>
 #include <wabt/wat-writer.h>
+#include <qtils/test/outcome.hpp>
 
 #include "common/bytestr.hpp"
 #include "log/logger.hpp"
 #include "runtime/wabt/instrument.hpp"
 #include "runtime/wabt/stack_limiter.hpp"
 #include "runtime/wabt/util.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 static constexpr uint32_t ACTIVATION_FRAME_COST = 2;
@@ -51,12 +51,12 @@ void expectWasm(const wabt::Module &actual, std::string_view expected) {
 
 uint32_t compute_cost(std::string_view data) {
   auto module = kagome::runtime::fromWat(data);
-  EXPECT_OUTCOME_TRUE(cost,
-                      kagome::runtime::detail::compute_stack_cost(
-                          kagome::log::createLogger("StackLimiterTest"),
-                          *module->funcs[0],
-                          *module));
-  return cost;
+  EXPECT_OUTCOME_SUCCESS(cost,
+                         kagome::runtime::detail::compute_stack_cost(
+                             kagome::log::createLogger("StackLimiterTest"),
+                             *module->funcs[0],
+                             *module));
+  return cost.value();
 }
 
 TEST(StackLimiterTest, simple_test) {
@@ -191,7 +191,7 @@ TEST_P(StackLimiterCompareTest, output_matches_expected) {
   auto fixture_wasm = kagome::runtime::watToWasm(fixture_wat);
   auto expected_module = kagome::runtime::watToModule(expected_wat);
 
-  EXPECT_OUTCOME_TRUE(
+  ASSERT_OUTCOME_SUCCESS(
       result_wasm,
       kagome::runtime::instrumentWithStackLimiter(fixture_wasm, 1024));
 

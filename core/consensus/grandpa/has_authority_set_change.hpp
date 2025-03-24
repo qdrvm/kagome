@@ -16,7 +16,7 @@ namespace kagome::consensus::grandpa {
         if (not consensus) {
           continue;
         }
-        auto decoded_res = consensus->decode();
+        auto decoded_res = consensus->decodeConsensusMessage();
         if (not decoded_res) {
           continue;
         }

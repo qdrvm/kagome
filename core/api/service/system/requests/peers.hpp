@@ -9,6 +9,7 @@
 #include "api/service/base_request.hpp"
 
 #include "account_next_index.hpp"
+#include "api/jrpc/value_converter.hpp"
 #include "api/service/system/system_api.hpp"
 #include "chain.hpp"
 #include "chain_type.hpp"
@@ -40,10 +41,10 @@ namespace kagome::api::system::request {
           jsonrpc::Value::Struct peer;
           peer.emplace("PeerId", peer_id.toBase58());
           peer.emplace("roles",
-                       status.get().roles.flags.authority ? "AUTHORITY"
-                       : status.get().roles.flags.full    ? "FULL"
-                       : status.get().roles.flags.light   ? "LIGHT"
-                                                          : "NONE");
+                       status.get().roles.isAuthority() ? "AUTHORITY"
+                       : status.get().roles.isFull()    ? "FULL"
+                       : status.get().roles.isLight()   ? "LIGHT"
+                                                        : "NONE");
           peer.emplace("bestHash", makeValue(status.get().best_block.hash));
           peer.emplace("bestNumber", makeValue(status.get().best_block.number));
 

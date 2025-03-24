@@ -14,8 +14,6 @@ namespace kagome::consensus::grandpa {
    * https://github.com/paritytech/finality-grandpa/blob/8c45a664c05657f0c71057158d3ba555ba7d20de/src/lib.rs#L544
    */
   struct HistoricalVotes {
-    SCALE_TIE(3);
-
     std::vector<SignedMessage> seen;
     std::optional<uint64_t> prevote_idx, precommit_idx;
   };

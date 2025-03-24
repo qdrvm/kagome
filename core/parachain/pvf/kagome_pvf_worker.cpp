@@ -34,6 +34,7 @@
 #include "common/bytestr.hpp"
 #include "log/configurator.hpp"
 #include "log/logger.hpp"
+#include "macro/feature_macros.hpp"
 #include "parachain/pvf/clone.hpp"
 #include "parachain/pvf/kagome_pvf_worker.hpp"
 #include "parachain/pvf/kagome_pvf_worker_injector.hpp"
@@ -44,7 +45,7 @@
 #include "runtime/runtime_context.hpp"
 #include "runtime/wabt/instrument.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 #include "utils/mkdirs.hpp"
 #include "utils/spdlog_stderr.hpp"
 
@@ -66,12 +67,15 @@ namespace kagome::parachain {
   using unix = boost::asio::local::stream_protocol;
 
   namespace {
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-    static kagome::log::Logger logger;
+    kagome::log::Logger logger() {
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+      static auto logger = kagome::log::createLogger("PVF Worker", "parachain");
+      return logger;
+    }
   }  // namespace
 
   bool checkEnvVarsEmpty(const char **env) {
-#ifdef KAGOME_WITH_ASAN
+#if KAGOME_WITH_ASAN
     //  explicitly allow to disable LSAN, because LSAN doesn't work in secure
     //  mode, since it wants to access /proc
     if (*env != nullptr
@@ -163,6 +167,8 @@ namespace kagome::parachain {
 
     auto abi = ::syscall(
         SYS_landlock_create_ruleset, NULL, 0, LANDLOCK_CREATE_RULESET_VERSION);
+    auto logger = log::createLogger("Landlock", "parachain");
+    SL_INFO(logger, "Landlock ABI version: {} ", abi);
     if (abi < 0) {
       return getLastErr("landlock_create_ruleset");
     }
@@ -175,19 +181,26 @@ namespace kagome::parachain {
             | LANDLOCK_ACCESS_FS_MAKE_CHAR | LANDLOCK_ACCESS_FS_MAKE_DIR
             | LANDLOCK_ACCESS_FS_MAKE_REG | LANDLOCK_ACCESS_FS_MAKE_SOCK
             | LANDLOCK_ACCESS_FS_MAKE_FIFO | LANDLOCK_ACCESS_FS_MAKE_BLOCK
-            | LANDLOCK_ACCESS_FS_MAKE_SYM
+            | LANDLOCK_ACCESS_FS_MAKE_SYM};
+
+    // only add Landlock V2+ features if defined and supported by the (runtime)
+    // kernel
 #ifdef LANDLOCK_ACCESS_FS_REFER
-            | LANDLOCK_ACCESS_FS_REFER
+    if (abi >= 2) {
+      ruleset_attr.handled_access_fs |= LANDLOCK_ACCESS_FS_REFER;
+    }
 #endif
 #ifdef LANDLOCK_ACCESS_FS_TRUNCATE
-            | LANDLOCK_ACCESS_FS_TRUNCATE
+    if (abi >= 3) {
+      ruleset_attr.handled_access_fs |= LANDLOCK_ACCESS_FS_TRUNCATE;
+    }
 #endif
-        ,
 #ifdef LANDLOCK_ACCESS_NET_CONNECT_TCP
-        .handled_access_net =
-            LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP,
+    if (abi >= 4) {
+      ruleset_attr.handled_access_net =
+          LANDLOCK_ACCESS_NET_BIND_TCP | LANDLOCK_ACCESS_NET_CONNECT_TCP;
+    }
 #endif
-    };
 
     auto ruleset_fd = ::syscall(
         SYS_landlock_create_ruleset, &ruleset_attr, sizeof(ruleset_attr), 0);
@@ -262,7 +275,7 @@ namespace kagome::parachain {
         return injector.template create<
             std::shared_ptr<runtime::wavm::ModuleFactoryImpl>>();
 #else
-        SL_ERROR(logger, "WAVM runtime engine is not supported");
+        SL_ERROR(logger(), "WAVM runtime engine is not supported");
         return std::errc::not_supported;
 #endif
       case RuntimeEngine::kWasmEdgeInterpreted:
@@ -271,11 +284,11 @@ namespace kagome::parachain {
         return injector.template create<
             std::shared_ptr<runtime::wasm_edge::ModuleFactoryImpl>>();
 #else
-        SL_ERROR(logger, "WasmEdge runtime engine is not supported");
+        SL_ERROR(logger(), "WasmEdge runtime engine is not supported");
         return std::errc::not_supported;
 #endif
       default:
-        SL_ERROR(logger, "Unknown runtime engine is requested");
+        SL_ERROR(logger(), "Unknown runtime engine is requested");
         return std::errc::not_supported;
     }
   }
@@ -292,10 +305,10 @@ namespace kagome::parachain {
     OUTCOME_TRY(input_config, decodeInput<PvfWorkerInputConfig>(socket));
     kagome::log::tuneLoggingSystem(input_config.log_params);
 
-    SL_VERBOSE(logger, "Cache directory: {}", input_config.cache_dir);
+    SL_VERBOSE(logger(), "Cache directory: {}", input_config.cache_dir);
     if (not std::filesystem::path{input_config.cache_dir}.is_absolute()) {
       SL_ERROR(
-          logger, "cache dir must be absolute: {}", input_config.cache_dir);
+          logger(), "cache dir must be absolute: {}", input_config.cache_dir);
       return std::errc::invalid_argument;
     }
 
@@ -316,15 +329,15 @@ namespace kagome::parachain {
         }
         if (not s.starts_with(root)
             or not s.substr(root.size()).starts_with("/")) {
-          SL_ERROR(logger, "path outside chroot: {}", s);
+          SL_ERROR(logger(), "path outside chroot: {}", s);
           return std::errc::permission_denied;
         }
         return std::filesystem::path{s.substr(root.size())};
       };
-      SL_VERBOSE(logger, "Attempting to enable secure validator mode...");
+      SL_VERBOSE(logger(), "Attempting to enable secure validator mode...");
 
       if (auto res = changeRoot(root); !res) {
-        SL_ERROR(logger,
+        SL_ERROR(logger(),
                  "Failed to enable secure validator mode (change root): {}",
                  res.error());
         return std::errc::not_supported;
@@ -332,20 +345,20 @@ namespace kagome::parachain {
 
       OUTCOME_TRY(path, chroot_path(input_config.cache_dir));
       if (auto res = enableLandlock(path); !res) {
-        SL_ERROR(logger,
+        SL_ERROR(logger(),
                  "Failed to enable secure validator mode (landlock): {}",
                  res.error());
         return std::errc::not_supported;
       }
       if (auto res = enableSeccomp(); !res) {
-        SL_ERROR(logger,
+        SL_ERROR(logger(),
                  "Failed to enable secure validator mode (seccomp): {}",
                  res.error());
         return std::errc::not_supported;
       }
-      SL_VERBOSE(logger, "Successfully enabled secure validator mode");
+      SL_VERBOSE(logger(), "Successfully enabled secure validator mode");
     } else {
-      SL_VERBOSE(logger,
+      SL_VERBOSE(logger(),
                  "Secure validator mode disabled in node configuration");
     }
 #endif
@@ -364,7 +377,7 @@ namespace kagome::parachain {
       }
       auto &input_args = std::get<PvfWorkerInputArgs>(input);
       if (not module) {
-        SL_ERROR(logger, "PvfWorkerInputCodeParams expected");
+        SL_ERROR(logger(), "PvfWorkerInputCodeParams expected");
         return std::errc::invalid_argument;
       }
       auto forked = [&]() -> outcome::result<void> {
@@ -387,7 +400,7 @@ namespace kagome::parachain {
         }
         return outcome::success();
       };
-      OUTCOME_TRY(clone::cloneOrFork(logger, input_config, forked));
+      OUTCOME_TRY(clone::cloneOrFork(logger(), input_config, forked));
     }
   }
 
@@ -405,14 +418,13 @@ namespace kagome::parachain {
       return EXIT_FAILURE;
     }
     kagome::log::setLoggingSystem(logging_system);
-    logger = kagome::log::createLogger("PVF Worker", "parachain");
     if (argc < 2) {
-      SL_ERROR(logger, "missing unix socket path arg");
+      SL_ERROR(logger(), "missing unix socket path arg");
       return EXIT_FAILURE;
     }
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     if (auto r = pvf_worker_main_outcome(argv[1]); not r) {
-      SL_ERROR(logger, "PVF worker process failed: {}", r.error());
+      SL_ERROR(logger(), "PVF worker process failed: {}", r.error());
       return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;

@@ -39,8 +39,8 @@ namespace kagome::authority_discovery {
                                      const AuthorityPeerInfo &)> f) override;
 
    private:
-    std::shared_ptr<storage::BufferStorage> space_;
     log::Logger log_;
+    std::shared_ptr<storage::BufferStorage> space_;
   };
 
 }  // namespace kagome::authority_discovery

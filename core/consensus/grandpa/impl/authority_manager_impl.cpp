@@ -69,16 +69,16 @@ namespace kagome::consensus::grandpa {
       return std::nullopt;
     }
     std::unique_lock lock{mutex_};
-    auto r = authoritiesOutcome(target_block, finalized.operator bool());
-    if (r.has_value()) {
-      return std::move(r.value());
+    auto res = authoritiesOutcome(target_block, finalized.operator bool());
+    if (res.has_value()) {
+      return std::move(res.value());
     }
 
     SL_WARN(logger_,
             "authorities {} finalized={} error: {}",
             target_block,
             (bool)finalized,
-            r.error());
+            res.error());
     return std::nullopt;
   }
 
@@ -137,22 +137,22 @@ namespace kagome::consensus::grandpa {
                 return AuthorityManagerError::PREVIOUS_NOT_FOUND;
               }
               while (true) {
-                auto r = indexer_.get(*prev);
-                if (not r or not r->value) {
+                auto res = indexer_.get(*prev);
+                if (not res or not res->value) {
                   return AuthorityManagerError::PREVIOUS_NOT_FOUND;
                 }
                 if (prev->number <= digests.forced->delay_start
-                    or r->value->forced_target or r->value->state
+                    or res->value->forced_target or res->value->state
                     or block_tree_->getBlockJustification(prev->hash)) {
-                  value.next_set_id = r->value->next_set_id + 1;
+                  value.next_set_id = res->value->next_set_id + 1;
                   value.forced_target =
                       std::max(digests.forced->delay_start, prev->number);
                   break;
                 }
-                if (not r->prev) {
+                if (not res->prev) {
                   return AuthorityManagerError::PREVIOUS_NOT_FOUND;
                 }
-                prev = r->prev;
+                prev = res->prev;
               }
             } else {
               value.next_set_id = prev_state->id + 1;

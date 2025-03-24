@@ -245,6 +245,14 @@ namespace kagome::application {
       return unsafe_sync_to_;
     }
 
+    std::optional<std::string> getValidatorAddress() const override {
+      return validator_address_ss58_;
+    }
+
+    uint32_t maxParallelDownloads() const override {
+      return max_parallel_downloads_;
+    }
+
    private:
     void parse_general_segment(const rapidjson::Value &val);
     void parse_blockchain_segment(const rapidjson::Value &val);
@@ -381,14 +389,15 @@ namespace kagome::application {
     std::optional<BenchmarkConfigSection> benchmark_config_;
     AllowUnsafeRpc allow_unsafe_rpc_ = AllowUnsafeRpc::kAuto;
     uint32_t parachain_runtime_instance_cache_size_ = 100;
-    uint32_t parachain_precompilation_thread_num_ =
-        std::thread::hardware_concurrency() / 2;
+    uint32_t parachain_precompilation_thread_num_ = 4;
     bool should_precompile_parachain_modules_{true};
     bool use_pvf_subprocess_{true};
     size_t pvf_max_workers_{
         std::max<size_t>(std::thread::hardware_concurrency(), 1)};
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
+    std::optional<std::string> validator_address_ss58_;
+    uint32_t max_parallel_downloads_{};
     std::optional<BlockNumber> unsafe_sync_to_;
   };
 

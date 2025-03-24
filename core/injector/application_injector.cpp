@@ -114,6 +114,7 @@
 #include "metrics/impl/metrics_watcher.hpp"
 #include "metrics/impl/prometheus/handler_impl.hpp"
 #include "metrics/metrics.hpp"
+#include "network/i_peer_view.hpp"
 #include "network/impl/block_announce_transmitter_impl.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
 #include "network/impl/grandpa_transmitter_impl.hpp"
@@ -152,6 +153,7 @@
 #include "outcome/outcome.hpp"
 #include "parachain/approval/approval_distribution.hpp"
 #include "parachain/approval/approval_thread_pool.hpp"
+#include "parachain/availability/bitfield/signer.hpp"
 #include "parachain/availability/bitfield/store_impl.hpp"
 #include "parachain/availability/fetch/fetch_impl.hpp"
 #include "parachain/availability/recovery/recovery_impl.hpp"
@@ -164,6 +166,7 @@
 #include "parachain/pvf/workers.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
 #include "parachain/validator/parachain_processor.hpp"
+#include "parachain/validator/statement_distribution/i_statement_distribution.hpp"
 #include "parachain/validator/statement_distribution/statement_distribution.hpp"
 #include "runtime/binaryen/binaryen_memory_provider.hpp"
 #include "runtime/binaryen/instance_environment_factory.hpp"
@@ -194,6 +197,7 @@
 #include "runtime/runtime_api/impl/transaction_payment_api.hpp"
 #include "runtime/wabt/instrument.hpp"
 #include "runtime/wasm_compiler_definitions.hpp"  // this header-file is generated
+#include "state_metrics/impl/state_metrics_impl.hpp"
 #include "utils/sptr.hpp"
 
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
@@ -375,6 +379,17 @@ namespace {
     auto &block_tree = block_tree_res.value();
 
     return block_tree;
+  }
+
+  template <typename Injector>
+  sptr<state_metrics::StateMetricsImpl> get_state_metrics(
+      const Injector &injector) {
+    return std::make_shared<state_metrics::StateMetricsImpl>(
+        injector.template create<const application::AppConfiguration &>(),
+        injector.template create<sptr<libp2p::basic::Scheduler>>(),
+        injector.template create<sptr<api::StateApi>>(),
+        injector.template create<sptr<metrics::Registry>>(),
+        injector.template create<sptr<crypto::Hasher>>());
   }
 
   template <typename... Ts>
@@ -784,12 +799,20 @@ namespace {
             di::bind<network::SyncProtocolObserver>.template to<network::SyncProtocolObserverImpl>(),
             di::bind<network::DisputeRequestObserver>.template to<dispute::DisputeCoordinatorImpl>(),
             di::bind<parachain::AvailabilityStore>.template to<parachain::AvailabilityStoreImpl>(),
+            di::bind<network::IPeerView>.template to<network::PeerView>(),
+            di::bind<parachain::IBitfieldSigner>.template to<parachain::BitfieldSigner>(),
             di::bind<parachain::Fetch>.template to<parachain::FetchImpl>(),
             di::bind<parachain::Recovery>.template to<parachain::RecoveryImpl>(),
+            di::bind<parachain::IValidatorSignerFactory>.template to<parachain::ValidatorSignerFactory>(),
             di::bind<parachain::BitfieldStore>.template to<parachain::BitfieldStoreImpl>(),
             di::bind<parachain::BackingStore>.template to<parachain::BackingStoreImpl>(),
-            di::bind<parachain::BackedCandidatesSource>.template to<parachain::ParachainProcessorImpl>(),
+            di::bind<parachain::IProspectiveParachains>.template to<parachain::ProspectiveParachains>(),
+            di::bind<parachain::BackedCandidatesSource>.template to<parachain::ThreadedParachainProcessorImpl>(),
+            di::bind<parachain::ParachainStorage>.template to<parachain::ThreadedParachainProcessorImpl>(),
+            di::bind<parachain::ParachainProcessor>.template to<parachain::ThreadedParachainProcessorImpl>(),
+            di::bind<parachain::IPvfPrecheck>.template to<parachain::PvfPrecheck>(),
             di::bind<network::CanDisconnect>.template to<parachain::statement_distribution::StatementDistribution>(),
+            di::bind<parachain::statement_distribution::IStatementDistribution>.template to<parachain::statement_distribution::StatementDistribution>(),
             di::bind<parachain::Pvf>.template to<parachain::PvfImpl>(),
             bind_by_lambda<parachain::SecureModeSupport>([config](const auto &) {
               auto support = parachain::SecureModeSupport::none();
@@ -844,6 +867,9 @@ namespace {
             }),
             di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
             bind_by_lambda<storage::trie::Codec>([](const auto&) {
+              return std::make_shared<storage::trie::PolkadotCodec>(crypto::blake2b<32>);
+            }),
+            bind_by_lambda<storage::trie::PolkadotCodec>([](const auto&) {
               return std::make_shared<storage::trie::PolkadotCodec>(crypto::blake2b<32>);
             }),
             di::bind<storage::trie::TrieSerializer>.template to<storage::trie::TrieSerializerImpl>(),
@@ -926,11 +952,18 @@ namespace {
             di::bind<network::FetchAvailableDataProtocol>.template to<network::FetchAvailableDataProtocolImpl>(),
             di::bind<network::WarpProtocol>.template to<network::WarpProtocolImpl>(),
             di::bind<network::SendDisputeProtocol>.template to<network::SendDisputeProtocolImpl>(),
+            bind_by_lambda<metrics::Registry>(
+                [](const auto &injector) {
+                  return metrics::createRegistry();
+                }),
             bind_by_lambda<libp2p::protocol::IdentifyConfig>(
                 [](const auto &injector) {
                   return get_identify_config();
                 }),
-
+            bind_by_lambda<state_metrics::StateMetrics>(
+                [](const auto &injector) {
+                  return get_state_metrics(injector);
+                }),
             // user-defined overrides...
             std::forward<decltype(args)>(args)...);
     // clang-format on
@@ -963,7 +996,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-            makeKagomeNodeInjector(std::move(app_config)))} {}
+          makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_
@@ -992,7 +1025,8 @@ namespace kagome::injector {
   sptr<metrics::Exposer> KagomeNodeInjector::injectOpenMetricsService() {
     // registry here is temporary, it initiates static global registry
     // and registers handler in there
-    auto registry = metrics::createRegistry();
+    auto registry =
+        pimpl_->injector_.template create<sptr<metrics::Registry>>();
     auto handler = pimpl_->injector_.template create<sptr<metrics::Handler>>();
     registry->setHandler(*handler.get());
     auto exposer = pimpl_->injector_.template create<sptr<metrics::Exposer>>();
@@ -1034,10 +1068,10 @@ namespace kagome::injector {
         .template create<sptr<parachain::ParachainObserver>>();
   }
 
-  std::shared_ptr<parachain::ParachainProcessorImpl>
+  std::shared_ptr<parachain::ParachainProcessor>
   KagomeNodeInjector::injectParachainProcessor() {
     return pimpl_->injector_
-        .template create<sptr<parachain::ParachainProcessorImpl>>();
+        .template create<sptr<parachain::ThreadedParachainProcessorImpl>>();
   }
 
   std::shared_ptr<parachain::statement_distribution::StatementDistribution>
@@ -1152,6 +1186,12 @@ namespace kagome::injector {
   std::shared_ptr<common::MainThreadPool>
   KagomeNodeInjector::injectMainThreadPool() {
     return pimpl_->injector_.template create<sptr<common::MainThreadPool>>();
+  }
+
+  std::shared_ptr<state_metrics::StateMetrics>
+  KagomeNodeInjector::injectStateMetrics() {
+    return pimpl_->injector_
+        .template create<sptr<state_metrics::StateMetrics>>();
   }
 
   void KagomeNodeInjector::kademliaRandomWalk() {

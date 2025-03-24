@@ -6,7 +6,7 @@
 
 #include "api/service/child_state/requests/get_keys.hpp"
 
-#include "scale/scale.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::api::child_state::request {
 

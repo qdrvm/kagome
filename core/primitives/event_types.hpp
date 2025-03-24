@@ -42,7 +42,8 @@ namespace kagome::primitives::events {
     kAllHeads = 3,
     kFinalizedRuntimeVersion = 4,
     kNewRuntime = 5,
-    kDeactivateAfterFinalization = 6,
+    kDeactivateAfterFinalization = 6,  // TODO(kamilsa): #2369 might not be
+                                       // triggered on every leaf deactivated
   };
 
   enum struct PeerEventType : uint8_t {
@@ -307,7 +308,7 @@ namespace kagome::primitives::events {
   struct ChainSub {
     ChainSub(ChainSubscriptionEnginePtr engine)
         : sub{std::make_shared<primitives::events::ChainEventSubscriber>(
-              std::move(engine))} {}
+            std::move(engine))} {}
 
     void onBlock(ChainEventType type, auto f) {
       subscribe(*sub, type, [f{std::move(f)}](const ChainEventParams &args) {
@@ -325,6 +326,8 @@ namespace kagome::primitives::events {
     void onHead(auto f) {
       onBlock(ChainEventType::kNewHeads, std::move(f));
     }
+
+    // TODO(kamilsa): #2369 not all deactivated leaves end up in this event
     void onDeactivate(auto f) {
       subscribe(*sub,
                 ChainEventType::kDeactivateAfterFinalization,

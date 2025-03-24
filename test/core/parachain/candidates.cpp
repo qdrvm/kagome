@@ -21,7 +21,7 @@ class CandidatesTest : public ProspectiveParachainsTestHarness {
  public:
   template <typename T>
   inline Hash hash_of(const T &t) {
-    return hasher_->blake2b_256(scale::encode(std::forward<T>(t)).value());
+    return hasher_->blake2b_256(encode(std::forward<T>(t)).value());
   }
 
   inline Hash hash_of(const HeadData &t) {

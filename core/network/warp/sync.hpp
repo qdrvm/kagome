@@ -52,8 +52,6 @@ namespace kagome::network {
   class WarpSync : public std::enable_shared_from_this<WarpSync> {
    public:
     struct Op {
-      SCALE_TIE(4);
-
       primitives::BlockInfo block_info;
       primitives::BlockHeader header;
       consensus::grandpa::GrandpaJustification justification;

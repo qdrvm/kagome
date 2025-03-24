@@ -6,9 +6,9 @@
 
 #pragma once
 
-#define TRY_FALSE(expr)      \
-  ({                         \
-    auto r = (expr);         \
-    if (not r) return false; \
-    std::move(r.value());    \
+#define TRY_FALSE(expr)        \
+  ({                           \
+    auto res = (expr);         \
+    if (not res) return false; \
+    std::move(res.value());    \
   })

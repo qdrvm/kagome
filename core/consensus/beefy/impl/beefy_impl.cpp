@@ -207,10 +207,10 @@ namespace kagome::network {
           SL_WARN(log_, "won't report own double woting");
           return;
         }
-        auto r = reportDoubleVoting(
+        auto res = reportDoubleVoting(
             {.first = vote_it->second.first, .second = vote});
-        if (not r) {
-          SL_WARN(log_, "reportDoubleVoting: {}", r.error());
+        if (not res) {
+          SL_WARN(log_, "reportDoubleVoting: {}", res.error());
         }
         return;
       }
@@ -275,8 +275,8 @@ namespace kagome::network {
   }
 
   bool BeefyImpl::hasJustification(primitives::BlockNumber block) const {
-    auto r = db_->contains(BlockNumberKey::encode(block));
-    return r and r.value();
+    auto res = db_->contains(BlockNumberKey::encode(block));
+    return res and res.value();
   }
 
   outcome::result<BeefyImpl::FindValidatorsResult> BeefyImpl::findValidators(
@@ -365,8 +365,8 @@ namespace kagome::network {
         and not sessions_.contains(beefy_finalized_)) {
       OUTCOME_TRY(last_hash, block_tree_->getBlockHash(beefy_finalized_));
       if (last_hash) {
-        if (auto r = block_tree_->getBlockHeader(*last_hash)) {
-          if (not beefyValidatorsDigest(r.value())) {
+        if (auto res = block_tree_->getBlockHeader(*last_hash)) {
+          if (not beefyValidatorsDigest(res.value())) {
             OUTCOME_TRY(db_->remove(BlockNumberKey::encode(beefy_finalized_)));
           }
         }

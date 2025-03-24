@@ -6,9 +6,10 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "consensus/grandpa/voter_set.hpp"
 #include "core/consensus/grandpa/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::consensus::grandpa::Id;
 using kagome::consensus::grandpa::VoterSet;
@@ -47,7 +48,7 @@ TEST_F(VoterSetTest, AddExistingVoters) {
   // GIVEN
 
   for (auto &[voter, weight] : voters) {
-    ASSERT_OUTCOME_SUCCESS_TRY(testee->insert(voter, weight));
+    ASSERT_OUTCOME_SUCCESS(testee->insert(voter, weight));
   }
 
   for (auto &[voter, weight] : voters) {
@@ -62,7 +63,7 @@ TEST_F(VoterSetTest, GetIndex) {
   // GIVEN
 
   for (auto &[voter, weight] : voters) {
-    ASSERT_OUTCOME_SUCCESS_TRY(testee->insert(voter, weight));
+    ASSERT_OUTCOME_SUCCESS(testee->insert(voter, weight));
   }
 
   for (auto &[voter, weight] : voters) {
@@ -78,7 +79,7 @@ TEST_F(VoterSetTest, GetWeight) {
   // GIVEN
 
   for (auto &[voter, weight] : voters) {
-    ASSERT_OUTCOME_SUCCESS_TRY(testee->insert(voter, weight));
+    ASSERT_OUTCOME_SUCCESS(testee->insert(voter, weight));
   }
 
   size_t index = 0;
@@ -115,7 +116,7 @@ TEST_F(VoterSetTest, GetVoter) {
   // GIVEN
 
   for (auto &[voter, weight] : voters) {
-    ASSERT_OUTCOME_SUCCESS_TRY(testee->insert(voter, weight));
+    ASSERT_OUTCOME_SUCCESS(testee->insert(voter, weight));
   }
 
   for (size_t index = 0; index < voters.size(); ++index) {
@@ -134,7 +135,7 @@ TEST_F(VoterSetTest, GetIndexAndWeight) {
   // GIVEN
 
   for (auto &[voter, weight] : voters) {
-    ASSERT_OUTCOME_SUCCESS_TRY(testee->insert(voter, weight));
+    ASSERT_OUTCOME_SUCCESS(testee->insert(voter, weight));
   }
 
   size_t index = 0;

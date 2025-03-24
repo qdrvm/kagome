@@ -19,6 +19,7 @@
 #include "log/logger.hpp"
 #include "network/peering_config.hpp"
 #include "network/types/roles.hpp"
+#include "primitives/account.hpp"
 #include "primitives/block_id.hpp"
 #include "telemetry/endpoint.hpp"
 
@@ -332,6 +333,10 @@ namespace kagome::application {
 
     virtual std::optional<PrecompileWasmConfig> precompileWasm() const = 0;
 
+    virtual std::optional<std::string> getValidatorAddress() const = 0;
+
+    virtual uint32_t maxParallelDownloads() const = 0;
+    
     virtual std::optional<BlockNumber> unsafeSyncTo() const = 0;
   };
 

@@ -6,12 +6,9 @@
 
 #include <gtest/gtest.h>
 
-#include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
-#include "testutil/prepare_loggers.hpp"
+#include <qtils/test/outcome.hpp>
 
 #include "crypto/hasher/hasher_impl.hpp"
-#include "crypto/random_generator/boost_generator.hpp"
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "crypto/type_hasher.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -20,9 +17,8 @@
 #include "parachain/validator/prospective_parachains/candidate_storage.hpp"
 #include "parachain/validator/signer.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
-#include "scale/kagome_scale.hpp"
-#include "scale/scale.hpp"
-#include "testutil/scale_test_comparator.hpp"
+#include "testutil/literals.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace kagome::primitives;
 using namespace kagome::parachain;
@@ -64,6 +60,7 @@ class ProspectiveParachainsTestHarness : public testing::Test {
 
   static constexpr uint64_t ALLOWED_ANCESTRY_LEN = 3ull;
   static constexpr uint32_t MAX_POV_SIZE = 1000000;
+  static constexpr uint32_t LEGACY_MIN_BACKING_VOTES = 2;
 
   Hash hashFromStrData(std::span<const char> data) {
     return ghashFromStrData(hasher_, data);
@@ -185,6 +182,21 @@ class ProspectiveParachainsTestHarness : public testing::Test {
     };
   }
 
+  network::CandidateDescriptor dummy_candidate_descriptor(
+      const Hash &relay_parent) {
+    return network::CandidateDescriptor{
+        .para_id = 1,
+        .relay_parent = relay_parent,
+        .reserved_1 = {},
+        .persisted_data_hash = {},
+        .pov_hash = {},
+        .erasure_encoding_root = {},
+        .reserved_2 = {},
+        .para_head_hash = {},
+        .validation_code_hash = {},
+    };
+  }
+
   network::CandidateReceipt dummy_candidate_receipt_bad_sig(
       const Hash &relay_parent, const std::optional<Hash> &commitments) {
     const auto commitments_hash = [&]() -> Hash {
@@ -259,5 +271,10 @@ class ProspectiveParachainsTestHarness : public testing::Test {
     Hash h{};
     memset(&h[0], n, 32);
     return h;
+  }
+
+  static Hash get_parent_hash(const Hash &parent) {
+    const auto val = *(uint8_t *)&parent[0];
+    return fromNumber(val + 1);
   }
 };
