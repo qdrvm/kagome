@@ -204,46 +204,50 @@ TEST_F(VRFProviderTest, SignFailed) {
 fn test_relay_vrf_modulo_transcript_v1() {
         // create public key from array of bytes
         let public_res = schnorrkel::PublicKey::from_bytes(&[
-                212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169, 159, 214, 130, 44, 133,
-                88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162, 125,
+                212, 53, 147, 199, 21, 253, 211, 28, 97, 20, 26, 189, 4, 169,
+159, 214, 130, 44, 133, 88, 133, 76, 205, 227, 154, 86, 132, 231, 165, 109, 162,
+125,
         ]);
         assert!(public_res.is_ok());
         let public = public_res.unwrap();
 
         let relay_vrf_story = RelayVRFStory([
-                40, 81, 9, 6, 181, 210, 226, 0, 178, 152, 8, 24, 87, 67, 12, 150, 126, 158, 110, 60,
-                236, 152, 130, 39, 194, 76, 50, 108, 182, 66, 55, 244,
+                40, 81, 9, 6, 181, 210, 226, 0, 178, 152, 8, 24, 87, 67, 12,
+150, 126, 158, 110, 60, 236, 152, 130, 39, 194, 76, 50, 108, 182, 66, 55, 244,
         ]);
 
         let vrf_pre_output_bytes = [
-                186, 162, 249, 255, 191, 230, 212, 25, 49, 79, 148, 184, 71, 24, 252, 53, 205, 131, 9,
-                108, 40, 175, 127, 118, 43, 152, 121, 176, 174, 52, 199, 95,
+                186, 162, 249, 255, 191, 230, 212, 25, 49, 79, 148, 184, 71, 24,
+252, 53, 205, 131, 9, 108, 40, 175, 127, 118, 43, 152, 121, 176, 174, 52, 199,
+95,
         ];
         // Convert raw bytes to schnorrkel::vrf::VRFPreOut
-        let vrf_pre_out = schnorrkel::vrf::VRFPreOut::from_bytes(&vrf_pre_output_bytes)
-                .expect("Valid VRFPreOut bytes");
+        let vrf_pre_out =
+schnorrkel::vrf::VRFPreOut::from_bytes(&vrf_pre_output_bytes) .expect("Valid
+VRFPreOut bytes");
 
         // Wrap in VrfPreOutput
         let vrf_pre_output = VrfPreOutput(vrf_pre_out);
 
         let vrf_proof_bytes = [
-                51, 16, 135, 168, 206, 210, 39, 130, 221, 215, 8, 129, 160, 131, 232, 46, 114, 84, 184,
-                28, 51, 109, 137, 147, 168, 201, 144, 169, 193, 81, 151, 10, 8, 244, 195, 225, 254,
-                134, 215, 234, 206, 179, 100, 242, 36, 7, 20, 14, 26, 156, 29, 223, 121, 159, 243, 213,
-                44, 143, 113, 27, 168, 249, 2, 8,
+                51, 16, 135, 168, 206, 210, 39, 130, 221, 215, 8, 129, 160, 131,
+232, 46, 114, 84, 184, 28, 51, 109, 137, 147, 168, 201, 144, 169, 193, 81, 151,
+10, 8, 244, 195, 225, 254, 134, 215, 234, 206, 179, 100, 242, 36, 7, 20, 14, 26,
+156, 29, 223, 121, 159, 243, 213, 44, 143, 113, 27, 168, 249, 2, 8,
         ];
         let vrf_proof =
-                schnorrkel::vrf::VRFProof::from_bytes(&vrf_proof_bytes).expect("Valid VRFProof bytes");
+                schnorrkel::vrf::VRFProof::from_bytes(&vrf_proof_bytes).expect("Valid
+VRFProof bytes");
 
         let sample: u32 = 0;
 
-        let transcript = relay_vrf_modulo_transcript_v1(relay_vrf_story, sample);
-        let core_index: u32 = 6;
-        let assigned_transcript = assigned_core_transcript(CoreIndex(core_index));
+        let transcript = relay_vrf_modulo_transcript_v1(relay_vrf_story,
+sample); let core_index: u32 = 6; let assigned_transcript =
+assigned_core_transcript(CoreIndex(core_index));
 
         let res =
-                public.vrf_verify_extra(transcript, &vrf_pre_output.0, &vrf_proof, assigned_transcript);
-        assert!(res.is_ok());
+                public.vrf_verify_extra(transcript, &vrf_pre_output.0,
+&vrf_proof, assigned_transcript); assert!(res.is_ok());
 }
 ```
  */
@@ -286,4 +290,52 @@ TEST_F(VRFProviderTest, VrfVerifyExtra) {
       reinterpret_cast<const Strobe128 *>(modulo_transcript.data().data()),
       reinterpret_cast<const Strobe128 *>(assigned_transcript.data().data()));
   ASSERT_EQ(res.result, SR25519_SIGNATURE_RESULT_OK);
+}
+
+/**
+ * @given data for vrf_verify_extra that are correctly verified in Polkadot-SDK
+ * @when same data are verified using sr25519_vrf_verify_extra with garbage key
+ * @then sr25519_vrf_verify_extra returns SR25519_SIGNATURE_RESULT_POINT_DECOMPRESSION_ERROR
+ */
+TEST_F(VRFProviderTest, VrfVerifyExtraWithGarbageKey) {
+  // Create a garbage public key filled with 0xFF bytes
+  Buffer garbage_key_bytes(32, 0xFF);
+  auto pubkey_init_res = kagome::crypto::Sr25519PublicKey::fromSpan(garbage_key_bytes);
+
+  // The key initialization might fail, but we need a key object to pass to the verify function
+  kagome::crypto::Sr25519PublicKey garbage_key = pubkey_init_res.value();
+
+  RelayVRFStory relay_vrf_story{.data = {
+                                    40,  81,  9,   6,   181, 210, 226, 0,
+                                    178, 152, 8,   24,  87,  67,  12,  150,
+                                    126, 158, 110, 60,  236, 152, 130, 39,
+                                    194, 76,  50,  108, 182, 66,  55,  244,
+                                }};
+  VRFPreOutput vrf_pre_output{186, 162, 249, 255, 191, 230, 212, 25,
+                              49,  79,  148, 184, 71,  24,  252, 53,
+                              205, 131, 9,   108, 40,  175, 127, 118,
+                              43,  152, 121, 176, 174, 52,  199, 95};
+  kagome::crypto::VRFProof vrf_proof{
+      51,  16,  135, 168, 206, 210, 39,  130, 221, 215, 8,   129, 160,
+      131, 232, 46,  114, 84,  184, 28,  51,  109, 137, 147, 168, 201,
+      144, 169, 193, 81,  151, 10,  8,   244, 195, 225, 254, 134, 215,
+      234, 206, 179, 100, 242, 36,  7,   20,  14,  26,  156, 29,  223,
+      121, 159, 243, 213, 44,  143, 113, 27,  168, 249, 2,   8};
+  uint32_t sample = 0;
+
+  auto modulo_transcript =
+      relay_vrf_modulo_transcript_v1(relay_vrf_story, sample);
+
+  uint32_t first_claimed_core_index = 6;
+  auto assigned_transcript = assigned_core_transcript(first_claimed_core_index);
+
+  auto res = sr25519_vrf_verify_extra(
+      garbage_key.data(),
+      vrf_pre_output.data(),
+      vrf_proof.data(),
+      reinterpret_cast<const Strobe128 *>(modulo_transcript.data().data()),
+      reinterpret_cast<const Strobe128 *>(assigned_transcript.data().data()));
+
+  // With garbage key, we expect Signature error
+  ASSERT_EQ(res.result, SR25519_SIGNATURE_RESULT_POINT_DECOMPRESSION_ERROR);
 }

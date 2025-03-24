@@ -20,17 +20,6 @@
 #include "runtime/wabt/instrument.hpp"
 #include "storage/trie/polkadot_trie/trie_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::runtime, Error, e) {
-  using E = kagome::runtime::Error;
-  switch (e) {
-    case E::INSTRUMENTATION_FAILED:
-      return "Runtime module instrumentation failed";
-    case E::COMPILATION_FAILED:
-      return "Runtime module compilation failed";
-  }
-  return "Unknown module repository error";
-}
-
 namespace kagome::runtime {
   RuntimeContext::RuntimeContext(
       std::shared_ptr<ModuleInstance> module_instance)
