@@ -1047,9 +1047,7 @@ namespace kagome::network {
         if (sync_method_ == application::SyncMethod::Full) {
           // Check if body is present
           if (not block_data.body.has_value()) {
-            SL_ERROR(log_,
-                     "Can't apply block {}: body is missing",
-                     block_info);
+            SL_ERROR(log_, "Can't apply block {}: body is missing", block_info);
             callback(Error::RESPONSE_WITHOUT_BLOCK_BODY);
             return;
           }
@@ -1624,16 +1622,16 @@ namespace kagome::network {
         consensus::grandpa::HasAuthoritySetChange digest{*block.header};
         if (digest.scheduled && block.justification) {
           primitives::calculateBlockHash(*block.header, *hasher_);
-          auto _j =
+          auto justification_res =
               scale::decode<GrandpaJustification>(block.justification->data);
-          if (not _j) {
+          if (not justification_res) {
             break;
           }
-          auto &j = _j.value();
-          if (j.block_info != block.header->blockInfo()) {
+          auto &justification = justification_res.value();
+          if (justification.block_info != block.header->blockInfo()) {
             break;
           }
-          cb(std::make_pair(*block.header, j));
+          cb(std::make_pair(*block.header, justification));
           return;
         }
       }
