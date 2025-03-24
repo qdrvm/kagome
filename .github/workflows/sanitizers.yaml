@@ -49,6 +49,11 @@ on:
         type: string
         required: false
         default: "20250322" # Default to latest
+      sanitizer_image_tag:
+        description: "Custom Sanitizer Image tag"
+        type: string
+        required: false
+        default: "latest" # Default to latest
 
   workflow_call:
     inputs:
@@ -80,6 +85,10 @@ on:
         type: string
         default: "20250322" # Default to latest
         required: false
+      sanitizer_image_tag:
+        type: string
+        default: "latest"
+        required: false
     secrets:
       GCP_SERVICE_ACCOUNT_KEY:
         required: true
@@ -103,6 +112,7 @@ env:
   USE_CACHE: ${{ inputs.use_cache || github.event.inputs.use_cache || 'true' }}
   CACHE_UPLOAD_ALLOWED: ${{ inputs.cache_upload_allowed || github.event.inputs.cache_upload_allowed || 'false' }}
   BUILDER_LATEST_TAG: ${{ inputs.builder_latest_tag || github.event.inputs.builder_latest_tag || '20250322' }}
+  SANITIZER_IMAGE_TAG: ${{ inputs.sanitizer_image_tag || github.event.inputs.sanitizer_image_tag || 'latest' }}
 
   GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
   GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
@@ -269,39 +279,17 @@ jobs:
         working-directory: ./housekeeping/docker/kagome-dev
         run: make configure
 
-      - name: "Create Sanitizer Manifests"
+      - name: "Create and Push Sanitizer Manifests"
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
-          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          BUILD_TYPE_LOWER=$(echo $BUILD_TYPE_SANITIZERS | tr '[:upper:]' '[:lower:]')
-          
-          # Create manifests for each sanitizer type
           if [[ "${{ inputs.build_tsan || github.event.inputs.build_tsan || 'true' }}" == "true" ]]; then
-            echo "Creating TSAN manifest"
-            docker manifest create ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:${SHORT_COMMIT_HASH} \
-              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:${SHORT_COMMIT_HASH}-amd64 \
-              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:${SHORT_COMMIT_HASH}-arm64
-            
-            docker manifest create ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:latest \
-              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:latest-amd64 \
-              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:latest-arm64
-            
-            docker manifest push ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:${SHORT_COMMIT_HASH}
-            docker manifest push ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:latest
+            echo "Processing TSAN manifests"
+            make kagome_sanitizer_manifest_all_tsan
           fi
           
           if [[ "${{ inputs.build_asanubsan || github.event.inputs.build_asanubsan || 'true' }}" == "true" ]]; then
-            echo "Creating ASANUBSAN manifest"
-            docker manifest create ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:${SHORT_COMMIT_HASH} \
-              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:${SHORT_COMMIT_HASH}-amd64 \
-              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:${SHORT_COMMIT_HASH}-arm64
-            
-            docker manifest create ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:latest \
-              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:latest-amd64 \
-              --amend ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:latest-arm64
-            
-            docker manifest push ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:${SHORT_COMMIT_HASH}
-            docker manifest push ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:latest
+            echo "Processing ASANUBSAN manifests"
+            make kagome_sanitizer_manifest_all_asanubsan
           fi
 
       - name: "Check sanitizer manifest status"
@@ -311,19 +299,10 @@ jobs:
           echo "Verifying manifests were created successfully..."
           make configure
           
-          # Get current version info
-          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          BUILD_TYPE_LOWER=$(echo $BUILD_TYPE_SANITIZERS | tr '[:upper:]' '[:lower:]')
-          
-          echo "=== Sanitizer Manifests ==="
           if [[ "${{ inputs.build_tsan || github.event.inputs.build_tsan || 'true' }}" == "true" ]]; then
-            echo "TSAN manifest:"
-            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:${SHORT_COMMIT_HASH} || echo "TSAN manifest not found!"
-            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_tsan:latest || echo "TSAN latest manifest not found!"
+            make kagome_sanitizer_manifest_inspect_tsan
           fi
           
           if [[ "${{ inputs.build_asanubsan || github.event.inputs.build_asanubsan || 'true' }}" == "true" ]]; then
-            echo "ASANUBSAN manifest:"
-            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:${SHORT_COMMIT_HASH} || echo "ASANUBSAN manifest not found!"
-            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_${BUILD_TYPE_LOWER}_asanubsan:latest || echo "ASANUBSAN latest manifest not found!"
+            make kagome_sanitizer_manifest_inspect_asanubsan
           fi

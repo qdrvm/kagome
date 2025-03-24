@@ -63,6 +63,7 @@ OS_IMAGE_SHORT_HASH := $(shell echo $(OS_IMAGE_HASH) | cut -c1-7)
 BUILDER_IMAGE_TAG ?= ub$(OS_IMAGE_TAG_CLEAN)-$(OS_IMAGE_SHORT_HASH)_rust$(RUST_VERSION)_gcc$(GCC_VERSION)_llvm$(LLVM_VERSION)
 BUILDER_LATEST_TAG ?= latest
 TESTER_LATEST_TAG ?= latest
+SANITIZER_IMAGE_TAG ?= latest
 DOCKERHUB_BUILDER_PATH ?= $(DOCKERHUB_REGISTRY_PATH)_builder
 KAGOME_SANITIZED_VERSION = $(shell cd $(WORKING_DIR) && ./get_version.sh --sanitized)
 SHORT_COMMIT_HASH=$(shell grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
