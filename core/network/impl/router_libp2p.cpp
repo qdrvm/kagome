@@ -246,7 +246,7 @@ namespace kagome::network {
     return req_collation_protocol_.get();
   }
 
-  std::shared_ptr<ReqPovProtocol> RouterLibp2p::getReqPovProtocol() const {
+  std::shared_ptr<IReqPovProtocol> RouterLibp2p::getReqPovProtocol() const {
     return req_pov_protocol_.get();
   }
 
