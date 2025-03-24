@@ -25,7 +25,7 @@
 		-e GITHUB_HUNTER_USERNAME=$(GITHUB_HUNTER_USERNAME) \
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
 		-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
-		-e BUILD_DIR=$(BUILD_DIR) \
+		-e BUILD_DIR=$(DOCKER_BUILD_DIR_NAME) \
 		-e USER_ID=$(USER_ID) \
 		-e GROUP_ID=$(GROUP_ID) \
 		-e MOUNTED_DIRS="/opt/kagome" \
@@ -51,8 +51,8 @@
 		source /venv/bin/activate && \
 		git submodule update --init && \
 		echo \"Building in \$$(pwd) for architecture \$$(arch)\" && \
-		cmake . -B\"$(BUILD_DIR)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
-		cmake --build \"$(BUILD_DIR)\" --target generated -- -j$(BUILD_THREADS) && \
+		cmake . -B\"$(DOCKER_BUILD_DIR_NAME)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
+		cmake --build \"$(DOCKER_BUILD_DIR_NAME)\" --target generated -- -j$(BUILD_THREADS) && \
 		cd /opt/kagome/ && export CI='$(CI)' && ./housekeeping/clang-tidy-diff.sh \
 		" || DOCKER_EXEC_RESULT=$$? ; \
 	docker stop $$CONTAINER_NAME || true; \
