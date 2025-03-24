@@ -90,28 +90,52 @@ namespace kagome::network {
     virtual std::optional<PeerId> peerFinalized(
         BlockNumber min, const PeerPredicate &predicate) = 0;
 
+    /**
+     * Get grandpa specific peer information.
+     */
     virtual std::optional<PeerStateCompact> getGrandpaInfo(
         const PeerId &peer_id) = 0;
-
+    /**
+     * Set peer collation protocol version.
+     */
     virtual std::optional<CollationVersion> getCollationVersion(
         const PeerId &peer_id) = 0;
+    /**
+     * Get peer collation protocol version.
+     */
     virtual void setCollationVersion(const PeerId &peer_id,
                                      CollationVersion collation_version) = 0;
-
+    /**
+     * Get peer fetch chunk protocol version.
+     */
     virtual std::optional<ReqChunkVersion> getReqChunkVersion(
         const PeerId &peer_id) = 0;
+    /**
+     * Set peer fetch chunk protocol version.
+     */
     virtual void setReqChunkVersion(const PeerId &peer_id,
                                     ReqChunkVersion req_chunk_version) = 0;
-
+    /**
+     * Check if peer is collating.
+     */
     virtual std::optional<bool> isCollating(const PeerId &peer_id) = 0;
+    /**
+     * Check if collation have already been advertised by peer.
+     */
     virtual std::optional<bool> hasAdvertised(
         const PeerId &peer_id,
         const RelayHash &relay_parent,
         const std::optional<CandidateHash> &candidate_hash) = 0;
+    /**
+     * Get parachain that peer is collating on.
+     */
     virtual std::optional<ParachainId> getParachainId(
         const PeerId &peer_id) = 0;
     using InsertAdvertisementResult =
         outcome::result<std::pair<CollatorPublicKey, ParachainId>>;
+    /**
+     * Insert advertisement from peer.
+     */
     virtual InsertAdvertisementResult insertAdvertisement(
         const PeerId &peer_id,
         const RelayHash &on_relay_parent,
