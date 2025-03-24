@@ -97,7 +97,7 @@ namespace kagome::network {
         kMinPreloadedBlockAmount * 2;
 
     static constexpr std::chrono::milliseconds kRecentnessDuration =
-        std::chrono::seconds(60);
+        std::chrono::minutes{2};
 
     enum class Error {
       SHUTTING_DOWN = 1,
