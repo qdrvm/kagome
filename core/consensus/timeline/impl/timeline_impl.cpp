@@ -12,6 +12,7 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/main_thread_pool.hpp"
 #include "consensus/consensus_selector.hpp"
+#include "consensus/grandpa/guess_set_id.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
@@ -493,7 +494,11 @@ namespace kagome::consensus {
             WEAK_LOCK(self);
             busy.reset();
             if (auto *ok = std::get_if<S::UnsafeOk>(&res)) {
-              self->warp_sync_->unsafe(ok->first, ok->second);
+              auto set = consensus::grandpa::guessSetId(ok->second);
+              if (not set.has_value()) {
+                return;
+              }
+              self->warp_sync_->unsafe(ok->first, ok->second, set.value());
               self->unsafe_sync_.reset();
               self->current_state_ = SyncState::HEADERS_LOADED;
               self->startStateSyncing(peer_id);

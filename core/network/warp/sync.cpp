@@ -15,7 +15,6 @@
 #include "consensus/grandpa/has_authority_set_change.hpp"
 #include "consensus/grandpa/i_verified_justification_queue.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
-#include "crypto/ed25519/ed25519_provider_impl.hpp"
 #include "network/warp/cache.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/spaced_storage.hpp"
@@ -120,26 +119,10 @@ namespace kagome::network {
     }
   }
 
-  inline auto guessSet(const GrandpaJustification &j) {
-    consensus::grandpa::AuthoritySetId set = 0;
-    static crypto::Ed25519ProviderImpl ed25519{nullptr};
-    auto &vote = j.items.at(0);
-    while (true) {
-      auto m =
-          scale::encode(std::tie(vote.message, j.round_number, set)).value();
-      auto ok = ed25519.verify(vote.signature, m, vote.id);
-      if (ok and ok.value()) {
-        break;
-      }
-      ++set;
-    }
-    return set;
-  }
-
   void WarpSync::unsafe(const BlockHeader &header,
-                        const GrandpaJustification &j) {
+                        const GrandpaJustification &j,
+                        consensus::grandpa::AuthoritySetId set) {
     HasAuthoritySetChange{header}.scheduled.value();
-    auto set = guessSet(j);
     SL_INFO(log_, "unsafe, block {}, set {}", header.number, set);
     Op op{
         .block_info = header.blockInfo(),

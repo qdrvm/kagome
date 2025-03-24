@@ -91,7 +91,9 @@ namespace kagome::network {
      * Sync to specified justification.
      * Doesn't check justification chain.
      */
-    void unsafe(const BlockHeader &header, const GrandpaJustification &j);
+    void unsafe(const BlockHeader &header,
+                const GrandpaJustification &j,
+                consensus::grandpa::AuthoritySetId set);
 
    private:
     void applyInner(const Op &op);
