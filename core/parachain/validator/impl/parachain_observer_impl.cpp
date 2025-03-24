@@ -136,15 +136,15 @@ namespace kagome::parachain {
                                         network::CollatorPublicKey pubkey,
                                         network::ParachainId para_id,
                                         network::Signature signature) {
-    const auto peer_state = pm_->getPeerState(peer_id);
-    if (!peer_state) {
+    const auto is_collating_opt = pm_->isCollating(peer_id);
+    if (not is_collating_opt.has_value()) {
       logger_->warn("Received collation declaration from unknown peer {}:{}",
                     peer_id,
                     para_id);
       return;
     }
 
-    if (peer_state->get().collator_state) {
+    if (is_collating_opt.value()) {
       logger_->warn("Peer is in collating state {}:{}", peer_id, para_id);
       // TODO(iceseer): https://github.com/soramitsu/kagome/issues/1513 check
       // that peer is not in collating state, or is in collating state with

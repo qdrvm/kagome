@@ -17,6 +17,7 @@
 #include "network/can_disconnect.hpp"
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
+#include "utils/map_entry.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 #include "utils/weak_macro.hpp"
 
@@ -91,6 +92,7 @@ namespace kagome::network {
   }
 
   bool PeerManagerImpl::tryStart() {
+    std::unique_lock lock{mutex_};
     if (not app_config_.isRunInDevMode() && bootstrap_nodes_.empty()) {
       log_->critical(
           "Does not have any bootstrap nodes. "
@@ -112,6 +114,7 @@ namespace kagome::network {
             .getChannel<libp2p::event::protocol::kademlia::PeerAddedChannel>()
             .subscribe([wp{weak_from_this()}](const PeerId &peer_id) {
               if (auto self = wp.lock()) {
+                std::unique_lock lock{self->mutex_};
                 if (auto rating =
                         self->reputation_repository_->reputation(peer_id);
                     rating < 0) {
@@ -155,6 +158,7 @@ namespace kagome::network {
             .getChannel<libp2p::event::network::OnPeerDisconnectedChannel>()
             .subscribe([wp{weak_from_this()}](const PeerId &peer_id) {
               if (auto self = wp.lock()) {
+                std::unique_lock lock{self->mutex_};
                 SL_DEBUG(self->log_,
                          "OnPeerDisconnectedChannel handler from peer {}",
                          peer_id);
@@ -173,6 +177,7 @@ namespace kagome::network {
     identify_->onIdentifyReceived([wp{weak_from_this()}](
                                       const PeerId &peer_id) {
       if (auto self = wp.lock()) {
+        std::unique_lock lock{self->mutex_};
         SL_DEBUG(self->log_, "Identify received from peer {}", peer_id);
         if (auto rating = self->reputation_repository_->reputation(peer_id);
             rating < 0) {
@@ -184,20 +189,24 @@ namespace kagome::network {
           self->disconnectFromPeer(peer_id);
           return;
         }
-        self->processFullyConnectedPeer(peer_id);
+        self->processFullyConnectedPeer(lock, peer_id);
       }
     });
 
     // Start Identify protocol
     identify_->start();
 
-    // Enqueue bootstrap nodes with permanent lifetime
-    for (const auto &bootstrap_node : bootstrap_nodes_) {
-      if (own_peer_info_.id == bootstrap_node.id) {
-        continue;
+    // defer to avoid deadlock
+    main_pool_handler_->execute([weak_self{weak_from_this()}] {
+      WEAK_LOCK(self);
+      // Enqueue bootstrap nodes with permanent lifetime
+      for (const auto &bootstrap_node : self->bootstrap_nodes_) {
+        if (self->own_peer_info_.id == bootstrap_node.id) {
+          continue;
+        }
+        self->kademlia_->addPeer(bootstrap_node, true);
       }
-      kademlia_->addPeer(bootstrap_node, true);
-    }
+    });
 
     // Enqueue last active peers as first peers set but with limited lifetime
     auto last_active_peers = loadLastActivePeers();
@@ -218,34 +227,22 @@ namespace kagome::network {
   }
 
   void PeerManagerImpl::stop() {
+    std::unique_lock lock{mutex_};
     storeActivePeers();
     add_peer_handle_.unsubscribe();
     peer_disconnected_handler_.unsubscribe();
   }
 
-  void PeerManagerImpl::connectToPeer(const PeerInfo &peer_info) {
-    auto res = host_.getPeerRepository().getAddressRepository().upsertAddresses(
-        peer_info.id, peer_info.addresses, libp2p::peer::ttl::kTransient);
-    if (res) {
-      connectToPeer(peer_info.id);
-    }
-  }
-
   size_t PeerManagerImpl::activePeersNumber() const {
+    std::unique_lock lock{mutex_};
     return active_peers_.size();
-  }
-
-  void PeerManagerImpl::forEachPeer(
-      std::function<void(const PeerId &)> func) const {
-    for (auto &it : active_peers_) {
-      func(it.first);
-    }
   }
 
   void PeerManagerImpl::setCollating(
       const PeerId &peer_id,
       const network::CollatorPublicKey &collator_id,
       network::ParachainId para_id) {
+    std::unique_lock lock{mutex_};
     if (auto it = peer_states_.find(peer_id); it != peer_states_.end()) {
       it->second.collator_state = CollatingPeerState{
           .para_id = para_id,
@@ -255,24 +252,6 @@ namespace kagome::network {
       };
       it->second.time = clock_->now();
     }
-  }
-
-  void PeerManagerImpl::forOnePeer(
-      const PeerId &peer_id, std::function<void(const PeerId &)> func) const {
-    if (active_peers_.contains(peer_id)) {
-      func(peer_id);
-    }
-  }
-
-  outcome::result<
-      std::pair<const network::CollatorPublicKey &, network::ParachainId>>
-  PeerManagerImpl::retrieveCollatorData(
-      PeerState &peer_state, const primitives::BlockHash &relay_parent) {
-    if (!peer_state.collator_state) {
-      return Error::UNDECLARED_COLLATOR;
-    }
-    return std::make_pair(peer_state.collator_state.value().collator_id,
-                          peer_state.collator_state.value().para_id);
   }
 
   void PeerManagerImpl::align() {
@@ -381,6 +360,7 @@ namespace kagome::network {
     align_timer_ = scheduler_->scheduleWithHandle(
         [wp{weak_from_this()}] {
           if (auto self = wp.lock()) {
+            std::unique_lock lock{self->mutex_};
             self->align();
           }
         },
@@ -431,6 +411,7 @@ namespace kagome::network {
       if (not self) {
         return;
       }
+      std::unique_lock lock{self->mutex_};
 
       if (not res.has_value()) {
         SL_DEBUG(self->log_,
@@ -455,7 +436,7 @@ namespace kagome::network {
       if (remote_peer_id == peer_id) {
         SL_DEBUG(self->log_, "Connected to peer {}", peer_id);
 
-        self->processFullyConnectedPeer(peer_id);
+        self->processFullyConnectedPeer(lock, peer_id);
       }
     });
   }
@@ -507,6 +488,7 @@ namespace kagome::network {
             outcome::result<std::shared_ptr<
                 libp2p::protocol::PingClientSession>> session_res) {
           if (auto self = wp.lock()) {
+            std::unique_lock lock{self->mutex_};
             if (session_res.has_error()) {
               SL_DEBUG(self->log_,
                        "Stop pinging of {} (conn={}): {}",
@@ -526,15 +508,9 @@ namespace kagome::network {
         });
   }
 
-  std::optional<std::reference_wrapper<PeerState>>
-  PeerManagerImpl::createDefaultPeerState(const PeerId &peer_id) {
-    auto &state = peer_states_[peer_id];
-    state.time = clock_->now();
-    return state;
-  }
-
   void PeerManagerImpl::updatePeerState(
       const PeerId &peer_id, const BlockAnnounceHandshake &handshake) {
+    std::unique_lock lock{mutex_};
     auto &state = peer_states_[peer_id];
     state.time = clock_->now();
     state.roles = handshake.roles;
@@ -543,6 +519,7 @@ namespace kagome::network {
 
   void PeerManagerImpl::updatePeerState(const PeerId &peer_id,
                                         const BlockAnnounce &announce) {
+    std::unique_lock lock{mutex_};
     auto &state = peer_states_[peer_id];
     state.time = clock_->now();
     state.best_block = announce.header.blockInfo();
@@ -550,6 +527,7 @@ namespace kagome::network {
 
   void PeerManagerImpl::updatePeerState(
       const PeerId &peer_id, const GrandpaNeighborMessage &neighbor_message) {
+    std::unique_lock lock{mutex_};
     auto &state = peer_states_[peer_id];
     state.time = clock_->now();
     state.round_number = neighbor_message.round_number;
@@ -557,32 +535,13 @@ namespace kagome::network {
     state.last_finalized = neighbor_message.last_finalized;
   }
 
-  std::optional<std::reference_wrapper<PeerState>>
-  PeerManagerImpl::getPeerState(const PeerId &peer_id) {
-    auto it = peer_states_.find(peer_id);
-    if (it == peer_states_.end()) {
-      return std::nullopt;
-    }
-    return it->second;
-  }
-
   void PeerManagerImpl::enumeratePeerState(const PeersCallback &callback) {
-    if (nullptr != callback) {
-      for (auto &[peer, state] : peer_states_) {
-        if (!callback(peer, state)) {
-          break;
-        }
+    std::unique_lock lock{mutex_};
+    for (auto &[peer, state] : peer_states_) {
+      if (!callback(peer, state)) {
+        break;
       }
     }
-  }
-
-  std::optional<std::reference_wrapper<const PeerState>>
-  PeerManagerImpl::getPeerState(const PeerId &peer_id) const {
-    auto it = peer_states_.find(peer_id);
-    if (it == peer_states_.end()) {
-      return std::nullopt;
-    }
-    return it->second;
   }
 
   void PeerManagerImpl::processDiscoveredPeer(const PeerId &peer_id) {
@@ -612,7 +571,8 @@ namespace kagome::network {
              queue_to_connect_.size());
   }
 
-  void PeerManagerImpl::processFullyConnectedPeer(const PeerId &peer_id) {
+  void PeerManagerImpl::processFullyConnectedPeer(
+      std::unique_lock<std::mutex> &lock, const PeerId &peer_id) {
     // Skip connection to itself
     if (isSelfPeer(peer_id)) {
       connecting_peers_.erase(peer_id);
@@ -645,6 +605,7 @@ namespace kagome::network {
     peer_event_engine_->notify(primitives::events::PeerEventType::kConnected,
                                peer_info.id);
 
+    lock.unlock();
     auto addresses_res =
         host_.getPeerRepository().getAddressRepository().getAddresses(peer_id);
     if (addresses_res.has_value()) {
@@ -745,6 +706,7 @@ namespace kagome::network {
 
   std::optional<PeerId> PeerManagerImpl::peerFinalized(
       BlockNumber min, const PeerPredicate &predicate) {
+    std::unique_lock lock{mutex_};
     for (auto &[peer, info] : peer_states_) {
       if (info.last_finalized < min) {
         continue;
@@ -756,6 +718,115 @@ namespace kagome::network {
     return std::nullopt;
   }
 
+  std::optional<PeerStateCompact> PeerManagerImpl::getGrandpaInfo(
+      const PeerId &peer_id) {
+    std::unique_lock lock{mutex_};
+    if (auto state = entry(peer_states_, peer_id)) {
+      return state->compact();
+    }
+    return std::nullopt;
+  }
+
+  std::optional<CollationVersion> PeerManagerImpl::getCollationVersion(
+      const PeerId &peer_id) {
+    std::unique_lock lock{mutex_};
+    if (auto state = entry(peer_states_, peer_id)) {
+      return state->collation_version;
+    }
+    return std::nullopt;
+  }
+
+  void PeerManagerImpl::setCollationVersion(
+      const PeerId &peer_id, CollationVersion collation_version) {
+    std::unique_lock lock{mutex_};
+    auto &state = peer_states_[peer_id];
+    state.collation_version = collation_version;
+  }
+
+  std::optional<ReqChunkVersion> PeerManagerImpl::getReqChunkVersion(
+      const PeerId &peer_id) {
+    std::unique_lock lock{mutex_};
+    if (auto state = entry(peer_states_, peer_id)) {
+      return state->req_chunk_version;
+    }
+    return std::nullopt;
+  }
+
+  void PeerManagerImpl::setReqChunkVersion(const PeerId &peer_id,
+                                           ReqChunkVersion req_chunk_version) {
+    std::unique_lock lock{mutex_};
+    auto &state = peer_states_[peer_id];
+    state.req_chunk_version = req_chunk_version;
+  }
+
+  std::optional<bool> PeerManagerImpl::isCollating(const PeerId &peer_id) {
+    std::unique_lock lock{mutex_};
+    if (auto state = entry(peer_states_, peer_id)) {
+      return state->collator_state.has_value();
+    }
+    return std::nullopt;
+  }
+
+  std::optional<bool> PeerManagerImpl::hasAdvertised(
+      const PeerId &peer_id,
+      const RelayHash &relay_parent,
+      const std::optional<CandidateHash> &candidate_hash) {
+    std::unique_lock lock{mutex_};
+    if (auto state = entry(peer_states_, peer_id)) {
+      return state->hasAdvertised(relay_parent, candidate_hash);
+    }
+    return std::nullopt;
+  }
+
+  std::optional<ParachainId> PeerManagerImpl::getParachainId(
+      const PeerId &peer_id) {
+    std::unique_lock lock{mutex_};
+    if (auto state = entry(peer_states_, peer_id)) {
+      if (state->collator_state.has_value()) {
+        return state->collator_state->para_id;
+      }
+    }
+    return std::nullopt;
+  }
+
+  PeerManager::InsertAdvertisementResult PeerManagerImpl::insertAdvertisement(
+      const PeerId &peer_id,
+      const RelayHash &on_relay_parent,
+      const parachain::ProspectiveParachainsModeOpt &relay_parent_mode,
+      const std::optional<std::reference_wrapper<const CandidateHash>>
+          &candidate_hash) {
+    std::unique_lock lock{mutex_};
+    using Error = parachain::ParachainProcessor::Error;
+    if (auto state = entry(peer_states_, peer_id)) {
+      if (state->collator_state.has_value()) {
+        if (not relay_parent_mode.has_value()) {
+          if (state->collator_state->advertisements.contains(on_relay_parent)) {
+            return Error::DUPLICATE;
+          }
+          if (candidate_hash) {
+            state->collator_state->advertisements[on_relay_parent] = {
+                *candidate_hash};
+          }
+        } else if (candidate_hash) {
+          auto &candidates =
+              state->collator_state->advertisements[on_relay_parent];
+          if (candidates.size() > relay_parent_mode->max_candidate_depth) {
+            return Error::PEER_LIMIT_REACHED;
+          }
+          if (not candidates.emplace(*candidate_hash).second) {
+            return Error::DUPLICATE;
+          }
+        } else {
+          return Error::PROTOCOL_MISMATCH;
+        }
+        state->collator_state->last_active = std::chrono::system_clock::now();
+        return std::make_pair(state->collator_state->collator_id,
+                              state->collator_state->para_id);
+      }
+    }
+    return Error::UNDECLARED_COLLATOR;
+  }
+
   void PeerManagerImpl::collectGarbage() {
     host_.getNetwork().getConnectionManager().collectGarbage();
     host_.getPeerRepository().getAddressRepository().collectGarbage();
@@ -764,6 +835,7 @@ namespace kagome::network {
     scheduler_->schedule(
         [WEAK_SELF] {
           WEAK_LOCK(self);
+          std::unique_lock lock{self->mutex_};
           self->collectGarbage();
         },
         kLibp2pCollectGarbage);

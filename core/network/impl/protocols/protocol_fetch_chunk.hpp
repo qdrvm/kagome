@@ -76,17 +76,7 @@ namespace kagome::network {
         BOOST_ASSERT(res.has_value());
         return res.value();
       }();
-      auto &peer_state = [&]() -> PeerState & {
-        auto res = pm_->getPeerState(peer_id);
-        if (!res) {
-          SL_TRACE(base_.logger(),
-                   "No PeerState of peer {}. Default one has created",
-                   peer_id);
-          res = pm_->createDefaultPeerState(peer_id);
-        }
-        return res.value().get();
-      }();
-      peer_state.req_chunk_version = ReqChunkVersion::V2;
+      pm_->setReqChunkVersion(peer_id, ReqChunkVersion::V2);
 
       SL_TRACE(
           base_.logger(),
