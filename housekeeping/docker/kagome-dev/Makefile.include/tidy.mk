@@ -26,6 +26,9 @@
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
 		-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
 		-e BUILD_DIR=$(BUILD_DIR) \
+		-e USER_ID=$(USER_ID) \
+		-e GROUP_ID=$(GROUP_ID) \
+		-e MOUNTED_DIRS="/opt/kagome" \
 		-v $$(pwd)/../../../../kagome:/opt/kagome \
 		-v $(CACHE_DIR)/.cargo/git:/root/.cargo/git \
 		-v $(CACHE_DIR)/.cargo/registry:/root/.cargo/registry \
@@ -33,7 +36,13 @@
 		-v $(CACHE_DIR)/.cache/ccache:/root/.cache/ccache \
 		$(DOCKERHUB_BUILDER_PATH):$(BUILDER_IMAGE_TAG) \
 		-c "tail -f /dev/null"; \
-	docker exec -t $$CONTAINER_NAME /bin/bash -c \
+	echo "Waiting for container health check..."; \
+	until [ "$$(docker inspect --format='{{.State.Health.Status}}' $$CONTAINER_NAME 2>/dev/null)" = "healthy" ]; do \
+		echo "Health status: $$(docker inspect --format='{{.State.Health.Status}}' $$CONTAINER_NAME 2>/dev/null || echo 'checking')" ; \
+		sleep 5 ; \
+	done; \
+	echo "Container is healthy, proceeding with tidy check"; \
+	docker exec -t $$CONTAINER_NAME gosu $(USER_ID):$(GROUP_ID) /bin/bash -c \
 		"echo \"Running on architecture: \$$(arch)\" && \
 		clang --version && \
 		cd /opt/kagome && \
