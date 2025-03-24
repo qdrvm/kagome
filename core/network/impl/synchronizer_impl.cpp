@@ -1598,12 +1598,13 @@ namespace kagome::network {
         .max = std::nullopt,
         .multiple_justifications = false,
     };
-    auto cb2 = [=, this, self{shared_from_this()}](
-                   outcome::result<BlocksResponse> r) mutable {
-      if (not r) {
+    auto cb2 = [WEAK_SELF, max, cb{std::move(cb)}](
+                   outcome::result<BlocksResponse> res) mutable {
+      WEAK_LOCK(self);
+      if (not res) {
         return;
       }
-      auto &blocks = r.value().blocks;
+      auto &blocks = res.value().blocks;
       if (blocks.empty()) {
         return;
       }
@@ -1621,7 +1622,7 @@ namespace kagome::network {
         --next;
         consensus::grandpa::HasAuthoritySetChange digest{*block.header};
         if (digest.scheduled && block.justification) {
-          primitives::calculateBlockHash(*block.header, *hasher_);
+          primitives::calculateBlockHash(*block.header, *self->hasher_);
           auto justification_res =
               scale::decode<GrandpaJustification>(block.justification->data);
           if (not justification_res) {

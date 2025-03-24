@@ -128,7 +128,7 @@ namespace kagome::network {
         .block_info = header.blockInfo(),
         .header = header,
         .justification = j,
-        .authorities = {set, {}},
+        .authorities = {.id = set, .authorities = {}},
     };
     db_->put(storage::kWarpSyncOp, scale::encode(op).value()).value();
     applyInner(op);
