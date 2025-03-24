@@ -121,7 +121,7 @@ namespace kagome::network {
                  peer_id);
       }
 
-      return std::move(res);
+      return res;
     }
 
     void onTxRequest(const RequestType &request) override {

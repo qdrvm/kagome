@@ -100,7 +100,7 @@ namespace kagome::network {
     std::shared_ptr<ValidationProtocol> getValidationProtocol() const override;
     std::shared_ptr<ReqCollationProtocol> getReqCollationProtocol()
         const override;
-    std::shared_ptr<ReqPovProtocol> getReqPovProtocol() const override;
+    std::shared_ptr<IReqPovProtocol> getReqPovProtocol() const override;
     std::shared_ptr<FetchChunkProtocol> getFetchChunkProtocol() const override;
     std::shared_ptr<FetchChunkProtocolObsolete> getFetchChunkProtocolObsolete()
         const override;

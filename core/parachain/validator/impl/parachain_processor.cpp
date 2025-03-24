@@ -801,7 +801,6 @@ namespace kagome::parachain {
           _keeper_.emplace_back(it->second.per_session_state);
           state_by_relay_parent_to_check_[relay_parent] = std::move(it->second);
           relay_parent_depth_[relay_parent] = block_header.number;
-          std::cout << fmt::format("---> ERASED {}\n", it->first);
           it = our_current_state_.state_by_relay_parent.erase(it);
         }
       }
