@@ -21,6 +21,7 @@
 		-e GITHUB_HUNTER_USERNAME=$(GITHUB_HUNTER_USERNAME) \
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
 		-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
+		-e BUILD_DIR=$(BUILD_DIR) \
 		-v $$(pwd)/../../../../kagome:/opt/kagome \
 		-v $(CACHE_DIR)/.cargo/git:/root/.cargo/git \
 		-v $(CACHE_DIR)/.cargo/registry:/root/.cargo/registry \
