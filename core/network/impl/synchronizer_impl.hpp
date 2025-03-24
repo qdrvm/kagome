@@ -30,6 +30,7 @@
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
 #include "telemetry/service.hpp"
+#include "utils/safe_object.hpp"
 
 namespace kagome {
   class PoolHandlerReady;
@@ -73,6 +74,8 @@ namespace kagome::storage::trie_pruner {
 }
 
 namespace kagome::network {
+  using primitives::BlockInfo;
+
   class SynchronizerImpl
       : public Synchronizer,
         public std::enable_shared_from_this<SynchronizerImpl> {
@@ -323,6 +326,7 @@ namespace kagome::network {
     std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,
              const char *>
         recent_requests_;
+    SafeObject<std::unordered_set<BlockInfo>> executing_blocks_;
   };
 
 }  // namespace kagome::network
