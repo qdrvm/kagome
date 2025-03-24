@@ -931,19 +931,8 @@ namespace kagome::parachain {
       const CandidateHash &candidate_hash,
       ChunkIndex chunk_index,
       SelfCb next_iteration) {
-    auto peer_state = [&]() {
-      auto res = pm_->getPeerState(peer_id);
-      if (!res) {
-        SL_TRACE(logger_,
-                 "No PeerState of peer {}. Default one has created",
-                 peer_id);
-        res = pm_->createDefaultPeerState(peer_id);
-      }
-      return res;
-    }();
-
-    auto req_chunk_version = peer_state->get().req_chunk_version.value_or(
-        network::ReqChunkVersion::V2);
+    auto req_chunk_version =
+        pm_->getReqChunkVersion(peer_id).value_or(network::ReqChunkVersion::V2);
 
     SL_TRACE(logger_,
              "Candidate {}. "

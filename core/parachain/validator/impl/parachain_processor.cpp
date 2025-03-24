@@ -2261,13 +2261,9 @@ namespace kagome::parachain {
     auto &peer_id = pending_collation.peer_id;
     auto &prospective_candidate = pending_collation.prospective_candidate;
 
-    if (auto peer_data = pm_->getPeerState(peer_id)) {
-      network::CollationVersion version = network::CollationVersion::VStaging;
-      if (peer_data->get().collation_version) {
-        version = *peer_data->get().collation_version;
-      }
-      notify_collation_seconded(peer_id, version, relay_parent, statement);
-    }
+    auto version = pm_->getCollationVersion(peer_id).value_or(
+        network::CollationVersion::VStaging);
+    notify_collation_seconded(peer_id, version, relay_parent, statement);
 
     if (auto rp_state = tryGetStateByRelayParent(parent)) {
       rp_state->get().collations.status = CollationStatus::Seconded;
@@ -2652,52 +2648,23 @@ namespace kagome::parachain {
 
   outcome::result<std::pair<CollatorId, ParachainId>>
   ParachainProcessorImpl::insertAdvertisement(
-      network::PeerState &peer_data,
+      const PeerId &peer_id,
+      ParachainId para_id,
       const RelayHash &on_relay_parent,
       const ProspectiveParachainsModeOpt &relay_parent_mode,
       const std::optional<std::reference_wrapper<const CandidateHash>>
           &candidate_hash) {
-    if (!peer_data.collator_state) {
-      SL_WARN(logger_, "Undeclared collator.");
-      return Error::UNDECLARED_COLLATOR;
-    }
-
     if (!isRelayParentInImplicitView(
             on_relay_parent,
             relay_parent_mode,
             *our_current_state_.implicit_view,
             our_current_state_.validator_side.active_leaves,
-            peer_data.collator_state->para_id)) {
+            para_id)) {
       SL_TRACE(logger_, "Out of view. (relay_parent={})", on_relay_parent);
       return Error::OUT_OF_VIEW;
     }
-
-    if (!relay_parent_mode) {
-      if (peer_data.collator_state->advertisements.contains(on_relay_parent)) {
-        return Error::DUPLICATE;
-      }
-
-      if (candidate_hash) {
-        peer_data.collator_state->advertisements[on_relay_parent] = {
-            *candidate_hash};
-      }
-    } else if (candidate_hash) {
-      auto &candidates =
-          peer_data.collator_state->advertisements[on_relay_parent];
-      if (candidates.size() > relay_parent_mode->max_candidate_depth) {
-        return Error::PEER_LIMIT_REACHED;
-      }
-      auto [_, inserted] = candidates.insert(*candidate_hash);
-      if (!inserted) {
-        return Error::DUPLICATE;
-      }
-    } else {
-      return Error::PROTOCOL_MISMATCH;
-    }
-
-    peer_data.collator_state->last_active = std::chrono::system_clock::now();
-    return std::make_pair(peer_data.collator_state->collator_id,
-                          peer_data.collator_state->para_id);
+    return pm_->insertAdvertisement(
+        peer_id, on_relay_parent, relay_parent_mode, candidate_hash);
   }
 
   // Attempt to kick off the seconding process for a pending collation
@@ -2994,10 +2961,9 @@ namespace kagome::parachain {
     const ProspectiveParachainsModeOpt &relay_parent_mode =
         per_relay_parent.prospective_parachains_mode;
 
-    TRY_GET_OR_RET(peer_state, pm_->getPeerState(peer_id));
-    TRY_GET_OR_RET(collator_state, peer_state->get().collator_state);
+    TRY_GET_OR_RET(collator_para_id_opt, pm_->getParachainId(peer_id));
+    auto &collator_para_id = collator_para_id_opt.value();
 
-    const ParachainId collator_para_id = collator_state->para_id;
     if (!per_relay_parent.assigned_core) {
       SL_TRACE(logger_,
                "We are not assigned. (peerd_id={}, collator={})",
@@ -3031,8 +2997,11 @@ namespace kagome::parachain {
                    [](const auto &pair) { return std::cref(pair.first); });
 
     // Try to insert the advertisement
-    auto insert_res = insertAdvertisement(
-        peer_state->get(), relay_parent, relay_parent_mode, candidate_hash);
+    auto insert_res = insertAdvertisement(peer_id,
+                                          collator_para_id,
+                                          relay_parent,
+                                          relay_parent_mode,
+                                          candidate_hash);
     if (insert_res.has_error()) {
       // If there is an error inserting the advertisement, log a trace message
       // and return
@@ -3174,23 +3143,19 @@ namespace kagome::parachain {
 
   outcome::result<void> ParachainProcessorImpl::fetchCollation(
       const PendingCollation &pc, const CollatorId &id) {
-    auto peer_state = pm_->getPeerState(pc.peer_id);
-    if (!peer_state) {
+    const auto candidate_hash =
+        utils::map(pc.prospective_candidate,
+                   [](const auto &v) { return std::cref(v.candidate_hash); });
+    auto has_advertised_opt =
+        pm_->hasAdvertised(pc.peer_id, pc.relay_parent, candidate_hash);
+    if (not has_advertised_opt.has_value()) {
       SL_TRACE(
           logger_, "No peer state. Unknown peer. (peer id={})", pc.peer_id);
       return Error::NO_PEER;
     }
-
-    const auto candidate_hash =
-        utils::map(pc.prospective_candidate,
-                   [](const auto &v) { return std::cref(v.candidate_hash); });
-
-    network::CollationVersion version = network::CollationVersion::VStaging;
-    if (peer_state->get().collation_version) {
-      version = *peer_state->get().collation_version;
-    }
-
-    if (peer_state->get().hasAdvertised(pc.relay_parent, candidate_hash)) {
+    if (has_advertised_opt.value()) {
+      auto version = pm_->getCollationVersion(pc.peer_id)
+                         .value_or(network::CollationVersion::VStaging);
       return fetchCollation(pc, id, version);
     }
     SL_WARN(logger_, "Not advertised. (peer id={})", pc.peer_id);
