@@ -14,9 +14,16 @@ set(FLAGS
     -fsanitize-address-use-after-scope
     -fno-omit-frame-pointer
     -g
-    -O0
-    -DNDEBUG
     )
+  
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
+  list(APPEND FLAGS -fsanitize-ignorelist="${CMAKE_CURRENT_LIST_DIR}/asan_ignore.txt")
+else()
+  message(WARNING "Non-Clang compilers do not support -fsanitize-ignorelist flag, some known false positives are expected.")
+endif()
+
+add_compile_definitions(KAGOME_WITH_ASAN)
+
 foreach(FLAG IN LISTS FLAGS)
   add_cache_flag(CMAKE_CXX_FLAGS ${FLAG})
   add_cache_flag(CMAKE_C_FLAGS ${FLAG})
@@ -25,8 +32,4 @@ endforeach()
 add_cache_flag(CMAKE_EXE_LINKER_FLAGS "-fsanitize=address")
 add_cache_flag(CMAKE_SHARED_LINKER_FLAGS "-fsanitize=address")
 
-add_compile_definitions(KAGOME_WITH_ASAN)
-
-set(ENV{ASAN_OPTIONS} verbosity=1:debug=1:detect_leaks=1:check_initialization_order=1:alloc_dealloc_mismatch=true:use_odr_indicator=true)
-
-message(STATUS "Memory sanitizer has activated")
+message(STATUS "Address sanitizer has activated")
