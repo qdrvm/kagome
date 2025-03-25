@@ -3363,10 +3363,26 @@ namespace kagome::parachain {
       return;
     }
 
-    auto cleanup_guard = std::unique_ptr<void, std::function<void(void *)>>(
-        (void *)1, [this, &block_hash](void *ptr) {
-          state_by_relay_parent_to_check_.erase(block_hash);
-        });
+    // scope guard to ensure cleanup when function exits
+    struct ScopeGuard {
+      ScopeGuard(decltype(state_by_relay_parent_to_check_) &map,
+                 const primitives::BlockHash &hash)
+          : map_(&map), hash_(hash) {}
+      ~ScopeGuard() {
+        map_->erase(hash_);
+      }
+
+      // Delete copy/move operations to satisfy rule of five
+      ScopeGuard(const ScopeGuard &) = delete;
+      ScopeGuard &operator=(const ScopeGuard &) = delete;
+      ScopeGuard(ScopeGuard &&) = delete;
+      ScopeGuard &operator=(ScopeGuard &&) = delete;
+
+      decltype(state_by_relay_parent_to_check_) *map_;
+      primitives::BlockHash hash_;
+    };
+
+    ScopeGuard cleanup_guard(state_by_relay_parent_to_check_, block_hash);
 
     const auto &parachain_state = it->second;
 
