@@ -334,7 +334,7 @@ namespace kagome::network {
 
     // ignore announces above currently executing block
     if (timeline_.get()->wasSynchronized() and (SAFE_SHARED(executing_blocks_) {
-          return std::all_of(
+          return std::ranges::all_of(
               executing_blocks_.begin(),
               executing_blocks_.end(),
               [&](const BlockInfo &x) { return header.number > x.number; });
