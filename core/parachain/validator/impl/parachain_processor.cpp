@@ -3306,7 +3306,7 @@ namespace kagome::parachain {
     const auto last_finalized_block = block_tree_->getLastFinalized().number;
     static std::optional<primitives::BlockNumber>
         previous_last_finalized_block = std::nullopt;
-    primitives::BlockNumber current_block_number = 0;
+    primitives::BlockNumber current_block_number = 1;
     if (not previous_last_finalized_block) {
       previous_last_finalized_block = last_finalized_block;
       if (last_finalized_block == 0) {
@@ -3364,7 +3364,7 @@ namespace kagome::parachain {
     }
 
     auto cleanup_guard = std::unique_ptr<void, std::function<void(void *)>>(
-        new int, [this, &block_hash](void *) {
+        (void *)1, [this, &block_hash](void *ptr) {
           state_by_relay_parent_to_check_.erase(block_hash);
         });
 
@@ -3491,8 +3491,8 @@ namespace kagome::parachain {
         continue;
       }
 
-      std::vector<uint8_t> buffer(extrinsic.data.begin() + 3,
-                                  extrinsic.data.end());
+      std::span<const uint8_t> buffer(&extrinsic.data[3],
+                                      extrinsic.data.size() - 3);
       auto decode_res = scale::decode<parachain::ParachainInherentData>(buffer);
 
       if (decode_res) {
