@@ -1,22 +1,37 @@
-﻿kagome_dev_docker_build_tidy:
+﻿# Tidy container name
+TIDY_CONTAINER_NAME := kagome_tidy_$(ARCHITECTURE)_$(shell echo $(PLATFORM) | sha256sum | cut -c1-8)
+
+# Main tidy target
+kagome_dev_docker_build_tidy:
+	$(MAKE) tidy_prepare
+	$(MAKE) tidy_run
+	$(MAKE) tidy_exec || { $(MAKE) tidy_clean; exit 1; }
+	$(MAKE) tidy_clean
+
+# Prepare for tidy check
+tidy_prepare:
 	$(MAKE) get_versions
 	mkdir -p \
 		$(CACHE_DIR)/.cargo/git \
 		$(CACHE_DIR)/.cargo/registry \
 		$(CACHE_DIR)/.hunter \
-		$(CACHE_DIR)/.cache/ccache  ; \
+		$(CACHE_DIR)/.cache/ccache
+
+# Clean any existing tidy container
+tidy_clean:
+	@echo "-- Cleaning tidy container..."
+	docker stop $(TIDY_CONTAINER_NAME) > /dev/null 2>&1 || true
+	docker rm -f $(TIDY_CONTAINER_NAME) > /dev/null 2>&1 || true
+
+# Start tidy container
+tidy_run:
+	@echo "-- Starting tidy container..."
+	$(MAKE) tidy_clean
 	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
-	CONTAINER_NAME=kagome_dev_tidy_$(ARCHITECTURE)_$$(echo $(PLATFORM) | sha256sum | cut -c1-8); \
-	echo "Using container name: $$CONTAINER_NAME"; \
-	echo "Removing any existing container with the same name..."; \
-	docker rm -f $$CONTAINER_NAME > /dev/null 2>&1 || true; \
-	DOCKER_EXEC_RESULT=0 ; \
-	trap 'echo "Cleaning up container $$CONTAINER_NAME"; docker rm -f $$CONTAINER_NAME > /dev/null 2>&1 || true' EXIT INT TERM; \
 	echo "Build type: $(BUILD_TYPE)"; \
 	echo "Architecture: $(ARCHITECTURE) (Platform: $(PLATFORM))"; \
-	docker run -d --name $$CONTAINER_NAME \
+	docker run -d --name $(TIDY_CONTAINER_NAME) \
 		--platform $(PLATFORM) \
-		--entrypoint "/bin/bash" \
 		-e SHORT_COMMIT_HASH=$$SHORT_COMMIT_HASH \
 		-e BUILD_TYPE=$(BUILD_TYPE) \
 		-e PACKAGE_ARCHITECTURE=$(PACKAGE_ARCHITECTURE) \
@@ -25,7 +40,7 @@
 		-e GITHUB_HUNTER_USERNAME=$(GITHUB_HUNTER_USERNAME) \
 		-e GITHUB_HUNTER_TOKEN=$(GITHUB_HUNTER_TOKEN) \
 		-e CTEST_OUTPUT_ON_FAILURE=$(CTEST_OUTPUT_ON_FAILURE) \
-		-e BUILD_DIR=$(DOCKER_BUILD_DIR_NAME) \
+		-e BUILD_DIR="build_docker_$(ARCHITECTURE)_$(BUILD_TYPE)" \
 		-e USER_ID=$(USER_ID) \
 		-e GROUP_ID=$(GROUP_ID) \
 		-e MOUNTED_DIRS="/opt/kagome" \
@@ -35,29 +50,47 @@
 		-v $(CACHE_DIR)/.hunter:/root/.hunter \
 		-v $(CACHE_DIR)/.cache/ccache:/root/.cache/ccache \
 		$(DOCKERHUB_BUILDER_PATH):$(BUILDER_IMAGE_TAG) \
-		-c "tail -f /dev/null"; \
-	echo "Waiting for container health check..."; \
-	until [ "$$(docker inspect --format='{{.State.Health.Status}}' $$CONTAINER_NAME 2>/dev/null)" = "healthy" ]; do \
-		echo "Health status: $$(docker inspect --format='{{.State.Health.Status}}' $$CONTAINER_NAME 2>/dev/null || echo 'checking')" ; \
-		sleep 5 ; \
-	done; \
-	echo "Container is healthy, proceeding with tidy check"; \
-	docker exec -t $$CONTAINER_NAME gosu $(USER_ID):$(GROUP_ID) /bin/bash -c \
-		"echo \"Running on architecture: \$$(arch)\" && \
-		clang --version && \
-		cd /opt/kagome && \
+		tail -f /dev/null; \
+	MAX_TRIES=30; \
+	TRIES=0; \
+	while [ $$TRIES -lt $$MAX_TRIES ]; do \
+		HEALTH_STATUS="$$(docker inspect --format='{{.State.Health.Status}}' $(TIDY_CONTAINER_NAME) 2>/dev/null || echo 'starting')"; \
+		echo "Health status: $$HEALTH_STATUS (try $$TRIES/$$MAX_TRIES)"; \
+		if [ "$$HEALTH_STATUS" = "healthy" ]; then \
+			echo "Container is healthy"; \
+			break; \
+		fi; \
+		if [ $$TRIES -eq $$((MAX_TRIES-1)) ]; then \
+			echo "Container failed to become healthy after $$MAX_TRIES attempts"; \
+			docker logs $(TIDY_CONTAINER_NAME); \
+			docker stop $(TIDY_CONTAINER_NAME); \
+			docker rm -f $(TIDY_CONTAINER_NAME); \
+			exit 1; \
+		fi; \
+		TRIES=$$((TRIES+1)); \
+		sleep 5; \
+	done
+
+# Execute tidy check in container
+tidy_exec:
+	@echo "-- Running clang-tidy check..."
+	DOCKER_EXEC_RESULT=0; \
+	BUILD_DIR_NAME="build_docker_$(ARCHITECTURE)_$(BUILD_TYPE)"; \
+	docker exec -t $(TIDY_CONTAINER_NAME) gosu $(USER_ID):$(GROUP_ID) /bin/bash -c \
+		"cd /opt/kagome && \
 		git config --global --add safe.directory /opt/kagome && \
 		git config --global --add safe.directory /root/.hunter/_Base/Cache/meta && \
 		source /venv/bin/activate && \
 		git submodule update --init && \
 		echo \"Building in \$$(pwd) for architecture \$$(arch)\" && \
-		cmake . -B\"$(DOCKER_BUILD_DIR_NAME)\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
-		cmake --build \"$(DOCKER_BUILD_DIR_NAME)\" --target generated -- -j$(BUILD_THREADS) && \
-		cd /opt/kagome/ && export CI='$(CI)' && ./housekeeping/clang-tidy-diff.sh \
-		" || DOCKER_EXEC_RESULT=$$? ; \
-	docker stop $$CONTAINER_NAME || true; \
-	docker rm $$CONTAINER_NAME || true; \
+		mkdir -p \"\$$BUILD_DIR_NAME\" && \
+		cmake . -B\"\$$BUILD_DIR_NAME\" -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=\"$(BUILD_TYPE)\" -DBACKWARD=OFF -DWERROR=$(WERROR) && \
+		cmake --build \"\$$BUILD_DIR_NAME\" --target generated -- -j$(BUILD_THREADS) && \
+		cd /opt/kagome/ && export CI='$(CI)' && \
+		./housekeeping/clang-tidy-diff.sh -b \"\$$BUILD_DIR_NAME\" \
+		" || DOCKER_EXEC_RESULT=$$?; \
 	if [ $$DOCKER_EXEC_RESULT -ne 0 ]; then \
 		echo "Error: Docker exec failed with return code $$DOCKER_EXEC_RESULT"; \
 		exit $$DOCKER_EXEC_RESULT; \
-	fi
+	fi; \
+	echo "-- Clang-tidy check completed successfully!"
