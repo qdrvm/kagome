@@ -83,6 +83,20 @@ target_link_libraries(prospective_parachains_test
     logger
     )
 
+addtest(approval_distribution_test
+    approval_distribution_test.cpp
+    )
+
+target_link_libraries(approval_distribution_test
+    validator_parachain
+    prospective_parachains
+    log_configurator
+    vrf_provider
+    base_fs_test
+    key_store
+    logger
+    )
+
 addtest(parachain_test
     pvf_test.cpp
     assignments.cpp
