@@ -332,12 +332,10 @@ namespace kagome::network {
       Synchronizer::SyncResultHandler &&handler) {
     const auto &block_info = header.blockInfo();
 
-    // ignore announces above currently executing block
+    // ignore announces above highest of currently executing blocks
     if (timeline_.get()->wasSynchronized() and (SAFE_SHARED(executing_blocks_) {
-          return std::ranges::all_of(
-              executing_blocks_.begin(),
-              executing_blocks_.end(),
-              [&](const BlockInfo &x) { return header.number > x.number; });
+          return not executing_blocks_.empty()
+             and header.number > executing_blocks_.rbegin()->number;
         })) {
       return false;
     }
