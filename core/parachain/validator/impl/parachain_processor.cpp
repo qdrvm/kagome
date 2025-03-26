@@ -3336,6 +3336,7 @@ namespace kagome::parachain {
                  "Error {} getting session index for block {}",
                  session_index.error(),
                  block_hash);
+        continue;
       }
       metric_session_index_->set(session_index.value());
       proceedVotesOnRelayParent(block_hash);
