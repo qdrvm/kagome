@@ -9,6 +9,7 @@
 #include <map>
 #include <set>
 
+#include "parachain/parachain_host_constants.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::parachain {
@@ -20,11 +21,16 @@ namespace kagome::parachain {
   /// different
   /// depths in the claim queue.
   inline TransposedClaimQueue transposeClaimQueue(
-      const runtime::ClaimQueueSnapshot &claims) {
+      const runtime::ClaimQueueSnapshot &claims,
+      uint32_t scheduling_lookahead = DEFAULT_SCHEDULING_LOOKAHEAD) {
     TransposedClaimQueue r;
     for (auto &[core, paras] : claims.claimes) {
       size_t depth = 0;
       for (auto &para : paras) {
+        if (depth > scheduling_lookahead) {
+          continue;
+        }
+
         r[para][depth].emplace(core);
         ++depth;
       }

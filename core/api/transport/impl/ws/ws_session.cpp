@@ -246,8 +246,21 @@ namespace kagome::api {
   }
 
   bool WsSession::isUnsafeAllowed() const {
-    return allow_unsafe_.allow(
-        stream_.next_layer().next_layer().socket().remote_endpoint());
+    auto &socket = stream_.next_layer().next_layer().socket();
+    if (not socket.is_open()) {
+      return false;
+    }
+
+    boost::system::error_code ec;
+    auto endpoint = socket.remote_endpoint(ec);
+    if (ec) {
+      // If remote_endpoint() fails (e.g., socket not connected), default to not
+      // allowing unsafe
+      SL_WARN(logger_, "Failed to get remote endpoint: {}", ec.message());
+      return false;
+    }
+
+    return allow_unsafe_.allow(endpoint);
   }
 
   std::shared_ptr<WsSessionImpl> WsSession::sessionMake() {

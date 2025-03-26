@@ -32,6 +32,38 @@ namespace kagome::parachain {
   using ParentHeadData =
       boost::variant<ParentHeadData_OnlyHash, ParentHeadData_WithData>;
 
+  using View = kagome::network::View;
+
+  // Forward declarations
+  namespace fragment {
+    struct RelayBlockViewData;
+    struct ProspectiveView;
+  }  // namespace fragment
+
+  // Define the structures needed for the prospective parachains
+  namespace fragment {
+    struct RelayBlockViewData {
+      std::unordered_map<ParachainId, FragmentChain> fragment_chains;
+    };
+    using ViewData = RelayBlockViewData;
+
+    struct ProspectiveView {
+      std::unordered_set<Hash> active_leaves;
+      std::unordered_map<Hash, RelayBlockViewData> per_relay_parent;
+      ImplicitView implicit_view;
+
+      std::optional<std::reference_wrapper<
+          const std::unordered_map<ParachainId, FragmentChain>>>
+      get_fragment_chains(const Hash &hash) const {
+        auto view_data = utils::get(per_relay_parent, hash);
+        if (!view_data) {
+          return std::nullopt;
+        }
+        return std::cref(view_data->get().fragment_chains);
+      }
+    };
+  }  // namespace fragment
+
   class IProspectiveParachains {
    public:
     struct HypotheticalMembershipRequest {
@@ -95,47 +127,20 @@ namespace kagome::parachain {
 #ifdef CFG_TESTING
    public:
 #endif  // CFG_TESTING
-    struct RelayBlockViewData {
-      // The fragment chains for current and upcoming scheduled paras.
-      std::unordered_map<ParachainId, fragment::FragmentChain> fragment_chains;
-    };
-
-    struct View {
-      // Per relay parent fragment chains. These includes all relay parents
-      // under the implicit view.
-      std::unordered_map<Hash, RelayBlockViewData> per_relay_parent;
-      // The hashes of the currently active leaves. This is a subset of the keys
-      // in `per_relay_parent`.
-      std::unordered_set<Hash> active_leaves;
-      // The backing implicit view.
-      ImplicitView implicit_view;
-
-      // Get the fragment chains of this leaf.
-      std::optional<std::reference_wrapper<
-          const std::unordered_map<ParachainId, fragment::FragmentChain>>>
-      get_fragment_chains(const Hash &leaf) const {
-        auto view_data = utils::get(per_relay_parent, leaf);
-        if (view_data) {
-          return std::cref(view_data->get().fragment_chains);
-        }
-        return std::nullopt;
-      }
-    };
-
     struct ImportablePendingAvailability {
       network::CommittedCandidateReceipt candidate;
       runtime::PersistedValidationData persisted_validation_data;
       fragment::PendingAvailability compact;
     };
 
-    std::optional<View> view_;
+    std::optional<fragment::ProspectiveView> view_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<runtime::ParachainHost> parachain_host_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
     log::Logger logger =
         log::createLogger("ProspectiveParachains", "parachain");
 
-    View &view();
+    fragment::ProspectiveView &view();
 
    public:
     ProspectiveParachains(
@@ -156,6 +161,13 @@ namespace kagome::parachain {
         ParachainId para,
         uint32_t count,
         const fragment::Ancestors &ancestors) override;
+
+    // Internal method for fetching backable candidates
+    std::vector<std::pair<CandidateHash, Hash>>
+    answerGetBackableCandidatesInternal(const RelayHash &relay_parent,
+                                        ParachainId para,
+                                        uint32_t count,
+                                        const fragment::Ancestors &ancestors);
 
     outcome::result<std::optional<runtime::PersistedValidationData>>
     answerProspectiveValidationDataRequest(

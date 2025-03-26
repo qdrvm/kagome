@@ -328,10 +328,6 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     };
     update.new_head.hash_opt = leaf_hash;
 
-    EXPECT_CALL(*parachain_host_, staging_async_backing_params(leaf_hash))
-        .WillRepeatedly(Return(outcome::success(fragment::AsyncBackingParams{
-            .max_candidate_depth = 4, .allowed_ancestry_len = 3})));
-
     EXPECT_CALL(*prospective_parachains_, prospectiveParachainsMode(leaf_hash))
         .WillRepeatedly(Return(ProspectiveParachainsMode{
             .max_candidate_depth = 4,

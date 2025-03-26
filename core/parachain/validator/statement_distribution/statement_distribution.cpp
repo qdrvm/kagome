@@ -435,7 +435,15 @@ namespace kagome::parachain::statement_distribution {
       OUTCOME_TRY(maybe_claim_queue, parachain_host->claim_queue(relay_parent));
       TransposedClaimQueue transposed_claim_queue;
       if (maybe_claim_queue) {
-        transposed_claim_queue = transposeClaimQueue(*maybe_claim_queue);
+        auto scheduling_lookahead_result =
+            parachain_host->scheduling_lookahead(relay_parent);
+        uint32_t scheduling_lookahead =
+            scheduling_lookahead_result.has_value()
+                ? scheduling_lookahead_result.value()
+                : parachain::DEFAULT_SCHEDULING_LOOKAHEAD;
+
+        transposed_claim_queue =
+            transposeClaimQueue(*maybe_claim_queue, scheduling_lookahead);
       }
       OUTCOME_TRY(node_features, parachain_host->node_features(relay_parent));
 
