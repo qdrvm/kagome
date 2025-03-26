@@ -12,7 +12,7 @@
 #include <mutex>
 #include <queue>
 #include <random>
-#include <unordered_set>
+#include <set>
 
 #include <libp2p/basic/scheduler.hpp>
 
@@ -326,7 +326,7 @@ namespace kagome::network {
     std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,
              const char *>
         recent_requests_;
-    SafeObject<std::unordered_set<BlockInfo>> executing_blocks_;
+    SafeObject<std::set<BlockInfo>> executing_blocks_;
   };
 
 }  // namespace kagome::network
