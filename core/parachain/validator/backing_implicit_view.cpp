@@ -9,6 +9,7 @@
 
 #include <span>
 
+#include "parachain/transpose_claim_queue.hpp"
 #include "parachain/types.hpp"
 #include "primitives/math.hpp"
 #include "utils/stringify.hpp"
@@ -23,6 +24,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::parachain, ImplicitView::Error, e) {
       return COMPONENT_NAME ": Already known leaf";
     case E::NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS:
       return COMPONENT_NAME ": Not initialized with prospective parachains";
+    case E::NO_COLLATING_FOR:
+      return COMPONENT_NAME ": No collating for";
   }
   return COMPONENT_NAME ": unknown error";
 }
@@ -208,20 +211,38 @@ namespace kagome::parachain {
           Error::NOT_INITIALIZED_WITH_PROSPECTIVE_PARACHAINS);
     }
 
-    size_t allowed_ancestry_len = 0;
-    if (auto mode =
-            prospective_parachains->prospectiveParachainsMode(leaf_hash)) {
-      allowed_ancestry_len = mode->allowed_ancestry_len;
-    } else {
-      return std::nullopt;
+    if (not collating_for) {
+      return outcome::failure(Error::NO_COLLATING_FOR);
     }
 
     BlockNumber min = leaf_number;
     OUTCOME_TRY(required_session,
                 parachain_host->session_index_for_child(leaf_hash));
-    OUTCOME_TRY(hashes,
-                block_tree_->getDescendingChainToBlock(
-                    leaf_hash, allowed_ancestry_len + 1));
+
+    OUTCOME_TRY(maybe_claim_queue, parachain_host->claim_queue(leaf_hash));
+
+    TransposedClaimQueue transposed_claim_queue;
+    if (maybe_claim_queue) {
+      auto scheduling_lookahead_result =
+          parachain_host->scheduling_lookahead(leaf_hash);
+      uint32_t scheduling_lookahead =
+          scheduling_lookahead_result.has_value()
+              ? scheduling_lookahead_result.value()
+              : parachain::DEFAULT_SCHEDULING_LOOKAHEAD;
+
+      transposed_claim_queue =
+          transposeClaimQueue(*maybe_claim_queue, scheduling_lookahead);
+    }
+
+    size_t ancestry_limit = 0;
+    if (auto it = transposed_claim_queue.find(*collating_for);
+        it != transposed_claim_queue.end()) {
+      ancestry_limit = it->second.size();
+    }
+
+    OUTCOME_TRY(
+        hashes,
+        block_tree_->getDescendingChainToBlock(leaf_hash, ancestry_limit + 1));
 
     for (size_t i = 1; i < hashes.size(); ++i) {
       const auto &hash = hashes[i];
