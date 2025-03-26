@@ -89,11 +89,15 @@ namespace kagome::network {
       const ReputationChange HONEST_OUT_OF_SCOPE_CATCH_UP = {.value = -200,  .reason = "Grandpa: Out-of-scope catch-up"};
 
       // Dispute distribution penalties
-      const ReputationChange INVALID_DISPUTE_REQUEST      = {.value = -100, .reason = "Dispute: Received message could not be decoded"};
       const ReputationChange INVALID_SIGNATURE_DISPUTE    = {.value = std::numeric_limits<Reputation>::min(), .reason = "Dispute: Signatures were invalid"};
       const ReputationChange NOT_A_VALIDATOR_DISPUTE      = {.value = -300, .reason = "Dispute: Reporting peer was not a validator"};
       const ReputationChange INVALID_IMPORT_DISPUTE       = {.value = -100, .reason = "Dispute: Import was deemed invalid by dispute-coordinator"};
       const ReputationChange APPARENT_FLOOD_DISPUTE       = {.value = -100, .reason = "Dispute: Peer exceeded the rate limit"};
+
+      // Statement distribution penalties
+      const ReputationChange INVALID_REQUEST_BITFIELD_SIZE = {.value = -300, .reason = "Statement: Attested candidate request bitfields have wrong size"};
+      const ReputationChange UNEXPECTED_MANIFEST_MISSING_KNOWLEDGE = {.value = -100, .reason = "Statement: Unexpected Manifest, missing knowledge for relay parent"};
+      const ReputationChange UNEXPECTED_REQUEST = {.value = -300, .reason = "Statement: Unexpected attested candidate request"};
 
     }  // namespace cost
 

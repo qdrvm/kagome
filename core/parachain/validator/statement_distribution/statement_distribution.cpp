@@ -700,7 +700,7 @@ namespace kagome::parachain::statement_distribution {
 
       // Apply reputation penalty for incorrect bitfield size
       reputation_repository->change(
-          peer_id, network::reputation::cost::INVALID_DISPUTE_REQUEST);
+          peer_id, network::reputation::cost::INVALID_REQUEST_BITFIELD_SIZE);
       return;
     }
 
@@ -746,6 +746,10 @@ namespace kagome::parachain::statement_distribution {
                "hash={}, relay parent={})",
                request.candidate_hash,
                confirmed->get().relay_parent());
+
+      // Apply reputation penalty for unauthorized request
+      reputation_repository->change(
+          peer_id, network::reputation::cost::UNEXPECTED_REQUEST);
       return;
     }
 
@@ -1539,7 +1543,8 @@ namespace kagome::parachain::statement_distribution {
     if (!relay_parent_state) {
       // Apply reputation penalty for unavailable relay parent state
       reputation_repository->change(
-          peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
+          peer_id,
+          network::reputation::cost::UNEXPECTED_MANIFEST_MISSING_KNOWLEDGE);
       return {};
     }
 
