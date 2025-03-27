@@ -50,6 +50,8 @@ namespace kagome::runtime {
     outcome::result<storage::trie::RootHash> commit(
         const std::optional<BufferView> &child, StateVersion version) override;
 
+    outcome::result<uint32_t> getRuntimeVersion() const override;
+
     outcome::result<void> startTransaction() override;
     outcome::result<void> rollbackTransaction() override;
     outcome::result<void> commitTransaction() override;

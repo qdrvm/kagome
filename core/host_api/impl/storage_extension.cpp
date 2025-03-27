@@ -126,6 +126,30 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
 
     auto batch = storage_provider_->getCurrentBatch();
+
+    // Special handling for runtime code updates based on system version
+    if (key == storage::kRuntimeCodeKey) {
+      int system_version = 1;
+
+      auto runtime_res = storage_provider_->getRuntimeVersion();
+      if (runtime_res) {
+        system_version = runtime_res.value();
+      }
+
+      if (system_version >= 3) {
+        SL_INFO(logger_,
+                "Storing runtime code in :pending_code (system_version: {})",
+                system_version);
+        auto put_result = batch->put(storage::kPendingRuntimeCodeKey, value);
+        if (not put_result) {
+          logger_->error(
+              "ext_set_storage failed to store pending code, reason: {}",
+              put_result.error());
+        }
+        return;
+      }
+    }
+
     auto put_result = batch->put(key, value);
     if (not put_result) {
       logger_->error(

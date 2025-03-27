@@ -8,6 +8,7 @@
 
 #include "common/span_adl.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/trie_batches.hpp"
@@ -265,5 +266,33 @@ namespace kagome::runtime {
       }
     }
     return result;
+  }
+
+  outcome::result<uint32_t> TrieStorageProviderImpl::getRuntimeVersion() const {
+    if (transaction_stack_.empty()) {
+      return RuntimeExecutionError::NO_TRANSACTIONS_WERE_STARTED;
+    }
+
+    auto batch = getCurrentBatch();
+    auto version_res = batch->tryGet(storage::kRuntimeVersionKey);
+    if (version_res.has_error()) {
+      return version_res.error();
+    }
+
+    auto &version_opt = version_res.value();
+    if (!version_opt.has_value()) {
+      return 1;  // Default to 1 for backward compatibility
+    }
+
+    // Version is stored as a SCALE-encoded uint32_t
+    scale::DecoderFromSpan decoder(version_opt.value().view());
+    uint32_t version = 0;
+    try {
+      decoder >> version;
+      return version;
+    } catch (const std::exception &e) {
+      SL_WARN(logger_, "Error decoding runtime version: {}", e.what());
+      return 1;  // Default to version 1 on decode error
+    }
   }
 }  // namespace kagome::runtime

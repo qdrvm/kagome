@@ -82,6 +82,13 @@ namespace kagome::runtime {
     virtual outcome::result<storage::trie::RootHash> commit(
         const std::optional<BufferView> &child, StateVersion version) = 0;
 
+    /**
+     * Get the system version of the runtime
+     * @return outcome::result containing the runtime version (defaults to 1 if
+     * no version found)
+     */
+    virtual outcome::result<uint32_t> getRuntimeVersion() const = 0;
+
     // ------ Transaction methods ------
 
     /// Start nested transaction

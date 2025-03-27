@@ -60,6 +60,11 @@ namespace kagome::runtime {
                  BufferView,
                  const ClearPrefixLimit &),
                 (override));
+
+    MOCK_METHOD(outcome::result<uint32_t>,
+                getRuntimeVersion,
+                (),
+                (const, override));
   };
 
 }  // namespace kagome::runtime

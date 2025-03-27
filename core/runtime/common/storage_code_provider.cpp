@@ -11,6 +11,7 @@
 #include "runtime/runtime_upgrade_tracker.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::runtime {
 
@@ -43,7 +44,39 @@ namespace kagome::runtime {
           return std::make_shared<common::Buffer>(std::move(code));
         }
       }
+
       OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state));
+
+      // First check for pending code
+      auto system_version_res = batch->tryGet(storage::kRuntimeVersionKey);
+      uint32_t system_version = 1;  // Default version
+      if (system_version_res.has_value()
+          && system_version_res.value().has_value()
+          && system_version_res.value().value().size()) {
+        try {
+          auto &version_data_ref = system_version_res.value().value();
+          scale::DecoderFromSpan decoder(version_data_ref.view());
+          decoder >> system_version;
+        } catch (const std::exception &e) {
+          SL_WARN(logger_, "Failed to decode runtime version: {}", e.what());
+        }
+      }
+
+      // Only use pending code if system version is 3 or higher
+      if (system_version >= 3) {
+        auto pending_code_res = batch->tryGet(storage::kPendingRuntimeCodeKey);
+        if (pending_code_res.has_value() && pending_code_res.value().has_value()
+            && pending_code_res.value().value().size()) {
+          SL_INFO(logger_,
+                  "Using pending runtime code (system version: {})",
+                  system_version);
+          cached_code_ = std::make_shared<common::Buffer>(
+              pending_code_res.value().value().intoBuffer());
+          last_state_root_ = state;
+          return cached_code_;
+        }
+      }
+
       OUTCOME_TRY(code, batch->get(storage::kRuntimeCodeKey));
       cached_code_ = std::make_shared<common::Buffer>(std::move(code));
       last_state_root_ = state;
