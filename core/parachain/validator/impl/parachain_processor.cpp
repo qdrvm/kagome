@@ -3304,18 +3304,23 @@ namespace kagome::parachain {
       return;
     }
     const auto last_finalized_block = block_tree_->getLastFinalized().number;
+    SL_DEBUG(logger_, "last_finalized_block {}", last_finalized_block);
     static std::optional<primitives::BlockNumber>
         previous_last_finalized_block = std::nullopt;
-    primitives::BlockNumber current_block_number = 1;
     if (not previous_last_finalized_block) {
       previous_last_finalized_block = last_finalized_block;
-      if (last_finalized_block == 0) {
-        return;
-      }
-    } else {
-      current_block_number = previous_last_finalized_block.value() + 1;
+      SL_DEBUG(logger_,
+               "previous_last_finalized_block initialized to {}",
+               previous_last_finalized_block.value());
+      return;
     }
-    for (auto i = current_block_number - 1; i < last_finalized_block; ++i) {
+    SL_DEBUG(logger_,
+             "previous_last_finalized_block number {}",
+             previous_last_finalized_block.value());
+    for (auto i = previous_last_finalized_block.value();
+         i < last_finalized_block;
+         ++i) {
+      SL_DEBUG(logger_, "Processing block number {}", i);
       const auto block_hash_res = block_tree_->getBlockHash(i);
       if (not block_hash_res) {
         SL_DEBUG(logger_,
