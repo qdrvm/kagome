@@ -19,6 +19,7 @@
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
+#include "mock/core/api/service/state/state_api_mock.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
 #include "scale/kagome_scale.hpp"
@@ -28,6 +29,7 @@
 #include "testutil/prepare_loggers.hpp"
 #include "testutil/runtime/memory.hpp"
 #include "testutil/scale_test_comparator.hpp"
+#include "testutil/lazy.hpp"
 
 using kagome::ClearPrefixLimit;
 using kagome::KillStorageResult;
@@ -48,6 +50,7 @@ using kagome::storage::trie::PolkadotCodec;
 using kagome::storage::trie::PolkadotTrieCursorMock;
 using kagome::storage::trie::RootHash;
 using kagome::storage::trie::TrieBatchMock;
+using kagome::api::StateApiMock;
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -69,10 +72,12 @@ class StorageExtensionTest : public ::testing::Test {
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
         .WillRepeatedly(Return(std::ref(memory_.memory)));
+    auto state_api_mock = std::make_shared<StateApiMock>();
     storage_extension_ = std::make_shared<StorageExtension>(
         storage_provider_,
         memory_provider_,
-        std::make_shared<kagome::crypto::HasherImpl>());
+        std::make_shared<kagome::crypto::HasherImpl>(),
+        testutil::sptr_to_lazy<kagome::api::StateApi>(state_api_mock));
   }
 
  protected:

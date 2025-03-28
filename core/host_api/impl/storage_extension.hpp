@@ -8,13 +8,14 @@
 
 #include <cstdint>
 
+#include "api/service/state/state_api.hpp"
 #include "common/buffer_or_view.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "primitives/kill_storage_result.hpp"
 #include "runtime/types.hpp"
 #include "storage/trie/serialization/polkadot_codec.hpp"
 #include "storage/trie/types.hpp"
-
 namespace kagome::crypto {
   class Hasher;
 }
@@ -33,7 +34,8 @@ namespace kagome::host_api {
     StorageExtension(
         std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
         std::shared_ptr<const runtime::MemoryProvider> memory_provider,
-        std::shared_ptr<const crypto::Hasher> hasher);
+        std::shared_ptr<const crypto::Hasher> hasher,
+        LazySPtr<api::StateApi> state_api);
 
     void reset();
 
@@ -177,6 +179,7 @@ namespace kagome::host_api {
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<const crypto::Hasher> hasher_;
+    LazySPtr<api::StateApi> state_api_;
     storage::trie::PolkadotCodec codec_;
     log::Logger logger_;
 
