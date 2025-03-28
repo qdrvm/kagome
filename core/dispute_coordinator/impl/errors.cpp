@@ -82,6 +82,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::dispute, DisputeProcessingError, e) {
       return "Peer attempted to participate in dispute and is not a validator";
     case E::AuthorityFlooding:
       return "Authority sent messages at a too high rate";
+    case E::InvalidImport:
+      return "Import was deemed invalid by dispute-coordinator";
+    case E::InvalidSignature:
+      return "Signatures were invalid";
   }
   return "unknown error (invalid DisputeProcessingError)";
 }
