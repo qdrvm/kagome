@@ -1411,7 +1411,7 @@ namespace kagome::consensus::grandpa {
       auto *index = vote.is<Prevote>()   ? &votes.prevote_idx
                   : vote.is<Precommit>() ? &votes.precommit_idx
                                          : nullptr;
-      if (index != nullptrand notindex->has_value()) {
+      if (index != nullptr and not index->has_value()) {
         *index = votes.seen.size();
       }
     }
@@ -1439,7 +1439,7 @@ namespace kagome::consensus::grandpa {
           }
           cache.second = false;
           std::ignore = db_->put(historicalVotesKey(key.first, key.second),
-                                 scale::encode(cache.first).value());
+                                 ::scale::encode(cache.first).value());
         });
   }
 

@@ -14,6 +14,6 @@
 
 namespace kagome::network::notifications {
   std::shared_ptr<Buffer> encode(const auto &message) {
-    return std::make_shared<Buffer>(scale::encode(message).value());
+    return std::make_shared<Buffer>(::scale::encode(message).value());
   }
 }  // namespace kagome::network::notifications

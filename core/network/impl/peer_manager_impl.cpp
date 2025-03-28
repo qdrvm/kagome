@@ -15,6 +15,7 @@
 
 #include "common/main_thread_pool.hpp"
 #include "network/can_disconnect.hpp"
+#include "parachain/validator/parachain_processor.hpp"
 #include "scale/libp2p_types.hpp"
 #include "storage/predefined_keys.hpp"
 #include "utils/map_entry.hpp"
@@ -796,7 +797,7 @@ namespace kagome::network {
       const std::optional<std::reference_wrapper<const CandidateHash>>
           &candidate_hash) {
     std::unique_lock lock{mutex_};
-    using Error = parachain::ParachainProcessor::Error;
+    using Error = parachain::ParachainProcessorImpl::Error;
     if (auto state = entry(peer_states_, peer_id)) {
       if (state->collator_state.has_value()) {
         if (not relay_parent_mode.has_value()) {
