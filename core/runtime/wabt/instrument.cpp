@@ -85,10 +85,10 @@ namespace kagome::runtime {
       common::BufferView code, const RuntimeContext::ContextParams &config) {
     OUTCOME_TRY(module, wabtDecode(code, config));
     const auto &memory_config = config.memory_limits;
-    if (memory_config.max_stack_values_num) {
-      OUTCOME_TRY(instrumentWithStackLimiter(
-          module, *memory_config.max_stack_values_num));
-    }
+    // if (memory_config.max_stack_values_num) {
+    //   OUTCOME_TRY(instrumentWithStackLimiter(
+    //       module, *memory_config.max_stack_values_num));
+    // }
     OUTCOME_TRY(convertMemoryImportIntoExport(module));
     OUTCOME_TRY(setupMemoryAccordingToHeapAllocStrategy(
         module, memory_config.heap_alloc_strategy));
