@@ -191,3 +191,13 @@ kagome_sanitizer_manifest_all: kagome_sanitizer_manifest_all_asan kagome_sanitiz
 
 kagome_sanitizer_manifest_inspect_all: kagome_sanitizer_manifest_inspect_asan kagome_sanitizer_manifest_inspect_tsan kagome_sanitizer_manifest_inspect_ubsan kagome_sanitizer_manifest_inspect_asanubsan
 	@echo "-- All sanitizer manifests inspected."
+
+.PHONY: kagome_image_build_asan kagome_image_build_tsan kagome_image_build_ubsan kagome_image_build_asanubsan \
+        kagome_image_push_asan kagome_image_push_tsan kagome_image_push_ubsan kagome_image_push_asanubsan \
+        kagome_sanitizer_manifest_create_asan kagome_sanitizer_manifest_create_tsan kagome_sanitizer_manifest_create_ubsan kagome_sanitizer_manifest_create_asanubsan \
+        kagome_sanitizer_manifest_push_asan kagome_sanitizer_manifest_push_tsan kagome_sanitizer_manifest_push_ubsan kagome_sanitizer_manifest_push_asanubsan \
+        kagome_sanitizer_manifest_all_asan kagome_sanitizer_manifest_all_tsan kagome_sanitizer_manifest_all_ubsan kagome_sanitizer_manifest_all_asanubsan \
+        kagome_sanitizer_manifest_inspect_asan kagome_sanitizer_manifest_inspect_tsan kagome_sanitizer_manifest_inspect_ubsan kagome_sanitizer_manifest_inspect_asanubsan \
+        kagome_image_all_asan kagome_image_all_tsan kagome_image_all_ubsan kagome_image_all_asanubsan \
+        kagome_asan_all kagome_tsan_all kagome_ubsan_all kagome_asanubsan_all kagome_sanitizers_all \
+        kagome_sanitizer_manifest_all kagome_sanitizer_manifest_inspect_all

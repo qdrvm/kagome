@@ -57,3 +57,5 @@ polkadot_builder_check_tag:
 
 polkadot_builder_check_latest_tag:
 	@docker manifest inspect $(DOCKER_REGISTRY_PATH)polkadot_builder:$(BUILDER_LATEST_TAG) > /dev/null 2>&1 && echo "true" || echo "false"
+
+.PHONY: polkadot_builder polkadot_builder_push polkadot_builder_push_manifest polkadot_builder_all_arch polkadot_builder_image_info polkadot_builder_check_tag polkadot_builder_check_latest_tag

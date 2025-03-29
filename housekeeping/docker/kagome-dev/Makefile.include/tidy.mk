@@ -1,4 +1,6 @@
-﻿# Main tidy target
+﻿.PHONY: kagome_dev_docker_build_tidy tidy_prepare tidy_clean tidy_run tidy_exec
+
+# Main tidy target
 kagome_dev_docker_build_tidy:
 	$(MAKE) tidy_prepare
 	$(MAKE) tidy_run

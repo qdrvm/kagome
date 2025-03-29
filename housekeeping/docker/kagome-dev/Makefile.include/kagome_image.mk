@@ -141,3 +141,6 @@ kagome_image_info:
 	echo "  DOCKERHUB_IMAGE:        $(DOCKERHUB_REGISTRY_PATH):$${SHORT_COMMIT_HASH}"; \
 	echo "  DOCKERHUB_AMD64_IMAGE:  $(DOCKERHUB_REGISTRY_PATH):$${SHORT_COMMIT_HASH}-amd64"; \
 	echo "  DOCKERHUB_ARM64_IMAGE:  $(DOCKERHUB_REGISTRY_PATH):$${SHORT_COMMIT_HASH}-arm64"
+
+.PHONY: kagome_image_build kagome_image_build_all_arch kagome_image_push kagome_image_push_manifest \
+        kagome_image_push_dockerhub kagome_image_push_dockerhub_manifest kagome_image_info

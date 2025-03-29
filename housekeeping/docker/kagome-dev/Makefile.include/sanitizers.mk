@@ -176,3 +176,8 @@ kagome_test_all_sanitizers: kagome_test_asan kagome_test_tsan kagome_test_ubsan 
 # Legacy sanitizer target for backwards compatibility
 kagome_dev_docker_build_sanitizers: kagome_test_asan
 	@echo "-- Legacy sanitizer build completed (ASAN only)."
+
+.PHONY: kagome_docker_build_asan kagome_docker_build_tsan kagome_docker_build_ubsan kagome_docker_build_asanubsan \
+        kagome_upload_asan_package kagome_upload_tsan_package kagome_upload_ubsan_package kagome_upload_asanubsan_package \
+        kagome_test_asan kagome_test_tsan kagome_test_ubsan kagome_test_asanubsan kagome_test_all_sanitizers \
+        kagome_dev_docker_build_sanitizers

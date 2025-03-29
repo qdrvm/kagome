@@ -90,3 +90,5 @@ cache_check_and_upload:
 			exit 0; \
 		fi; \
 	fi
+
+.PHONY: cache_info cache_list cache_upload cache_get cache_check_and_upload

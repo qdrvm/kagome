@@ -138,3 +138,9 @@ sanitizer_cache_info:
 sanitizer_cache_list:
 	@echo "Available sanitizer caches in gs://$(CACHE_BUCKET)/:"
 	@gcloud storage ls "gs://$(CACHE_BUCKET)/build-cache-*-$(HOST_OS)-$(ARCHITECTURE)-$(BUILD_TYPE_SANITIZERS)-*.tar.zst" 2>/dev/null || echo "No sanitizer caches found"
+
+.PHONY: kagome_cache_upload_asan kagome_cache_upload_tsan kagome_cache_upload_ubsan kagome_cache_upload_asanubsan \
+        kagome_cache_get_asan kagome_cache_get_tsan kagome_cache_get_ubsan kagome_cache_get_asanubsan \
+        kagome_cache_check_and_upload_asan kagome_cache_check_and_upload_tsan kagome_cache_check_and_upload_ubsan kagome_cache_check_and_upload_asanubsan \
+        sanitizer_cache_info sanitizer_cache_list
+

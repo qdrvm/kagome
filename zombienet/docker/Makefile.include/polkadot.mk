@@ -106,3 +106,5 @@ polkadot_deb_package_info:
 	@echo "POLKADOT_SDK_RELEASE:         $(POLKADOT_SDK_RELEASE)"
 	@echo "POLKADOT_DEB_PACKAGE_NAME:    $(POLKADOT_DEB_PACKAGE_NAME)"
 	@echo "POLKADOT_DEB_PACKAGE_VERSION: $(POLKADOT_DEB_PACKAGE_VERSION)"
+
+.PHONY: polkadot_binary docker_run docker_exec stop_container clean_container reset_build_state

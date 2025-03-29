@@ -45,3 +45,5 @@ zombie_tester_image_info:
 	@echo ZOMBIE_TESTER_IMAGE:		 $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)
 	@echo ZOMBIE_TESTER_AMD64_IMAGE: $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-amd64
 	@echo ZOMBIE_TESTER_ARM64_IMAGE: $(DOCKER_REGISTRY_PATH)zombie_tester:$(POLKADOT_SDK_RELEASE)_$(ZOMBIENET_RELEASE)-arm64
+
+.PHONY: zombie_tester zombie_tester_all_arch zombie_tester_push zombie_tester_push_manifest zombie_tester_check_tag zombie_tester_check_latest_tag zombie_tester_image_info

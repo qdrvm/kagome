@@ -73,3 +73,5 @@ copy_logs_to_host:
 	docker stop $$FINISHED_CONTAINER_NAME; \
 	docker rm -f $$FINISHED_CONTAINER_NAME; \
 	docker rmi $$FINISHED_IMAGE_NAME
+
+.PHONY: copy_logs_to_host

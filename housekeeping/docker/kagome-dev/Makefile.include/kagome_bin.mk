@@ -124,3 +124,5 @@ kagome_package_check_version:
 
 kagome_get_package_version_no_arch:
 	@echo $(KAGOME_DEB_PACKAGE_VERSION_NO_ARCH)
+
+.PHONY: kagome_docker_build stop_container clean_container reset_build_state docker_run docker_exec upload_apt_package

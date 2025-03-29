@@ -57,3 +57,5 @@ upload_apt_package_runtime:
 		gcloud artifacts versions delete $(RUNTIME_VERSION) --package=kagome-dev-runtime --quiet; \
 	fi; \
 	gcloud artifacts apt upload $(ARTIFACTS_REPO) --source=./pkg/kagome-dev-runtime_$(RUNTIME_VERSION)_$(ARCHITECTURE).deb
+
+.PHONY: runtime_cache upload_apt_package_runtime

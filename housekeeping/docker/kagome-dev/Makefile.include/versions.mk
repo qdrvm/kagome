@@ -23,4 +23,4 @@ get_versions:
 	@echo "kagome_version: `cd $(WORKING_DIR) && ./get_version.sh`" | tee kagome_version.txt
 	@echo "kagome_sanitized_version: $(KAGOME_SANITIZED_VERSION)" | tee -a kagome_version.txt
 
-.PHONY: get_versions 
+.PHONY: get_versions

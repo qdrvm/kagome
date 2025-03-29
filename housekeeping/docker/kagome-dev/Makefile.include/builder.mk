@@ -66,3 +66,7 @@ kagome_builder_image_info:
 	@echo "  DOCKERHUB_BUILDER_IMAGE:        $(DOCKERHUB_BUILDER_PATH):$(BUILDER_IMAGE_TAG)"
 	@echo "  DOCKERHUB_BUILDER_AMD64_IMAGE:  $(DOCKERHUB_BUILDER_PATH):$(BUILDER_IMAGE_TAG)-amd64"
 	@echo "  DOCKERHUB_BUILDER_ARM64_IMAGE:  $(DOCKERHUB_BUILDER_PATH):$(BUILDER_IMAGE_TAG)-arm64"
+
+.PHONY: kagome_builder kagome_builder_all_arch kagome_builder_push kagome_builder_push_dockerhub \
+        kagome_builder_push_manifest kagome_builder_push_dockerhub_manifest \
+        kagome_builder_check_tag kagome_builder_check_latest_tag kagome_builder_image_info

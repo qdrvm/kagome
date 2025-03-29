@@ -36,3 +36,5 @@ test-polkadot-functional-0013-systematic-chunk-recovery:
 
 test-custom-0001-validators-warp-sync:
 	$(call run_test, "kagome/zombienet/custom/0001-validators-warp-sync.zndsl")
+
+.PHONY: test-polkadot-functional-0001-parachains-pvf test-polkadot-functional-0002-parachains-disputes test-polkadot-functional-0003-beefy-and-mmr test-polkadot-functional-0004-parachains-garbage-candidate test-polkadot-functional-0005-parachains-disputes-past-session test-polkadot-functional-0006-parachains-max-tranche0 test-polkadot-functional-0007-dispute-freshly-finalized test-polkadot-functional-0008-dispute-old-finalized test-polkadot-functional-0009-approval-voting-coalescing test-polkadot-functional-0010-validator-disabling test-polkadot-functional-0011-async-backing-6-seconds-rate test-polkadot-functional-0013-systematic-chunk-recovery test-custom-0001-validators-warp-sync
