@@ -3,7 +3,7 @@ enable_tracing = false
 
 [relaychain]
 default_command = "polkadot"
-chain_spec_path = "kagome/zombienet/custom/relay.json"
+chain_spec_path = "zombienet/custom/relay.json"
 chain = "rococo_dev"
 
   [[relaychain.nodes]]

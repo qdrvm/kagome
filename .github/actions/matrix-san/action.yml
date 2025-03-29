@@ -1,0 +1,71 @@
+name: 'Setup Sanitizer Matrix'
+description: 'Dynamically configure the build matrix for sanitizer builds'
+
+inputs:
+  build_tsan:
+    description: 'Build with TSAN?'
+    required: false
+    default: 'true'
+  build_asanubsan:
+    description: 'Build with ASAN+UBSAN?'
+    required: false
+    default: 'true'
+  build_amd64:
+    description: 'Build for AMD64 architecture'
+    required: false
+    default: 'true'
+  build_arm64:
+    description: 'Build for ARM64 architecture'
+    required: false
+    default: 'false'
+  amd64_runner:
+    description: 'Runner label for AMD64 architecture'
+    required: false
+    default: 'actions-runner-controller'
+  arm64_runner:
+    description: 'Runner label for ARM64 architecture (JSON array as string)'
+    required: false
+    default: '["self-hosted","qdrvm-arm64"]'
+
+outputs:
+  matrix:
+    description: 'The generated sanitizer build matrix'
+    value: ${{ steps.set-matrix.outputs.matrix }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: set-matrix
+      shell: bash
+      run: |
+        # Initialize empty array for matrix
+        MATRIX_ITEMS=()
+        
+        # Process AMD64 configs
+        if [[ "${{ inputs.build_amd64 }}" == "true" ]]; then
+          if [[ "${{ inputs.build_tsan }}" == "true" ]]; then
+            MATRIX_ITEMS+=('{"sanitizer":"tsan","platform":"linux/amd64","runs_on":${{ inputs.amd64_runner }}}')
+          fi
+          if [[ "${{ inputs.build_asanubsan }}" == "true" ]]; then
+            MATRIX_ITEMS+=('{"sanitizer":"asanubsan","platform":"linux/amd64","runs_on":${{ inputs.amd64_runner }}}')
+          fi
+        fi
+        
+        # Process ARM64 configs
+        if [[ "${{ inputs.build_arm64 }}" == "true" ]]; then
+          if [[ "${{ inputs.build_tsan }}" == "true" ]]; then
+            MATRIX_ITEMS+=('{"sanitizer":"tsan","platform":"linux/arm64","runs_on":${{ inputs.arm64_runner }}}')
+          fi
+          if [[ "${{ inputs.build_asanubsan }}" == "true" ]]; then
+            MATRIX_ITEMS+=('{"sanitizer":"asanubsan","platform":"linux/arm64","runs_on":${{ inputs.arm64_runner }}}')
+          fi
+        fi
+        
+        # Format the matrix JSON
+        if [[ ${#MATRIX_ITEMS[@]} -eq 0 ]]; then
+          echo "No matrix items selected! Defaulting to AMD64 ASANUBSAN"
+          MATRIX_ITEMS+=('{"sanitizer":"asanubsan","platform":"linux/amd64","runs_on":${{ inputs.amd64_runner }}}')
+        fi
+        
+        MATRIX_JSON="{\"include\":[$(IFS=,; echo "${MATRIX_ITEMS[*]}")]}"
+        echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
