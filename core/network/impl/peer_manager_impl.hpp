@@ -146,8 +146,7 @@ namespace kagome::network {
 
     void processDiscoveredPeer(const PeerId &peer_id);
 
-    void processFullyConnectedPeer(std::unique_lock<std::mutex> &lock,
-                                   const PeerId &peer_id);
+    void processFullyConnectedPeer(const PeerId &peer_id);
 
     /// Opens streams set for special peer (i.e. new-discovered)
     void connectToPeer(const PeerId &peer_id);
@@ -200,7 +199,7 @@ namespace kagome::network {
     libp2p::basic::Scheduler::Handle align_timer_;
     std::set<PeerId> recently_active_peers_;
     primitives::events::PeerSubscriptionEnginePtr peer_event_engine_;
-    mutable std::mutex mutex_;
+    mutable std::recursive_mutex mutex_;
   };
 
 }  // namespace kagome::network
