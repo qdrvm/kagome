@@ -10,7 +10,7 @@ on:
   # push:
   #   branches: [ master ]
   #   tags: [ '*' ]
-  pull_request:
+  # pull_request:
   workflow_dispatch:
     inputs:
       run_all_steps:
