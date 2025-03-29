@@ -7,11 +7,11 @@
 name: "Kagome Sanitizers"
 
 on:
-  push:
-    branches:
-      - master
-    tags:
-      - '*'
+  # push:
+  #   branches:
+  #     - master
+  #   tags:
+  #     - '*'
   workflow_dispatch:
     inputs:
       build_tsan:
