@@ -47,32 +47,38 @@ kagome_image_push:
 	fi
 
 kagome_image_push_manifest:
-	BUILD_TYPE_LOWER=$$(echo $(BUILD_TYPE) | tr '[:upper:]' '[:lower:]'); \
-	SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
-	docker manifest create $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
-		--amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH}-amd64 \
-		--amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH}-arm64 && \
-	docker manifest create $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest \
-		--amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH}-amd64 \
-		--amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH}-arm64 && \
-	docker manifest push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} && \
-	docker manifest push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest && \
-	if [ "$(IS_MAIN_OR_TAG)" = "true" ]; then \
-		if [ "$(GIT_REF_NAME)" = "master" ]; then \
-			MAIN_TAG="$${SHORT_COMMIT_HASH}-master"; \
-			docker manifest create $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG} \
-				--amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG}-amd64 \
-				--amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG}-arm64 && \
-			docker manifest push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG}; \
-			echo "KAGOME_IMAGE_MASTER=$(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG}" ; \
-		elif [ -n "$(GIT_REF_NAME)" ]; then \
-			docker manifest create $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME} \
-				--amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME}-amd64 \
-				--amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME}-arm64 && \
-			docker manifest push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME}; \
-			echo "KAGOME_IMAGE_TAG=$(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME}" ; \
-		fi \
-	fi
+    BUILD_TYPE_LOWER=$$(echo $(BUILD_TYPE) | tr '[:upper:]' '[:lower:]'); \
+    SHORT_COMMIT_HASH=$$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2); \
+    amd64_exists=$$(docker manifest inspect $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH}-amd64 2>/dev/null && echo "yes" || echo "no"); \
+    arm64_exists=$$(docker manifest inspect $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH}-arm64 2>/dev/null && echo "yes" || echo "no"); \
+    if [ "$$amd64_exists" = "yes" ] && [ "$$arm64_exists" = "yes" ]; then \
+      docker manifest create $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} \
+        --amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH}-amd64 \
+        --amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH}-arm64 || true; \
+      docker manifest create $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest \
+        --amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH}-amd64 \
+        --amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH}-arm64 || true; \
+      docker manifest push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${SHORT_COMMIT_HASH} || true; \
+      docker manifest push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:latest || true; \
+      if [ "$(IS_MAIN_OR_TAG)" = "true" ]; then \
+        if [ "$(GIT_REF_NAME)" = "master" ]; then \
+          MAIN_TAG="$${SHORT_COMMIT_HASH}-master"; \
+          docker manifest create $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG} \
+            --amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG}-amd64 \
+            --amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG}-arm64 || true; \
+          docker manifest push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG} || true; \
+          echo "KAGOME_IMAGE_MASTER=$(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${MAIN_TAG}"; \
+        elif [ -n "$(GIT_REF_NAME)" ]; then \
+          docker manifest create $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME} \
+            --amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME}-amd64 \
+            --amend $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME}-arm64 || true; \
+          docker manifest push $(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME} || true; \
+          echo "KAGOME_IMAGE_TAG=$(DOCKER_REGISTRY_PATH)kagome_$${BUILD_TYPE_LOWER}:$${GIT_REF_NAME}"; \
+        fi; \
+      fi; \
+    else \
+      echo "Skipping manifest push: missing one or both architecture images (amd64: $$amd64_exists, arm64: $$arm64_exists)"; \
+    fi
 
 kagome_image_push_dockerhub:
 	BUILD_TYPE_LOWER="release" ; \
