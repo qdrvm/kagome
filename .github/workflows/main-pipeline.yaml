@@ -179,12 +179,7 @@ jobs:
       build_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
       build_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
       builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
-    secrets:
-      GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-      GCP_REGISTRY: ${{ secrets.GCP_REGISTRY }}
-      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
-      HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
-      HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+    secrets: inherit
 
   sanitizers:
     needs: [diagnostic]
@@ -198,12 +193,7 @@ jobs:
       use_cache: ${{ github.event.inputs.use_cache || 'true' }}
       cache_upload_allowed: ${{ github.event.inputs.cache_upload_allowed || 'false' }}
       builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
-    secrets:
-      GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-      GCP_REGISTRY: ${{ secrets.GCP_REGISTRY }}
-      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
-      HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
-      HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+    secrets: inherit
 
   build:
     needs: [diagnostic]
@@ -218,12 +208,7 @@ jobs:
       use_cache: ${{ github.event.inputs.use_cache || 'true' }}
       cache_upload_allowed: ${{ github.event.inputs.cache_upload_allowed || 'false' }}
       builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
-    secrets:
-      GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-      GCP_REGISTRY: ${{ secrets.GCP_REGISTRY }}
-      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
-      HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
-      HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+    secrets: inherit
 
   zombie_tests:
     needs: [build]
@@ -238,7 +223,4 @@ jobs:
       run_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
       run_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
       skip_build: 'true'
-    secrets:
-      GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-      GCP_REGISTRY: ${{ secrets.GCP_REGISTRY }}
-      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+    secrets: inherit
