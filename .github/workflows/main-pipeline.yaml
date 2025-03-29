@@ -39,16 +39,6 @@ on:
         options:
           - 'true'
           - 'false'
-      builder_latest_tag:
-        description: 'Custom Builder tag'
-        default: '20250322'
-        required: false
-        type: 'string'
-      zombie_tester_latest_tag:
-        description: 'Custom Zombie Tester tag'
-        default: '20250323'
-        required: false
-        type: 'string'
       run_amd64:
         description: 'Run tests on AMD64 architecture'
         required: false
@@ -65,22 +55,24 @@ on:
         options:
           - 'true'
           - 'false'
-      run_sanitizers:
-        description: 'Run sanitizer checks'
+      run_zombie_tests:
+        description: 'Run zombie tests'
         required: false
         default: 'true'
         type: 'choice'
         options:
           - 'true'
           - 'false'
-      run_tidy:
-        description: 'Run code quality checks'
+      builder_latest_tag:
+        description: 'Custom Builder tag'
+        default: '20250322'
         required: false
-        default: 'true'
-        type: 'choice'
-        options:
-          - 'true'
-          - 'false'
+        type: 'string'
+      zombie_tester_latest_tag:
+        description: 'Custom Zombie Tester tag'
+        default: '20250323'
+        required: false
+        type: 'string'
       runtime_package_version:
         description: 'Custom runtime package version'
         default: '20250323-0.14.1-3fbf6c6'
@@ -133,8 +125,9 @@ jobs:
           echo "=== Configuration ==="
           echo "Run AMD64: ${{ env.RUN_AMD64 }}"
           echo "Run ARM64: ${{ env.RUN_ARM64 }}"
-          echo "Run Tidy: ${{ github.event.inputs.run_tidy != 'false' }}"
-          echo "Run Sanitizers: ${{ github.event.inputs.run_sanitizers != 'false' }}"
+          echo "Run Tidy: Always enabled"
+          echo "Run Sanitizers: Always enabled"
+          echo "Run Zombie Tests: ${{ github.event.inputs.run_zombie_tests != 'false' }}"
           echo "Use Cache: ${{ env.USE_CACHE }}"
           echo "Cache Upload Allowed: ${{ env.CACHE_UPLOAD_ALLOWED }}"
           
@@ -143,18 +136,49 @@ jobs:
           echo "Tester tag: ${{ env.TESTER_LATEST_TAG }}"
           echo "Runtime package version: ${{ env.RUNTIME_PACKAGE_VERSION }}"
           echo "Build Type for Zombie Tests: ${{ env.BUILD_TYPE }}"
-          
-          echo "=== Deprecated Options ==="
-          echo "Run all steps input (obsolete): ${{ github.event.inputs.run_all_steps }}"
+
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "MacOS: Build Debug"
+            build_type: "Debug"
+            wasm_compiler: "WasmEdge"
+          - name: "MacOS: Build Release"
+            build_type: "Release"
+            wasm_compiler: "WasmEdge"
+          - name: "MacOS WAVM: Build Debug"
+            build_type: "Debug"
+            wasm_compiler: "WAVM"
+    name: "${{ matrix.options.name }}"
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v4
+      if: ${{ env.USE_CACHE == 'true' }}
+      with:
+        path: ${{ env.CACHE_PATHS }}
+        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+    - name: install
+      run: ./housekeeping/macos/dependency.sh
+      env:
+        KAGOME_MAC_CI: 1
+    - name: build
+      run: ./housekeeping/make_build.sh -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.options.build_type }} -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=${{ matrix.options.wasm_compiler }} -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
+      env:
+        KAGOME_IN_DOCKER: 0
+        KAGOME_MAC_CI: 1
 
   tidy:
     needs: [diagnostic]
-    if: ${{ success() && (github.event.inputs.run_tidy != 'false') }}
+    if: success()
     uses: ./.github/workflows/test-pipeline.yaml
     with:
-      build_amd64: ${{ env.RUN_AMD64 }}
-      build_arm64: ${{ env.RUN_ARM64 }}
-      builder_latest_tag: ${{ env.BUILDER_LATEST_TAG }}
+      build_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
+      build_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
+      builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
     secrets:
       GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
       GCP_REGISTRY: ${{ secrets.GCP_REGISTRY }}
@@ -164,16 +188,16 @@ jobs:
 
   sanitizers:
     needs: [diagnostic]
-    if: ${{ success() && (github.event.inputs.run_sanitizers != 'false') }}
+    if: success()
     uses: ./.github/workflows/sanitizers.yaml
     with:
       build_tsan: "true"
       build_asanubsan: "true"
-      build_amd64: ${{ env.RUN_AMD64 }}
-      build_arm64: ${{ env.RUN_ARM64 }}
-      use_cache: ${{ env.USE_CACHE }}
-      cache_upload_allowed: ${{ env.CACHE_UPLOAD_ALLOWED }}
-      builder_latest_tag: ${{ env.BUILDER_LATEST_TAG }}
+      build_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
+      build_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
+      use_cache: ${{ github.event.inputs.use_cache || 'true' }}
+      cache_upload_allowed: ${{ github.event.inputs.cache_upload_allowed || 'false' }}
+      builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
     secrets:
       GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
       GCP_REGISTRY: ${{ secrets.GCP_REGISTRY }}
@@ -186,14 +210,14 @@ jobs:
     if: success()
     uses: ./.github/workflows/build.yaml
     with:
-      build_amd64: ${{ env.RUN_AMD64 }}
-      build_arm64: ${{ env.RUN_ARM64 }}
+      build_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
+      build_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
       build_debug: true
       build_release: true
       build_relwithdebinfo: true
-      use_cache: ${{ env.USE_CACHE }}
-      cache_upload_allowed: ${{ env.CACHE_UPLOAD_ALLOWED }}
-      builder_latest_tag: ${{ env.BUILDER_LATEST_TAG }}
+      use_cache: ${{ github.event.inputs.use_cache || 'true' }}
+      cache_upload_allowed: ${{ github.event.inputs.cache_upload_allowed || 'false' }}
+      builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
     secrets:
       GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
       GCP_REGISTRY: ${{ secrets.GCP_REGISTRY }}
@@ -203,16 +227,16 @@ jobs:
 
   zombie_tests:
     needs: [build]
-    if: ${{ success() && needs.build.result == 'success' }}
+    if: ${{ success() && needs.build.result == 'success' && (github.event.inputs.run_zombie_tests != 'false') }}
     uses: ./.github/workflows/zombie-tests.yaml
     with:
-      build_type: ${{ env.BUILD_TYPE }}
-      use_cache: ${{ env.USE_CACHE }}
-      builder_latest_tag: ${{ env.BUILDER_LATEST_TAG }}
-      zombie_tester_latest_tag: ${{ env.TESTER_LATEST_TAG }}
-      runtime_package_version: ${{ env.RUNTIME_PACKAGE_VERSION }}
-      run_amd64: ${{ env.RUN_AMD64 }}
-      run_arm64: ${{ env.RUN_ARM64 }}
+      build_type: ${{ github.event.inputs.build_type || 'Release' }}
+      use_cache: ${{ github.event.inputs.use_cache || 'true' }}
+      builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
+      zombie_tester_latest_tag: ${{ github.event.inputs.zombie_tester_latest_tag || vars.CI_TESTER_TAG || '20250323' }}
+      runtime_package_version: ${{ github.event.inputs.runtime_package_version || vars.CI_RUNTIME_PACKAGE_VERSION || '20250323-0.14.1-3fbf6c6' }}
+      run_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
+      run_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
       skip_build: 'true'
     secrets:
       GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
