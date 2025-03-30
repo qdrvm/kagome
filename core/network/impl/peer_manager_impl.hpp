@@ -9,6 +9,7 @@
 #include "network/peer_manager.hpp"
 
 #include <memory>
+#include <mutex>
 #include <queue>
 
 #include <libp2p/basic/scheduler.hpp>
@@ -82,9 +83,6 @@ namespace kagome::network {
     /** @see AppStateManager::takeControl */
     void stop();
 
-    /** @see PeerManager::connectToPeer */
-    void connectToPeer(const PeerInfo &peer_info) override;
-
     /** @see PeerManager::activePeersNumber */
     size_t activePeersNumber() const override;
 
@@ -92,21 +90,6 @@ namespace kagome::network {
     void setCollating(const PeerId &peer_id,
                       const network::CollatorPublicKey &collator_id,
                       network::ParachainId para_id) override;
-
-    outcome::result<
-        std::pair<const network::CollatorPublicKey &, network::ParachainId>>
-    retrieveCollatorData(PeerState &peer_state,
-                         const primitives::BlockHash &relay_parent) override;
-
-    /** @see PeerManager::forEachPeer */
-    void forEachPeer(std::function<void(const PeerId &)> func) const override;
-
-    /** @see PeerManager::forOnePeer */
-    void forOnePeer(const PeerId &peer_id,
-                    std::function<void(const PeerId &)> func) const override;
-
-    /** @see PeerManager::forOnePeer */
-    void keepAlive(const PeerId &peer_id) override;
 
     /** @see PeerManager::startPingingPeer */
     void startPingingPeer(const PeerId &peer_id) override;
@@ -119,26 +102,42 @@ namespace kagome::network {
     void updatePeerState(const PeerId &peer_id,
                          const BlockAnnounce &announce) override;
 
-    std::optional<std::reference_wrapper<PeerState>> createDefaultPeerState(
-        const PeerId &peer_id) override;
-
     /** @see PeerManager::updatePeerState */
     void updatePeerState(
         const PeerId &peer_id,
         const GrandpaNeighborMessage &neighbor_message) override;
-
-    /** @see PeerManager::getPeerState */
-    std::optional<std::reference_wrapper<PeerState>> getPeerState(
-        const PeerId &peer_id) override;
-    std::optional<std::reference_wrapper<const PeerState>> getPeerState(
-        const PeerId &peer_id) const override;
 
     void enumeratePeerState(const PeersCallback &callback) override;
 
     std::optional<PeerId> peerFinalized(
         BlockNumber min, const PeerPredicate &predicate) override;
 
+    std::optional<PeerStateCompact> getGrandpaInfo(
+        const PeerId &peer_id) override;
+    std::optional<CollationVersion> getCollationVersion(
+        const PeerId &peer_id) override;
+    void setCollationVersion(const PeerId &peer_id,
+                             CollationVersion collation_version) override;
+    std::optional<ReqChunkVersion> getReqChunkVersion(
+        const PeerId &peer_id) override;
+    void setReqChunkVersion(const PeerId &peer_id,
+                            ReqChunkVersion req_chunk_version) override;
+    std::optional<bool> isCollating(const PeerId &peer_id) override;
+    std::optional<bool> hasAdvertised(
+        const PeerId &peer_id,
+        const RelayHash &relay_parent,
+        const std::optional<CandidateHash> &candidate_hash) override;
+    std::optional<ParachainId> getParachainId(const PeerId &peer_id) override;
+    InsertAdvertisementResult insertAdvertisement(
+        const PeerId &peer_id,
+        const RelayHash &on_relay_parent,
+        const parachain::ProspectiveParachainsModeOpt &relay_parent_mode,
+        const std::optional<std::reference_wrapper<const CandidateHash>>
+            &candidate_hash) override;
+
    private:
+    void keepAlive(const PeerId &peer_id);
+
     /// Right way to check self peer as it takes into account dev mode
     bool isSelfPeer(const PeerId &peer_id) const;
 
@@ -200,6 +199,7 @@ namespace kagome::network {
     libp2p::basic::Scheduler::Handle align_timer_;
     std::set<PeerId> recently_active_peers_;
     primitives::events::PeerSubscriptionEnginePtr peer_event_engine_;
+    mutable std::recursive_mutex mutex_;
   };
 
 }  // namespace kagome::network
