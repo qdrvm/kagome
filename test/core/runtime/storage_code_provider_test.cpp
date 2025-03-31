@@ -10,6 +10,7 @@
 
 #include <qtils/test/outcome.hpp>
 
+#include "mock/core/api/service/state/state_api_mock.hpp"
 #include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
@@ -63,11 +64,18 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenNoStorageUpdates) {
   EXPECT_CALL(*tracker, getLastCodeUpdateBlockInfo(first_state_root))
       .WillOnce(Return(block_info));
 
+  auto state_api_mock = std::make_shared<api::StateApiMock>();
+  EXPECT_CALL(*state_api_mock,
+              getRuntimeVersion(std::optional<primitives::BlockHash>{
+                  primitives::BlockHash{first_state_root}}))
+      .WillOnce(Return(primitives::Version{}));
+
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
       trie_db,
       tracker,
       std::make_shared<primitives::CodeSubstituteBlockIds>(),
-      std::make_shared<application::ChainSpecMock>());
+      std::make_shared<application::ChainSpecMock>(),
+      state_api_mock);
 
   // when
   ASSERT_OUTCOME_SUCCESS(obtained_state_code,
@@ -95,11 +103,18 @@ TEST_F(StorageCodeProviderTest, GetCodeWhenStorageUpdates) {
   EXPECT_CALL(*tracker, getLastCodeUpdateBlockInfo(second_state_root))
       .WillOnce(Return(second_block_info));
 
+  auto state_api_mock = std::make_shared<api::StateApiMock>();
+  EXPECT_CALL(*state_api_mock,
+              getRuntimeVersion(std::optional<primitives::BlockHash>{
+                  primitives::BlockHash{second_state_root}}))
+      .WillOnce(Return(primitives::Version{}));
+
   auto wasm_provider = std::make_shared<runtime::StorageCodeProvider>(
       trie_db,
       tracker,
       std::make_shared<primitives::CodeSubstituteBlockIds>(),
-      std::make_shared<application::ChainSpecMock>());
+      std::make_shared<application::ChainSpecMock>(),
+      state_api_mock);
 
   common::Buffer new_state_code{{1, 3, 3, 8}};
   EXPECT_CALL(*trie_db, getEphemeralBatchAt(second_state_root))
