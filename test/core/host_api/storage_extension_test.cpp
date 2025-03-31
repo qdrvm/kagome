@@ -15,6 +15,7 @@
 #include <scale/scale.hpp>
 
 #include "crypto/hasher/hasher_impl.hpp"
+#include "mock/core/api/service/state/state_api_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
@@ -31,6 +32,7 @@
 
 using kagome::ClearPrefixLimit;
 using kagome::KillStorageResult;
+using kagome::api::StateApiMock;
 using kagome::common::Buffer;
 using kagome::common::BufferView;
 using kagome::common::Hash256;
@@ -69,10 +71,18 @@ class StorageExtensionTest : public ::testing::Test {
     memory_provider_ = std::make_shared<MemoryProviderMock>();
     EXPECT_CALL(*memory_provider_, getCurrentMemory())
         .WillRepeatedly(Return(std::ref(memory_.memory)));
+    auto state_api_mock = std::make_shared<StateApiMock>();
+
+    EXPECT_CALL(
+        *state_api_mock,
+        getRuntimeVersion(std::optional<kagome::primitives::BlockHash>{}))
+        .WillRepeatedly(Return(kagome::primitives::Version{}));
+
     storage_extension_ = std::make_shared<StorageExtension>(
         storage_provider_,
         memory_provider_,
-        std::make_shared<kagome::crypto::HasherImpl>());
+        std::make_shared<kagome::crypto::HasherImpl>(),
+        state_api_mock);
   }
 
  protected:

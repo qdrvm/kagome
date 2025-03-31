@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include "runtime/runtime_code_provider.hpp"
-
+#include "api/service/state/state_api.hpp"
 #include "application/chain_spec.hpp"
 #include "log/logger.hpp"
+#include "runtime/runtime_code_provider.hpp"
 
 namespace kagome::storage::trie {
   class TrieBatch;
@@ -29,7 +29,8 @@ namespace kagome::runtime {
         std::shared_ptr<const storage::trie::TrieStorage> storage,
         std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
         std::shared_ptr<const CodeSubstituteBlockIds> code_substitutes,
-        std::shared_ptr<application::ChainSpec> chain_spec);
+        std::shared_ptr<application::ChainSpec> chain_spec,
+        std::shared_ptr<api::StateApi> state_api);
 
     Result getCodeAt(const storage::trie::RootHash &state) const override;
 
@@ -38,6 +39,7 @@ namespace kagome::runtime {
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const CodeSubstituteBlockIds> known_code_substitutes_;
     std::shared_ptr<application::ChainSpec> chain_spec_;
+    std::shared_ptr<api::StateApi> state_api_;
     mutable Code cached_code_;
     mutable storage::trie::RootHash last_state_root_;
     log::Logger logger_;
