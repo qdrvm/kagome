@@ -123,7 +123,8 @@ namespace kagome::network {
                         const GrandpaJustification &j,
                         consensus::grandpa::AuthoritySetId set) {
     HasAuthoritySetChange{header}.scheduled.value();
-    SL_INFO(log_, "unsafe, block {}, set {}", header.number, set);
+    SL_INFO(
+        log_, "unsafe sync completed, block {}, set {}", header.number, set);
     Op op{
         .block_info = header.blockInfo(),
         .header = header,
