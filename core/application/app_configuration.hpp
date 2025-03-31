@@ -24,6 +24,7 @@
 #include "telemetry/endpoint.hpp"
 
 namespace kagome::application {
+  using primitives::BlockNumber;
 
   enum class Subcommand : uint8_t {
     ChainInfo,
@@ -335,6 +336,8 @@ namespace kagome::application {
     virtual std::optional<std::string> getValidatorAddress() const = 0;
 
     virtual uint32_t maxParallelDownloads() const = 0;
+    
+    virtual std::optional<BlockNumber> unsafeSyncTo() const = 0;
   };
 
 }  // namespace kagome::application

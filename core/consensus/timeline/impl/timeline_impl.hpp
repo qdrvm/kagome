@@ -68,6 +68,7 @@ namespace libp2p::basic {
 }
 
 namespace kagome::consensus {
+  using primitives::BlockNumber;
 
   class TimelineImpl final : public Timeline,
                              public network::BlockAnnounceObserver,
@@ -191,6 +192,12 @@ namespace kagome::consensus {
     std::map<std::tuple<SlotNumber, AuthorityIndex>,
              std::tuple<primitives::BlockHash, bool>>
         data_for_equvocation_checks_;
+
+    struct UnsafeSync {
+      std::optional<BlockNumber> number;
+    };
+    std::optional<UnsafeSync> unsafe_sync_;
+    bool unsafe_sync_busy_ = false;
 
     telemetry::Telemetry telemetry_;
   };
