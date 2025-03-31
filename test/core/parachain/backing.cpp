@@ -2166,20 +2166,7 @@ TEST_F(BackingTest, concurrent_dependent_candidates) {
 TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
   TestState test_state;
 
-  // const BlockNumber LEAF_BLOCK_NUMBER = 100;
-  // const BlockNumber LEAF_ANCESTRY_LEN = 3;
   const auto para_id = test_state.chain_ids[0];
-
-  // const auto leaf_hash = ;
-  // const auto leaf_parent = get_parent_hash(leaf_hash);
-  // const auto leaf_grandparent = get_parent_hash(leaf_parent);
-
-  // const TestLeaf test_leaf_a{
-  //     .number = 3,
-  //     .hash = fromNumber(130),
-  //     .min_relay_parents = {{para_id, LEAF_BLOCK_NUMBER -
-  //     LEAF_ANCESTRY_LEN}},
-  // };
 
   sync_state_observable_->notify(
       kagome::primitives::events::SyncStateEventType::kSyncState,
@@ -2422,6 +2409,4 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
   for (const auto &cb : proto->cbs) {
     cb(outcome::success(resp));
   }
-
-  // activate_leaf(test_leaf_a, test_state);
 }
