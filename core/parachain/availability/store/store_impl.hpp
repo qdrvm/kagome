@@ -71,7 +71,8 @@ namespace kagome::parachain {
     void prune_candidates_no_lock(State &state);
     void remove_no_lock(State &state, const network::RelayHash &relay_parent);
 
-    log::Logger logger = log::createLogger("AvailabilityStore", "parachain");
+    log::Logger logger =
+        log::createLogger("AvailabilityStore", "availability_store");
     clock::SteadyClock &steady_clock_;
     std::shared_ptr<storage::SpacedStorage> storage_;
     primitives::events::ChainSub chain_sub_;
