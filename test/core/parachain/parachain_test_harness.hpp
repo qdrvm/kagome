@@ -267,9 +267,9 @@ class ProspectiveParachainsTestHarness : public testing::Test {
   }
 
   static Hash fromNumber(uint64_t n) {
-    assert(n <= 255);
+    uint8_t byte_value = n % 256;
     Hash h{};
-    memset(&h[0], n, 32);
+    memset(&h[0], byte_value, 32);
     return h;
   }
 
