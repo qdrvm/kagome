@@ -31,6 +31,7 @@
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 #include "utils/pool_handler_ready_make.hpp"
+#include "utils/sptr.hpp"
 #include "utils/weak_macro.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, SynchronizerImpl::Error, e) {
@@ -331,6 +332,14 @@ namespace kagome::network {
       const libp2p::peer::PeerId &peer_id,
       Synchronizer::SyncResultHandler &&handler) {
     const auto &block_info = header.blockInfo();
+
+    // ignore announces above highest of currently executing blocks
+    if (timeline_.get()->wasSynchronized() and (SAFE_SHARED(executing_blocks_) {
+          return not executing_blocks_.empty()
+             and header.number > executing_blocks_.rbegin()->number;
+        })) {
+      return false;
+    }
 
     // Block was applied before
     if (block_tree_->has(block_info.hash)) {
@@ -1036,13 +1045,29 @@ namespace kagome::network {
         }
 
       } else {
-        auto callback = [WEAK_SELF, block_info, handler{std::move(handler)}](
-                            auto &&block_addition_result) mutable {
-          WEAK_LOCK(self);
-          self->post_block_addition(std::move(block_addition_result),
-                                    std::move(handler),
-                                    block_info.hash);
+        SAFE_UNIQUE(executing_blocks_) {
+          executing_blocks_.emplace(block_info);
         };
+        auto remove_executing_blocks =
+            toSptr(libp2p::common::MovableFinalAction{[WEAK_SELF, block_info] {
+              WEAK_LOCK(self);
+              auto &executing_blocks_ = self->executing_blocks_;
+              SAFE_UNIQUE(executing_blocks_) {
+                executing_blocks_.erase(block_info);
+              };
+            }});
+        auto callback =
+            [WEAK_SELF,
+             block_info,
+             handler{std::move(handler)},
+             remove_executing_blocks{std::move(remove_executing_blocks)}](
+                auto &&block_addition_result) mutable {
+              WEAK_LOCK(self);
+              remove_executing_blocks.reset();
+              self->post_block_addition(std::move(block_addition_result),
+                                        std::move(handler),
+                                        block_info.hash);
+            };
 
         if (sync_method_ == application::SyncMethod::Full) {
           // Check if body is present

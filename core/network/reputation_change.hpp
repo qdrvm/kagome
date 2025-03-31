@@ -46,56 +46,67 @@ namespace kagome::network {
 
     // clang-format off
     namespace cost {
-      const ReputationChange UNEXPECTED_DISCONNECT        = {-1000, "Network: Unexpected disconnect"};
-      const ReputationChange DUPLICATE_BLOCK_REQUEST      = {-50,   "Sync: Duplicate block request"};
+      const ReputationChange UNEXPECTED_DISCONNECT        = {.value = -100, .reason = "Network: Unexpected disconnect"};
+      const ReputationChange DUPLICATE_BLOCK_REQUEST      = {.value = -100, .reason = "Sync: Duplicate block request"};
 
-      const ReputationChange PAST_REJECTION               = {-50,   "Grandpa: Past message"};
+      const ReputationChange PAST_REJECTION               = {.value = -50,   .reason = "Grandpa: Past message"};
 
-      const ReputationChange BAD_SIGNATURE                = {-100,  "Grandpa: Bad signature"};
-      const ReputationChange MALFORMED_CATCH_UP           = {-1000, "Grandpa: Malformed catch-up"};
-      const ReputationChange MALFORMED_COMMIT             = {-1000, "Grandpa: Malformed commit"};
+      const ReputationChange BAD_SIGNATURE                = {.value = -100,  .reason = "Grandpa: Bad signature"};
+      const ReputationChange MALFORMED_CATCH_UP           = {.value = -1000, .reason = "Grandpa: Malformed catch-up"};
+      const ReputationChange MALFORMED_COMMIT             = {.value = -1000, .reason = "Grandpa: Malformed commit"};
 
       // A message received that's from the future relative to our view. always misbehavior.
-      const ReputationChange FUTURE_MESSAGE               = {-500,  "Grandpa: Future message"};
+      const ReputationChange FUTURE_MESSAGE               = {.value = -500,  .reason = "Grandpa: Future message"};
 
-      const ReputationChange UNKNOWN_VOTER                = {-150,  "Grandpa: Unknown voter"};
+      const ReputationChange UNKNOWN_VOTER                = {.value = -150,  .reason = "Grandpa: Unknown voter"};
 
       // invalid neighbor message, considering the last one
-      const ReputationChange INVALID_VIEW_CHANGE          = {-500,  "Grandpa: Invalid view change"};
+      const ReputationChange INVALID_VIEW_CHANGE          = {.value = -500,  .reason = "Grandpa: Invalid view change"};
 
       // could not decode neighbor message. bytes-length of the packet.
       // TODO need to catch scale-decoder error for that
-      const ReputationChange UNDECODABLE_NEIGHBOR_MESSAGE = {-5,    "Grandpa: Bad packet"};
+      const ReputationChange UNDECODABLE_NEIGHBOR_MESSAGE = {.value = -5,    .reason = "Grandpa: Bad packet"};
 
-      const ReputationChange PER_UNDECODABLE_BYTE         = {-5,    ""};
+      const ReputationChange PER_UNDECODABLE_BYTE         = {.value = -5,    .reason = ""};
 
       // bad signature in catch-up response (for each checked signature)
-      const ReputationChange BAD_CATCHUP_RESPONSE         = {-25,   "Grandpa: Bad catch-up message"};
+      const ReputationChange BAD_CATCHUP_RESPONSE         = {.value = -25,   .reason = "Grandpa: Bad catch-up message"};
 
-      const ReputationChange PER_SIGNATURE_CHECKED        = {-25,   ""};
+      const ReputationChange PER_SIGNATURE_CHECKED        = {.value = -25,   .reason = ""};
 
-      const ReputationChange PER_BLOCK_LOADED             = {-10,   ""};
-      const ReputationChange INVALID_CATCH_UP             = {-5000, "Grandpa: Invalid catch-up"};
-      const ReputationChange INVALID_COMMIT               = {-5000, "Grandpa: Invalid commit"};
-      const ReputationChange OUT_OF_SCOPE_MESSAGE         = {-500,  "Grandpa: Out-of-scope message"};
-      const ReputationChange CATCH_UP_REQUEST_TIMEOUT     = {-200,  "Grandpa: Catch-up request timeout"};
+      const ReputationChange PER_BLOCK_LOADED             = {.value = -10,   .reason = ""};
+      const ReputationChange INVALID_CATCH_UP             = {.value = -5000, .reason = "Grandpa: Invalid catch-up"};
+      const ReputationChange INVALID_COMMIT               = {.value = -5000, .reason = "Grandpa: Invalid commit"};
+      const ReputationChange OUT_OF_SCOPE_MESSAGE         = {.value = -500,  .reason = "Grandpa: Out-of-scope message"};
+      const ReputationChange CATCH_UP_REQUEST_TIMEOUT     = {.value = -200,  .reason = "Grandpa: Catch-up request timeout"};
 
       // cost of answering a catch-up request
-      const ReputationChange CATCH_UP_REPLY               = {-200,  "Grandpa: Catch-up reply"};
+      const ReputationChange CATCH_UP_REPLY               = {.value = -200,  .reason = "Grandpa: Catch-up reply"};
 
       // A message received that cannot be evaluated relative to our view.
       // This happens before we have a view and have sent out neighbor packets.
       // always misbehavior.
-      const ReputationChange HONEST_OUT_OF_SCOPE_CATCH_UP = {-200,  "Grandpa: Out-of-scope catch-up"};
+      const ReputationChange HONEST_OUT_OF_SCOPE_CATCH_UP = {.value = -200,  .reason = "Grandpa: Out-of-scope catch-up"};
+
+      // Dispute distribution penalties
+      const ReputationChange INVALID_SIGNATURE_DISPUTE    = {.value = std::numeric_limits<Reputation>::min(), .reason = "Dispute: Signatures were invalid"};
+      const ReputationChange NOT_A_VALIDATOR_DISPUTE      = {.value = -300, .reason = "Dispute: Reporting peer was not a validator"};
+      const ReputationChange INVALID_IMPORT_DISPUTE       = {.value = -100, .reason = "Dispute: Import was deemed invalid by dispute-coordinator"};
+      const ReputationChange APPARENT_FLOOD_DISPUTE       = {.value = -100, .reason = "Dispute: Peer exceeded the rate limit"};
+
+      // Statement distribution penalties
+      const ReputationChange INVALID_REQUEST_BITFIELD_SIZE = {.value = -300, .reason = "Statement: Attested candidate request bitfields have wrong size"};
+      const ReputationChange UNEXPECTED_MANIFEST_MISSING_KNOWLEDGE = {.value = -100, .reason = "Statement: Unexpected Manifest, missing knowledge for relay parent"};
+      const ReputationChange UNEXPECTED_REQUEST = {.value = -300, .reason = "Statement: Unexpected attested candidate request"};
 
     }  // namespace cost
 
     namespace benefit {
-      const ReputationChange NEIGHBOR_MESSAGE             = {100,   "Grandpa: Neighbor message"};
-      const ReputationChange ROUND_MESSAGE                = {100,   "Grandpa: Round message"};
-      const ReputationChange BASIC_VALIDATED_CATCH_UP     = {200,   "Grandpa: Catch-up message"};
-      const ReputationChange BASIC_VALIDATED_COMMIT       = {100,   "Grandpa: Commit"};
-      const ReputationChange PER_EQUIVOCATION             = {10,    ""};
+      const ReputationChange NEIGHBOR_MESSAGE             = {.value = 100,   .reason = "Grandpa: Neighbor message"};
+      const ReputationChange ROUND_MESSAGE                = {.value = 100,   .reason = "Grandpa: Round message"};
+      const ReputationChange BASIC_VALIDATED_CATCH_UP     = {.value = 200,   .reason = "Grandpa: Catch-up message"};
+      const ReputationChange BASIC_VALIDATED_COMMIT       = {.value = 100,   .reason = "Grandpa: Commit"};
+      const ReputationChange PER_EQUIVOCATION             = {.value = 10,    .reason = ""};
     }  // namespace benefit
     // clang-format on
 

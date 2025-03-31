@@ -7,9 +7,11 @@
 #include "runtime/runtime_api/impl/parachain_host.hpp"
 
 #include "common/blob.hpp"
+#include "parachain/parachain_host_constants.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/runtime_api/impl/if_export.hpp"
+#include "scale/encode_append.hpp"
 
 namespace kagome::runtime {
 
@@ -289,14 +291,6 @@ namespace kagome::runtime {
         executor_->call<ClaimQueueSnapshot>(ctx, "ParachainHost_claim_queue"));
   }
 
-  outcome::result<parachain::fragment::AsyncBackingParams>
-  ParachainHostImpl::staging_async_backing_params(
-      const primitives::BlockHash &block) {
-    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
-    return executor_->call<parachain::fragment::AsyncBackingParams>(
-        ctx, "ParachainHost_async_backing_params");
-  }
-
   outcome::result<uint32_t> ParachainHostImpl::minimum_backing_votes(
       const primitives::BlockHash &block, SessionIndex index) {
     OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
@@ -318,5 +312,24 @@ namespace kagome::runtime {
                 ifExport(executor_->call<scale::BitVector>(
                     ctx, "ParachainHost_node_features")));
     return NodeFeatures{std::move(r)};
+  }
+
+  outcome::result<uint32_t> ParachainHostImpl::scheduling_lookahead(
+      const primitives::BlockHash &block) {
+    OUTCOME_TRY(ctx, executor_->ctx().ephemeralAt(block));
+
+    // Try to call the runtime API for the scheduling lookahead value
+    // This may fail if the runtime doesn't support this API
+    OUTCOME_TRY(optional_result,
+                ifExport(executor_->call<std::optional<uint32_t>>(
+                    ctx, "ParachainHost_scheduling_lookahead")));
+
+    // Need to unwrap both levels of optionals
+    if (optional_result.has_value() && optional_result.value().has_value()) {
+      // Both optionals have values, return the inner value
+      return optional_result.value().value();
+    }
+
+    return parachain::DEFAULT_SCHEDULING_LOOKAHEAD;
   }
 }  // namespace kagome::runtime
