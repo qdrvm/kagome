@@ -31,6 +31,7 @@
 #include "parachain/availability/bitfield/signer.hpp"
 #include "parachain/backing/cluster.hpp"
 #include "parachain/backing/store.hpp"
+#include "parachain/parachain_inherent_data.hpp"
 #include "parachain/pvf/precheck.hpp"
 #include "parachain/pvf/pvf.hpp"
 #include "parachain/validator/backed_candidates_source.hpp"
@@ -692,6 +693,7 @@ namespace kagome::parachain {
                                    const RelayHash &relay_parent,
                                    const SignedFullStatementWithPVD &statement);
 
+    void onFinalize();
     void handle_active_leaves_update_for_validator(const network::ExView &event,
                                                    std::vector<Hash> pruned);
     outcome::result<void> fetchCollation(const PendingCollation &pc,
@@ -784,6 +786,18 @@ namespace kagome::parachain {
         const primitives::BlockHash &candidate_hash,
         const network::SignedStatement &statement);
 
+    void proceedVotesOnRelayParent(const primitives::BlockHash &block_hash);
+    std::optional<ParachainId> extractParachainId(
+        const runtime::CoreState &core) const;
+    std::optional<parachain::ParachainInherentData>
+    extractParachainInherentData(
+        const std::vector<primitives::Extrinsic> &block_body) const;
+    void checkCandidateVotes(
+        const parachain::ParachainInherentData &parachain_inherent_data,
+        const runtime::CommittedCandidateReceipt &candidate,
+        std::size_t validator_position,
+        bool &explicit_found,
+        bool &implicit_found) const;
     std::shared_ptr<network::PeerManager> pm_;
     std::shared_ptr<crypto::Sr25519Provider> crypto_provider_;
     std::shared_ptr<network::Router> router_;
@@ -810,6 +824,9 @@ namespace kagome::parachain {
             blocked_from_seconding;
       } validator_side;
     } our_current_state_;
+    std::unordered_map<primitives::BlockHash, RelayParentState>
+        state_by_relay_parent_to_check_;
+    std::unordered_map<primitives::BlockHash, uint32_t> relay_parent_depth_;
 
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<network::IPeerView> peer_view_;
@@ -845,6 +862,10 @@ namespace kagome::parachain {
         *metric_kagome_parachain_candidate_backing_signed_statements_total_;
     metrics::Counter
         *metric_kagome_parachain_candidate_backing_candidates_seconded_total_;
+    metrics::Gauge *metric_session_index_;
+    metrics::Counter *metric_kagome_parachain_candidate_implicit_votes_total_;
+    metrics::Counter *metric_kagome_parachain_candidate_explicit_votes_total_;
+    metrics::Counter *metric_kagome_parachain_candidate_no_votes_total_;
 
    public:
     void handle_second_message(const network::CandidateReceipt &candidate,

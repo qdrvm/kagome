@@ -56,7 +56,14 @@
 namespace {
   constexpr const char *kIsParachainValidator =
       "kagome_node_is_parachain_validator";
-}
+  constexpr auto kImplicitVotes = "kagome_parachain_implicit_votes";
+  constexpr auto kExplicitVotes = "kagome_parachain_explicit_votes";
+  constexpr auto kNoVotes = "kagome_parachain_no_votes";
+  constexpr auto kSessionIndex = "kagome_session_index";
+  constexpr auto parachain_inherent_data_extrinsic_version = 0x04;
+  constexpr auto parachain_inherent_data_call = 0x36;
+  constexpr auto parachain_inherent_data_module = 0x00;
+}  // namespace
 
 namespace kagome::parachain {
   std::vector<network::BackedCandidate>
@@ -295,6 +302,24 @@ namespace kagome::parachain {
     metric_kagome_parachain_candidate_backing_candidates_seconded_total_ =
         metrics_registry_->registerCounterMetric(
             "kagome_parachain_candidate_backing_candidates_seconded_total");
+
+    metrics_registry_->registerGaugeFamily(kSessionIndex,
+                                           "Parachain session index");
+    metric_session_index_ =
+        metrics_registry_->registerGaugeMetric(kSessionIndex);
+    metric_session_index_->set(0);
+    metrics_registry_->registerCounterFamily(
+        kImplicitVotes, "Implicit votes for parachain candidates");
+    metric_kagome_parachain_candidate_implicit_votes_total_ =
+        metrics_registry_->registerCounterMetric(kImplicitVotes);
+    metrics_registry_->registerCounterFamily(
+        kExplicitVotes, "Explicit votes for parachain candidates");
+    metric_kagome_parachain_candidate_explicit_votes_total_ =
+        metrics_registry_->registerCounterMetric(kExplicitVotes);
+    metrics_registry_->registerCounterFamily(
+        kNoVotes, "No votes for parachain candidates");
+    metric_kagome_parachain_candidate_no_votes_total_ =
+        metrics_registry_->registerCounterMetric(kNoVotes);
   }
 
   void ParachainProcessorImpl::OnBroadcastBitfields(
@@ -348,6 +373,12 @@ namespace kagome::parachain {
           self->onViewUpdated(event);
         });
 
+    chain_sub_.onFinalize([WEAK_SELF] {
+      WEAK_LOCK(self);
+      if (self) {
+        self->onFinalize();
+      }
+    });
     return true;
   }
 
@@ -438,7 +469,20 @@ namespace kagome::parachain {
           mode ? std::move(pruned_h) : std::vector<Hash>{removed};
 
       for (const auto &removed : pruned) {
-        our_current_state_.state_by_relay_parent.erase(removed);
+        auto it = our_current_state_.state_by_relay_parent.find(removed);
+        if (it != our_current_state_.state_by_relay_parent.end()) {
+          const auto &relay_parent = it->first;
+          state_by_relay_parent_to_check_[relay_parent] = std::move(it->second);
+          if (auto block_number = block_tree_->getNumberByHash(relay_parent)) {
+            relay_parent_depth_[relay_parent] = block_number.value();
+          } else {
+            SL_DEBUG(logger_,
+                     "Failed to get block number while pruning relay parent "
+                     "state. (relay_parent={})",
+                     relay_parent);
+          }
+          our_current_state_.state_by_relay_parent.erase(it);
+        }
 
         {  /// remove cancelations
           auto &container =
@@ -753,7 +797,10 @@ namespace kagome::parachain {
         if (remaining.contains(it->first)) {
           ++it;
         } else {
+          const auto &relay_parent = it->first;
           _keeper_.emplace_back(it->second.per_session_state);
+          state_by_relay_parent_to_check_[relay_parent] = std::move(it->second);
+          relay_parent_depth_[relay_parent] = block_header.number;
           it = our_current_state_.state_by_relay_parent.erase(it);
         }
       }
@@ -3247,6 +3294,268 @@ namespace kagome::parachain {
       UNREACHABLE;
     }
     return outcome::success();
+  }
+
+  void ParachainProcessorImpl::onFinalize() {
+    if (not isValidatingNode()) {
+      return;
+    }
+    if (state_by_relay_parent_to_check_.empty()) {
+      return;
+    }
+    const auto last_finalized_block = block_tree_->getLastFinalized().number;
+    static std::optional<primitives::BlockNumber>
+        previous_last_finalized_block = std::nullopt;
+    if (not previous_last_finalized_block) {
+      previous_last_finalized_block = last_finalized_block;
+      return;
+    }
+    for (auto i = previous_last_finalized_block.value();
+         i < last_finalized_block;
+         ++i) {
+      const auto block_hash_res = block_tree_->getBlockHash(i);
+      if (not block_hash_res) {
+        SL_DEBUG(logger_,
+                 "Error {} getting block hash for block number {}",
+                 block_hash_res.error(),
+                 i);
+        continue;
+      }
+      const auto &block_hash_opt = block_hash_res.value();
+      if (not block_hash_opt) {
+        continue;
+      }
+      const auto &block_hash = block_hash_opt.value();
+      const auto session_index =
+          parachain_host_->session_index_for_child(block_hash);
+      if (not session_index) {
+        SL_DEBUG(logger_,
+                 "Error {} getting session index for block {}",
+                 session_index.error(),
+                 block_hash);
+        continue;
+      }
+      metric_session_index_->set(session_index.value());
+      proceedVotesOnRelayParent(block_hash);
+    }
+    previous_last_finalized_block = last_finalized_block;
+    for (auto it = relay_parent_depth_.begin();
+         it != relay_parent_depth_.end();) {
+      if (it->second < last_finalized_block) {
+        const auto &relay_parent = it->first;
+        const auto jit = state_by_relay_parent_to_check_.find(relay_parent);
+        if (jit != state_by_relay_parent_to_check_.end()) {
+          proceedVotesOnRelayParent(relay_parent);
+        }
+        it = relay_parent_depth_.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+
+  void ParachainProcessorImpl::proceedVotesOnRelayParent(
+      const primitives::BlockHash &block_hash) {
+    const auto it = state_by_relay_parent_to_check_.find(block_hash);
+    if (it == state_by_relay_parent_to_check_.end()) {
+      return;
+    }
+
+    // scope guard to ensure cleanup when function exits
+    struct ScopeGuard {
+      ScopeGuard(decltype(state_by_relay_parent_to_check_) &map,
+                 const primitives::BlockHash &hash)
+          : map_(&map), hash_(hash) {}
+      ~ScopeGuard() {
+        map_->erase(hash_);
+      }
+
+      // Delete copy/move operations to satisfy rule of five
+      ScopeGuard(const ScopeGuard &) = delete;
+      ScopeGuard &operator=(const ScopeGuard &) = delete;
+      ScopeGuard(ScopeGuard &&) = delete;
+      ScopeGuard &operator=(ScopeGuard &&) = delete;
+
+      decltype(state_by_relay_parent_to_check_) *map_;
+      primitives::BlockHash hash_;
+    };
+
+    ScopeGuard cleanup_guard(state_by_relay_parent_to_check_, block_hash);
+
+    const auto &parachain_state = it->second;
+
+    if (not parachain_state.assigned_core) {
+      return;
+    }
+
+    const auto assigned_core = parachain_state.assigned_core.value();
+    const auto group_it =
+        parachain_state.table_context.groups.find(assigned_core);
+    if (group_it == parachain_state.table_context.groups.end()) {
+      return;
+    }
+
+    const auto validator_index_res =
+        utils::map(parachain_state.table_context.validator,
+                   [](const auto &signer) { return signer->validatorIndex(); });
+    if (not validator_index_res) {
+      return;
+    }
+
+    const auto validator_index = validator_index_res.value();
+    const auto &group = group_it->second;
+    std::unordered_map<ValidatorIndex, std::size_t> group_validator_position;
+
+    for (std::size_t pos = 0; pos < group.size(); ++pos) {
+      group_validator_position.emplace(group[pos], pos);
+    }
+
+    const auto validator_position_it =
+        group_validator_position.find(validator_index);
+    if (validator_position_it == group_validator_position.end()) {
+      return;
+    }
+
+    const auto validator_position = validator_position_it->second;
+    const auto &availability_cores = parachain_state.availability_cores;
+    if (assigned_core >= availability_cores.size()) {
+      return;
+    }
+
+    const auto parachain_id_opt =
+        extractParachainId(availability_cores[assigned_core]);
+    if (not parachain_id_opt) {
+      return;
+    }
+    const auto &parachain_id = parachain_id_opt.value();
+    const auto candidate_res = parachain_host_->candidate_pending_availability(
+        block_hash, parachain_id);
+    if (not candidate_res) {
+      SL_DEBUG(logger_,
+               "Candidate pending availability error {} on relay parent {}",
+               candidate_res.error(),
+               block_hash);
+      return;
+    }
+    const auto &candidate_opt = candidate_res.value();
+    if (not candidate_opt) {
+      return;
+    }
+
+    const auto block_body_res = block_tree_->getBlockBody(block_hash);
+    if (not block_body_res) {
+      SL_DEBUG(logger_,
+               "Block body error {} for block {}",
+               block_body_res.error(),
+               block_hash);
+      return;
+    }
+
+    const auto &block_body = block_body_res.value();
+    const auto parachain_inherent_data =
+        extractParachainInherentData(block_body);
+    if (not parachain_inherent_data) {
+      return;
+    }
+
+    bool explicit_found = false, implicit_found = false;
+    checkCandidateVotes(parachain_inherent_data.value(),
+                        candidate_opt.value(),
+                        validator_position,
+                        explicit_found,
+                        implicit_found);
+
+    if (explicit_found) {
+      SL_TRACE(logger_,
+               "Explicit vote found for parachain {} on relay parent {}",
+               parachain_id,
+               block_hash);
+      metric_kagome_parachain_candidate_explicit_votes_total_->inc();
+    } else if (implicit_found) {
+      SL_TRACE(logger_,
+               "Implicit vote found for parachain {} on relay parent {}",
+               parachain_id,
+               block_hash);
+      metric_kagome_parachain_candidate_implicit_votes_total_->inc();
+    } else {
+      SL_TRACE(logger_,
+               "No vote found for parachain {} on relay parent {}",
+               parachain_id,
+               block_hash);
+      metric_kagome_parachain_candidate_no_votes_total_->inc();
+    }
+  }
+
+  std::optional<ParachainId> ParachainProcessorImpl::extractParachainId(
+      const runtime::CoreState &core) const {
+    if (auto occupied_core = std::get_if<runtime::OccupiedCore>(&core)) {
+      return occupied_core->candidate_descriptor.para_id;
+    }
+    return std::nullopt;
+  }
+
+  std::optional<parachain::ParachainInherentData>
+  ParachainProcessorImpl::extractParachainInherentData(
+      const std::vector<primitives::Extrinsic> &block_body) const {
+    for (const auto &extrinsic : block_body) {
+      if (extrinsic.data.size() < 3
+          || extrinsic.data[0] != parachain_inherent_data_extrinsic_version
+          || extrinsic.data[1] != parachain_inherent_data_call
+          || extrinsic.data[2] != parachain_inherent_data_module) {
+        continue;
+      }
+
+      std::span<const uint8_t> buffer(&extrinsic.data[3],
+                                      extrinsic.data.size() - 3);
+      auto decode_res = scale::decode<parachain::ParachainInherentData>(buffer);
+
+      if (decode_res) {
+        return decode_res.value();
+      }
+
+      SL_DEBUG(logger_,
+               "Failed to decode ParachainInherentData: {}",
+               decode_res.error());
+    }
+
+    return std::nullopt;
+  }
+
+  void ParachainProcessorImpl::checkCandidateVotes(
+      const parachain::ParachainInherentData &parachain_inherent_data,
+      const runtime::CommittedCandidateReceipt &candidate,
+      std::size_t validator_position,
+      bool &explicit_found,
+      bool &implicit_found) const {
+    for (const auto &backed_candidate :
+         parachain_inherent_data.backed_candidates) {
+      if (backed_candidate.candidate != candidate) {
+        continue;
+      }
+
+      if (backed_candidate.validator_indices.size() <= validator_position
+          || backed_candidate.validity_votes.size() <= validator_position
+          || not backed_candidate.validator_indices[validator_position]) {
+        return;
+      }
+
+      boost::apply_visitor(
+          [&](const auto &attestation) {
+            using T = std::decay_t<decltype(attestation)>;
+            if constexpr (std::is_same_v<
+                              T,
+                              network::ValidityAttestation::Implicit>) {
+              implicit_found = true;
+            } else if constexpr (std::is_same_v<
+                                     T,
+                                     network::ValidityAttestation::Explicit>) {
+              explicit_found = true;
+            }
+          },
+          backed_candidate.validity_votes[validator_position].kind);
+
+      break;
+    }
   }
 
 }  // namespace kagome::parachain
