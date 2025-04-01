@@ -684,8 +684,8 @@ TEST_F(ProspectiveParachainsTest, fragment_chain_best_chain_length_is_bounded) {
       {},
       5,
       {{network::candidateHash(*hasher_, candidate_a), leaf_a.hash},
-       {network::candidateHash(*hasher_, candidate_b), leaf_a.hash},
-       {network::candidateHash(*hasher_, candidate_c), leaf_a.hash}});
+       {network::candidateHash(*hasher_, candidate_b), leaf_a.hash}});
+
   ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 1);
 }
 
@@ -1000,6 +1000,14 @@ TEST_F(ProspectiveParachainsTest, check_backable_query_single_candidate) {
 TEST_F(ProspectiveParachainsTest, check_backable_query_multiple_candidates) {
   TestState test_state;
 
+  // Add three more cores for para A, so that we can get a chain of max length 4
+  for (size_t i = 2; i <= 4; i++) {
+    test_state.claim_queue[CoreIndex(i)] = {};
+    for (uint32_t j = 0; j < DEFAULT_SCHEDULING_LOOKAHEAD; j++) {
+      test_state.claim_queue[CoreIndex(i)].push_back(ParachainId(1));
+    }
+  }
+
   // Leaf A
   const TestLeaf leaf_a{
       .number = 100,
@@ -1026,10 +1034,12 @@ TEST_F(ProspectiveParachainsTest, check_backable_query_multiple_candidates) {
   introduce_seconded_candidate(candidate_a, pvd_a);
   back_candidate(candidate_a, candidate_hash_a);
 
-  auto [candidate_b, candidate_hash_b] =
+  const auto [candidate_b, candidate_hash_b] =
       make_and_back_candidate(test_state, leaf_a, candidate_a, 2);
-  auto [candidate_c, candidate_hash_c] =
+  const auto [candidate_c, candidate_hash_c] =
       make_and_back_candidate(test_state, leaf_a, candidate_b, 3);
+  const auto [candidate_d, candidate_hash_d] =
+      make_and_back_candidate(test_state, leaf_a, candidate_c, 4);
 
   // Should not get any backable candidates for the other para.
   get_backable_candidates(leaf_a, 2, {}, 1, {});
@@ -1049,7 +1059,8 @@ TEST_F(ProspectiveParachainsTest, check_backable_query_multiple_candidates) {
                               count,
                               {{candidate_hash_a, leaf_a.hash},
                                {candidate_hash_b, leaf_a.hash},
-                               {candidate_hash_c, leaf_a.hash}});
+                               {candidate_hash_c, leaf_a.hash},
+                               {candidate_hash_d, leaf_a.hash}});
     }
   }
 
@@ -1067,12 +1078,13 @@ TEST_F(ProspectiveParachainsTest, check_backable_query_multiple_candidates) {
     // If the requested count exceeds the largest chain, return the longest
     // chain we can get.
     for (size_t count = 3; count < 10; ++count) {
-      get_backable_candidates(
-          leaf_a,
-          1,
-          {candidate_hash_a},
-          count,
-          {{candidate_hash_b, leaf_a.hash}, {candidate_hash_c, leaf_a.hash}});
+      get_backable_candidates(leaf_a,
+                              1,
+                              {candidate_hash_a},
+                              count,
+                              {{candidate_hash_b, leaf_a.hash},
+                               {candidate_hash_c, leaf_a.hash},
+                               {candidate_hash_d, leaf_a.hash}});
     }
   }
 
@@ -1083,7 +1095,7 @@ TEST_F(ProspectiveParachainsTest, check_backable_query_multiple_candidates) {
         1,
         {candidate_hash_a, candidate_hash_b, candidate_hash_c},
         1,
-        {});
+        {{candidate_hash_d, leaf_a.hash}});
 
     get_backable_candidates(leaf_a,
                             1,
@@ -1094,22 +1106,25 @@ TEST_F(ProspectiveParachainsTest, check_backable_query_multiple_candidates) {
     // If the requested count exceeds the largest chain, return the longest
     // chain we can get.
     for (size_t count = 3; count < 10; ++count) {
-      get_backable_candidates(leaf_a,
-                              1,
-                              {candidate_hash_a, candidate_hash_b},
-                              count,
-                              {{candidate_hash_c, leaf_a.hash}});
+      get_backable_candidates(
+          leaf_a,
+          1,
+          {candidate_hash_a, candidate_hash_b},
+          count,
+          {{candidate_hash_c, leaf_a.hash}, {candidate_hash_d, leaf_a.hash}});
     }
   }
 
   // No more candidates in the chain.
   for (size_t count = 1; count < 4; ++count) {
-    get_backable_candidates(
-        leaf_a,
-        1,
-        {candidate_hash_a, candidate_hash_b, candidate_hash_c},
-        count,
-        {});
+    get_backable_candidates(leaf_a,
+                            1,
+                            {candidate_hash_a,
+                             candidate_hash_b,
+                             candidate_hash_c,
+                             candidate_hash_d},
+                            count,
+                            {});
   }
 
   // Wrong paths.
@@ -1126,7 +1141,7 @@ TEST_F(ProspectiveParachainsTest, check_backable_query_multiple_candidates) {
   get_backable_candidates(
       leaf_a,
       1,
-      {candidate_hash_a, candidate_hash_c},
+      {candidate_hash_a, candidate_hash_c, candidate_hash_d},
       2,
       {{candidate_hash_b, leaf_a.hash}, {candidate_hash_c, leaf_a.hash}});
 
@@ -1439,17 +1454,20 @@ TEST_F(ProspectiveParachainsTest, correctly_updates_leaves) {
 
   ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 0);
 }
+
 TEST_F(ProspectiveParachainsTest,
        handle_active_leaves_update_gets_candidates_from_parent) {
   const ParachainId para_id(1);
 
   TestState test_state{.claim_queue = {{CoreIndex(0), {para_id}},
                                        {CoreIndex(1), {para_id}},
-                                       {CoreIndex(2), {para_id}}},
+                                       {CoreIndex(2), {para_id}},
+                                       {CoreIndex(3), {para_id}},
+                                       {CoreIndex(4), {para_id}}},
                        .validation_code_hash = fromNumber(42)};
 
   // Verify the claim queue size
-  ASSERT_EQ(test_state.claim_queue.size(), 3);
+  ASSERT_EQ(test_state.claim_queue.size(), 5);
 
   // Leaf A
   const TestLeaf leaf_a{
@@ -1480,11 +1498,14 @@ TEST_F(ProspectiveParachainsTest,
       make_and_back_candidate(test_state, leaf_a, candidate_a, 2);
   const auto [candidate_c, candidate_hash_c] =
       make_and_back_candidate(test_state, leaf_a, candidate_b, 3);
+  const auto [candidate_d, candidate_hash_d] =
+      make_and_back_candidate(test_state, leaf_a, candidate_c, 4);
 
   std::vector<std::pair<CandidateHash, Hash>> all_candidates_resp = {
       {candidate_hash_a, leaf_a.hash},
       {candidate_hash_b, leaf_a.hash},
-      {candidate_hash_c, leaf_a.hash}};
+      {candidate_hash_c, leaf_a.hash},
+      {candidate_hash_d, leaf_a.hash}};
 
   // Check candidate tree membership.
   get_backable_candidates(leaf_a, para_id, {}, 5, all_candidates_resp);
@@ -1520,11 +1541,12 @@ TEST_F(ProspectiveParachainsTest,
   activate_leaf(leaf_b, test_state);
   get_backable_candidates(leaf_b, para_id, {}, 5, {});
 
-  get_backable_candidates(leaf_b,
-                          para_id,
-                          {hash(candidate_a), hash(candidate_b)},
-                          5,
-                          {{hash(candidate_c), leaf_a.hash}});
+  get_backable_candidates(
+      leaf_b,
+      para_id,
+      {hash(candidate_a), hash(candidate_b)},
+      5,
+      {{hash(candidate_c), leaf_a.hash}, {hash(candidate_d), leaf_a.hash}});
 
   get_backable_candidates(leaf_b, para_id, {}, 5, {});
 
@@ -1535,45 +1557,24 @@ TEST_F(ProspectiveParachainsTest,
 
   get_backable_candidates(leaf_b, para_id, {}, 5, {});
 
-  get_backable_candidates(leaf_b,
-                          para_id,
-                          {hash(candidate_a), hash(candidate_b)},
-                          5,
-                          {{hash(candidate_c), leaf_a.hash}});
+  get_backable_candidates(
+      leaf_b,
+      para_id,
+      {hash(candidate_a), hash(candidate_b)},
+      5,
+      {{hash(candidate_c), leaf_a.hash}, {hash(candidate_d), leaf_a.hash}});
 
   // Now add leaf C, which will be a sibling (fork) of leaf B. It should also
   // inherit the candidates of leaf A (their common parent).
   const TestLeaf leaf_c{
       .number = 101,
-      .hash = fromNumber(11),
+      .hash = fromNumber(12),
       .para_data =
           {
               {para_id, PerParaData(98, {1, 2, 3}, {})},
           },
   };
 
-  activate_leaf(leaf_c, test_state, [&](const auto &hash) {
-    if (hash == leaf_c.hash) {
-      return leaf_a.hash;
-    }
-    return get_parent_hash(hash);
-  });
-
-  get_backable_candidates(leaf_b,
-                          para_id,
-                          {hash(candidate_a), hash(candidate_b)},
-                          5,
-                          {
-                              {hash(candidate_c), leaf_a.hash},
-                          });
-
-  // Deactivate C and add another candidate that will be present on the
-  // deactivated parent A. When activating C again it should also get the new
-  // candidate. Deactivated leaves are still updated with new candidates.
-  deactivate_leaf(leaf_c.hash);
-
-  const auto [candidate_d, _] =
-      make_and_back_candidate(test_state, leaf_a, candidate_c, 5);
   activate_leaf(leaf_c, test_state, [&](const auto &hash) {
     if (hash == leaf_c.hash) {
       return leaf_a.hash;
@@ -1588,7 +1589,32 @@ TEST_F(ProspectiveParachainsTest,
       5,
       {{hash(candidate_c), leaf_a.hash}, {hash(candidate_d), leaf_a.hash}});
 
-  all_candidates_resp.emplace_back(hash(candidate_d), leaf_a.hash);
+  get_backable_candidates(leaf_c, para_id, {}, 5, all_candidates_resp);
+
+  // Deactivate C and add another candidate that will be present on the
+  // deactivated parent A. When activating C again it should also get the new
+  // candidate. Deactivated leaves are still updated with new candidates.
+  deactivate_leaf(leaf_c.hash);
+
+  const auto [candidate_e, candidate_hash_e] =
+      make_and_back_candidate(test_state, leaf_a, candidate_d, 5);
+
+  activate_leaf(leaf_c, test_state, [&](const auto &hash) {
+    if (hash == leaf_c.hash) {
+      return leaf_a.hash;
+    }
+    return get_parent_hash(hash);
+  });
+
+  get_backable_candidates(leaf_b,
+                          para_id,
+                          {hash(candidate_a), hash(candidate_b)},
+                          5,
+                          {{hash(candidate_c), leaf_a.hash},
+                           {hash(candidate_d), leaf_a.hash},
+                           {hash(candidate_e), leaf_a.hash}});
+
+  all_candidates_resp.emplace_back(hash(candidate_e), leaf_a.hash);
   get_backable_candidates(leaf_c, para_id, {}, 5, all_candidates_resp);
 
   // Querying the backable candidates for deactivated leaf won't work.

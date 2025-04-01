@@ -42,6 +42,11 @@ namespace kagome::parachain::fragment {
     const auto parent_head_hash = it->second.parent_head_data_hash;
 
     unconnected.mark_backed(newly_backed_candidate);
+
+    if (best_chain.chain.size() >= scope.max_depth) {
+      return;
+    }
+
     if (!revert_to(parent_head_hash)) {
       return;
     }
