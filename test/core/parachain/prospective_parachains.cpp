@@ -675,7 +675,7 @@ TEST_F(ProspectiveParachainsTest, fragment_chain_best_chain_length_is_bounded) {
 
   // Introducing C will not fail. It will be kept as unconnected storage.
   introduce_seconded_candidate(candidate_c, pvd_c);
-  // When being backed, candidate C will be dropped.
+  // When being backed, candidate C will be dropped due to the depth limitation.
   back_candidate(candidate_c, network::candidateHash(*hasher_, candidate_c));
 
   get_backable_candidates(
@@ -868,6 +868,12 @@ TEST_F(ProspectiveParachainsTest, introduce_candidate_on_multiple_forks) {
 
 TEST_F(ProspectiveParachainsTest, unconnected_candidates_become_connected) {
   TestState test_state;
+  for (size_t i = 2; i <= 4; i++) {
+    test_state.claim_queue[CoreIndex(i)] = {};
+    for (uint32_t j = 0; j < DEFAULT_SCHEDULING_LOOKAHEAD; j++) {
+      test_state.claim_queue[CoreIndex(i)].push_back(ParachainId(1));
+    }
+  }
 
   // Leaf A
   const TestLeaf leaf_a{
@@ -896,15 +902,19 @@ TEST_F(ProspectiveParachainsTest, unconnected_candidates_become_connected) {
       leaf_a.hash, leaf_a.number, 1, {1}, {2}, test_state.validation_code_hash);
   const auto &[candidate_c, pvd_c] = make_candidate(
       leaf_a.hash, leaf_a.number, 1, {2}, {3}, test_state.validation_code_hash);
+  const auto &[candidate_d, pvd_d] = make_candidate(
+      leaf_a.hash, leaf_a.number, 1, {3}, {4}, test_state.validation_code_hash);
 
   // Introduce candidates A, C and D.
   introduce_seconded_candidate(candidate_a, pvd_a);
   introduce_seconded_candidate(candidate_c, pvd_c);
+  introduce_seconded_candidate(candidate_d, pvd_d);
 
   // Back candidates. Otherwise, we cannot check membership with
   // GetBackableCandidates.
   back_candidate(candidate_a, network::candidateHash(*hasher_, candidate_a));
   back_candidate(candidate_c, network::candidateHash(*hasher_, candidate_c));
+  back_candidate(candidate_d, network::candidateHash(*hasher_, candidate_d));
 
   // Check candidate tree membership. Only A should be returned.
   get_backable_candidates(
@@ -914,7 +924,7 @@ TEST_F(ProspectiveParachainsTest, unconnected_candidates_become_connected) {
       5,
       {{network::candidateHash(*hasher_, candidate_a), leaf_a.hash}});
 
-  // Introduce C and check membership. Full chain should be returned.
+  // Introduce B and check membership. Full chain should be returned.
   introduce_seconded_candidate(candidate_b, pvd_b);
   back_candidate(candidate_b, network::candidateHash(*hasher_, candidate_b));
   get_backable_candidates(
@@ -924,7 +934,8 @@ TEST_F(ProspectiveParachainsTest, unconnected_candidates_become_connected) {
       5,
       {{network::candidateHash(*hasher_, candidate_a), leaf_a.hash},
        {network::candidateHash(*hasher_, candidate_b), leaf_a.hash},
-       {network::candidateHash(*hasher_, candidate_c), leaf_a.hash}});
+       {network::candidateHash(*hasher_, candidate_c), leaf_a.hash},
+       {network::candidateHash(*hasher_, candidate_d), leaf_a.hash}});
 
   ASSERT_EQ(prospective_parachain_->view().active_leaves.size(), 1);
 }

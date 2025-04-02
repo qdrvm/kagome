@@ -43,10 +43,6 @@ namespace kagome::parachain::fragment {
 
     unconnected.mark_backed(newly_backed_candidate);
 
-    if (best_chain.chain.size() >= scope.max_depth) {
-      return;
-    }
-
     if (!revert_to(parent_head_hash)) {
       return;
     }
@@ -190,7 +186,7 @@ namespace kagome::parachain::fragment {
     }
 
     bool found_candidate = true;
-    while (found_candidate && best_chain.chain.size() <= scope.max_depth) {
+    while (found_candidate && best_chain.chain.size() < scope.max_depth) {
       found_candidate = false;
 
       Constraints child_constraints;
