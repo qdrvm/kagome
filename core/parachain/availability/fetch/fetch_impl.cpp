@@ -151,20 +151,33 @@ namespace kagome::parachain {
 
   void FetchImpl::fetch(const CandidateHash &candidate_hash,
                         outcome::result<network::FetchChunkResponse> _chunk) {
+    SL_TRACE(log(), "fetch chunk for {}", candidate_hash);
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
     if (it == active_.end()) {
+      SL_TRACE(log(), "fetch candidate not found in active {}", candidate_hash);
       return;
     }
+    SL_TRACE(log(), "fetch candidate found in active {}", candidate_hash);
     auto &active = it->second;
     if (_chunk) {
+      SL_TRACE(log(), "fetch chunk is okay for candidate {}", candidate_hash);
       if (auto chunk2 = boost::get<network::Chunk>(&_chunk.value())) {
+        SL_TRACE(log(),
+                 "fetch got chunk for candidate={} index={}",
+                 candidate_hash,
+                 active.chunk_index);
+
         network::ErasureChunk chunk{
             .chunk = std::move(chunk2->data),
             .index = active.chunk_index,
             .proof = std::move(chunk2->proof),
         };
         if (checkTrieProof(chunk, active.erasure_encoding_root)) {
+          SL_TRACE(log(),
+                   "fetch trie proof check passed for candidate={} index={}",
+                   candidate_hash,
+                   active.chunk_index);
           av_store_->putChunk(
               active.relay_parent, candidate_hash, std::move(chunk));
           SL_VERBOSE(log(),
@@ -173,10 +186,28 @@ namespace kagome::parachain {
                      active.chunk_index);
           active_.erase(it);
           return;
+        } else {
+          SL_TRACE(log(),
+                   "fetch trie proof check failed for candidate={} index={}",
+                   candidate_hash,
+                   active.chunk_index);
         }
+      } else {
+        SL_TRACE(log(),
+                 "fetch received non-chunk response for candidate={}",
+                 candidate_hash);
       }
+    } else {
+      SL_TRACE(log(),
+               "chunk is not okay for candidate={}, error: {}",
+               candidate_hash,
+               _chunk.error());
     }
     lock.unlock();
+    SL_TRACE(log(),
+             "retrying fetch for candidate={} index={}",
+             candidate_hash,
+             active.chunk_index);
     fetch(candidate_hash);
   }
 }  // namespace kagome::parachain
