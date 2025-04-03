@@ -100,15 +100,9 @@ hunter_config(
 )
 
 hunter_config(
-    erasure_coding_crust
-    VERSION 0.0.9
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    soralog
-    VERSION 0.2.4
-    KEEP_PACKAGE_SOURCES
+    libp2p
+    URL https://github.com/libp2p/cpp-libp2p/archive/refs/tags/v0.1.34.zip
+    SHA1 ad725b991c6845d0e5d9f42c639ea62fa05593ff
 )
 
 hunter_config(
