@@ -178,7 +178,7 @@ namespace kagome::parachain {
         pvf_thread_handler_{pvf_thread_pool.handler(*app_state_manager)},
         app_configuration_{std::move(app_configuration)},
         sync_state_sub_engine_{std::move(sync_state_sub_engine)},
-        timeline_{std::move(timeline)} {
+        timeline_{timeline} {
     app_state_manager->takeControl(*this);
     constexpr std::array<std::string_view, 4> engines{
         "kBinaryen",
@@ -190,7 +190,7 @@ namespace kagome::parachain {
             "pvf runtime engine {}",
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
-    BOOST_ASSERT(sync_state_sub_ != nullptr);
+    BOOST_ASSERT(sync_state_sub_engine_ != nullptr);
   }
 
   PvfImpl::~PvfImpl() {
