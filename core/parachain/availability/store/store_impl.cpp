@@ -326,48 +326,83 @@ namespace kagome::parachain {
                                         std::vector<ErasureChunk> &&chunks,
                                         const ParachainBlock &pov,
                                         const PersistedValidationData &data) {
-    SL_TRACE(logger, "Attempt to store all chunks of {}", candidate_hash);
+    SL_TRACE(logger,
+             "storeData candidate_hash={} chunks_count={}",
+             candidate_hash,
+             chunks.size());
 
     state_.exclusiveAccess([&](auto &state) {
+      SL_TRACE(logger, "storeData acquired exclusive access");
       prune_candidates_no_lock(state);
       state.candidates_[relay_parent].insert(candidate_hash);
+      SL_TRACE(
+          logger, "storeData added candidate to relay_parent={}", relay_parent);
+
       auto &candidate_data = state.per_candidate_[candidate_hash];
+      SL_TRACE(logger, "storeData processing chunks");
+
       for (auto &&chunk : std::move(chunks)) {
+        SL_TRACE(logger, "storeData processing chunk index={}", chunk.index);
+
         auto encoded_chunk = scale::encode(chunk);
         const auto chunk_index = chunk.index;
         candidate_data.chunks[chunk.index] = std::move(chunk);
+        SL_TRACE(logger,
+                 "storeData added chunk to state candidate_hash={} index={}",
+                 candidate_hash,
+                 chunk_index);
+
         if (not encoded_chunk) {
           SL_ERROR(logger,
-                   "Failed to encode chunk, error: {}",
+                   "storeData Failed to encode chunk, error: {}",
                    encoded_chunk.error());
           continue;
         }
+        SL_TRACE(logger,
+                 "storeData encoded chunk candidate_hash={} index={}",
+                 candidate_hash,
+                 chunk_index);
+
         auto space = storage_->getSpace(storage::Space::kAvaliabilityStorage);
         if (not space) {
-          SL_ERROR(logger, "Failed to get space");
+          SL_ERROR(logger, "storeData Failed to get AvaliabilityStorage space");
           continue;
         }
+        SL_TRACE(logger, "storeData got storage space");
+
         if (auto res = space->put(
                 CandidateChunkKey::encode(candidate_hash, chunk_index),
                 std::move(encoded_chunk.value()));
             not res) {
-          SL_ERROR(logger,
-                   "Failed to put chunk candidate {} index {} error {}",
-                   candidate_hash,
-                   chunk_index,
-                   res.error());
+          SL_ERROR(
+              logger,
+              "storeData Failed to put chunk candidate {} index {} error {}",
+              candidate_hash,
+              chunk_index,
+              res.error());
         } else {
           SL_TRACE(logger,
-                   "Chunk {}:{} is saved by storeData()",
+                   "storeData storeData chunk candidate {} index {} to store",
                    candidate_hash,
-                   chunk.index);
+                   chunk_index);
         }
       }
+
       candidate_data.pov = pov;
       candidate_data.data = data;
+      SL_TRACE(logger,
+               "storeData saved pov and data for candidate_hash={}",
+               candidate_hash);
+
       state.candidates_living_keeper_.emplace_back(steady_clock_.nowUint64(),
                                                    relay_parent);
+      SL_TRACE(logger,
+               "storeData updated candidates_living_keeper for relay_parent={}",
+               relay_parent);
     });
+
+    SL_TRACE(
+        logger, "storeData completed for candidate_hash={}", candidate_hash);
   }
 
   void AvailabilityStoreImpl::putChunk(const network::RelayHash &relay_parent,
@@ -393,8 +428,9 @@ namespace kagome::parachain {
                chunk.index);
     });
     if (not encoded_chunk) {
-      SL_ERROR(
-          logger, "Failed to encode chunk, error: {}", encoded_chunk.error());
+      SL_ERROR(logger,
+               "putChunk Failed to encode chunk, error: {}",
+               encoded_chunk.error());
       return;
     }
     SL_TRACE(logger,
@@ -403,7 +439,7 @@ namespace kagome::parachain {
              chunk.index);
     auto space = storage_->getSpace(storage::Space::kAvaliabilityStorage);
     if (not space) {
-      SL_ERROR(logger, "Failed to get AvaliabilityStorage space");
+      SL_ERROR(logger, "putChunk Failed to get AvaliabilityStorage space");
       return;
     }
 
@@ -419,7 +455,7 @@ namespace kagome::parachain {
     }
 
     SL_TRACE(logger,
-             "Chunk {}:{} is saved by putChunk()",
+             "putChunk candidate {} index {} saved to store",
              candidate_hash,
              chunk.index);
   }
