@@ -191,7 +191,6 @@ namespace kagome::parachain {
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
     BOOST_ASSERT(sync_state_sub_ != nullptr);
-    BOOST_ASSERT(timeline_ != nullptr);
   }
 
   PvfImpl::~PvfImpl() {
@@ -216,6 +215,7 @@ namespace kagome::parachain {
           }
         });
       };
+      BOOST_ASSERT(timeline_.get() != nullptr);
       if (timeline_.get()->wasSynchronized()) {
         precompiler_bootstrap(shared_from_this());
       } else {
