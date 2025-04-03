@@ -41,8 +41,10 @@ class FragmentChainTest : public ProspectiveParachainsTestHarness {
 };
 
 TEST_F(FragmentChainTest, init_and_populate_from_empty) {
+  // Create some base constraints for an empty chain
   const auto base_constraints = make_constraints(0, {0}, {0x0a});
 
+  // Create a scope with empty ancestors
   ASSERT_OUTCOME_SUCCESS(scope,
                          Scope::with_ancestors(
                              RelayChainBlockInfo{
@@ -55,14 +57,18 @@ TEST_F(FragmentChainTest, init_and_populate_from_empty) {
                              4,
                              {}));
 
+  // Initialize a chain with empty storage
   auto chain = FragmentChain::init(hasher_, scope, CandidateStorage{});
+  // Verify the chain is empty
   ASSERT_EQ(chain.best_chain_len(), 0);
   ASSERT_EQ(chain.unconnected_len(), 0);
 
+  // Create a new chain and populate it from the previous empty chain
   auto new_chain = FragmentChain::init(hasher_, scope, CandidateStorage{});
   new_chain.populate_from_previous(chain);
-  ASSERT_EQ(chain.best_chain_len(), 0);
-  ASSERT_EQ(chain.unconnected_len(), 0);
+  // Verify the new chain is also empty
+  ASSERT_EQ(new_chain.best_chain_len(), 0);
+  ASSERT_EQ(new_chain.unconnected_len(), 0);
 }
 
 TEST_F(FragmentChainTest, test_populate_and_check_potential) {
@@ -159,9 +165,9 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       ASSERT_TRUE(
           chain.can_add_candidate_as_potential(candidate_c_entry).has_value());
     } else {
-      const HashSet<CandidateHash> ref = {
+      const HashSet<CandidateHash> unconnected_ref = {
           candidate_a_hash, candidate_b_hash, candidate_c_hash};
-      ASSERT_EQ(get_unconnected(chain), ref);
+      ASSERT_EQ(get_unconnected(chain), unconnected_ref);
     }
   }
 
@@ -185,17 +191,19 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
     {
       const auto chain = populate_chain_from_previous_storage(scope, storage);
       {
-        const Vec<CandidateHash> ref = {candidate_a_hash};
-        ASSERT_EQ(chain.best_chain_vec(), ref);
+        // Depth is 0, doesn't allow any candidate in the best chain,
+        // but all candidates will be kept as potential in unconnected storage
+        ASSERT_TRUE(chain.best_chain_vec().empty());
       }
       {
-        const HashSet<CandidateHash> ref = {candidate_b_hash, candidate_c_hash};
-        ASSERT_EQ(get_unconnected(chain), ref);
+        const HashSet<CandidateHash> unconnected_ref = {
+            candidate_a_hash, candidate_b_hash, candidate_c_hash};
+        ASSERT_EQ(get_unconnected(chain), unconnected_ref);
       }
     }
   }
   {
-    // depth is 1, allows two candidates
+    // depth is 1, allows one candidate in the best chain
     ASSERT_OUTCOME_SUCCESS(
         scope,
         Scope::with_ancestors(
@@ -213,12 +221,13 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
     {
       const auto chain = populate_chain_from_previous_storage(scope, storage);
       {
-        const Vec<CandidateHash> ref = {candidate_a_hash, candidate_b_hash};
-        ASSERT_EQ(chain.best_chain_vec(), ref);
+        const Vec<CandidateHash> best_chain_ref = {candidate_a_hash};
+        ASSERT_EQ(chain.best_chain_vec(), best_chain_ref);
       }
       {
-        const HashSet<CandidateHash> ref = {candidate_c_hash};
-        ASSERT_EQ(get_unconnected(chain), ref);
+        const HashSet<CandidateHash> unconnected_ref = {candidate_b_hash,
+                                                        candidate_c_hash};
+        ASSERT_EQ(get_unconnected(chain), unconnected_ref);
       }
     }
   }
@@ -241,12 +250,23 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
     }
     {
       const auto chain = populate_chain_from_previous_storage(scope, storage);
-      {
-        const Vec<CandidateHash> ref = {
+      if (depth == 2) {
+        // When depth is 2, only candidates A and B are allowed in the best
+        // chain
+        const Vec<CandidateHash> best_chain_ref = {candidate_a_hash,
+                                                   candidate_b_hash};
+        ASSERT_EQ(chain.best_chain_vec(), best_chain_ref);
+
+        // Candidate C will be kept as unconnected
+        const HashSet<CandidateHash> unconnected_ref = {candidate_c_hash};
+        ASSERT_EQ(get_unconnected(chain), unconnected_ref);
+      } else {
+        // When depth >= 3, all candidates are allowed in the best chain
+        const Vec<CandidateHash> best_chain_ref = {
             candidate_a_hash, candidate_b_hash, candidate_c_hash};
-        ASSERT_EQ(chain.best_chain_vec(), ref);
+        ASSERT_EQ(chain.best_chain_vec(), best_chain_ref);
+        ASSERT_EQ(chain.unconnected_len(), 0);
       }
-      { ASSERT_EQ(chain.unconnected_len(), 0); }
     }
   }
 
@@ -441,12 +461,14 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
         const auto chain =
             populate_chain_from_previous_storage(scope, modified_storage);
         {
-          const Vec<CandidateHash> ref = {candidate_a_hash, candidate_b_hash};
-          ASSERT_EQ(chain.best_chain_vec(), ref);
+          const Vec<CandidateHash> best_chain_ref = {candidate_a_hash,
+                                                     candidate_b_hash};
+          ASSERT_EQ(chain.best_chain_vec(), best_chain_ref);
         }
         {
-          const HashSet<CandidateHash> ref = {unconnected_candidate_c_hash};
-          ASSERT_EQ(get_unconnected(chain), ref);
+          const HashSet<CandidateHash> unconnected_ref = {
+              unconnected_candidate_c_hash};
+          ASSERT_EQ(get_unconnected(chain), unconnected_ref);
         }
       }
     }
@@ -857,16 +879,21 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       {
         const auto chain = populate_chain_from_previous_storage(scope, storage);
         {
-          const Vec<CandidateHash> ref = {
-              candidate_a_hash, candidate_b_hash, candidate_c_hash};
-          ASSERT_EQ(chain.best_chain_vec(), ref);
+          // Since max_depth = 2, only candidates A and B are allowed in the
+          // best chain
+          const Vec<CandidateHash> best_chain_ref = {candidate_a_hash,
+                                                     candidate_b_hash};
+          ASSERT_EQ(chain.best_chain_vec(), best_chain_ref);
         }
         {
-          const HashSet<CandidateHash> ref = {candidate_d_hash,
-                                              candidate_f_hash,
-                                              candidate_a2_hash,
-                                              candidate_b2_hash};
-          ASSERT_EQ(get_unconnected(chain), ref);
+          // Candidate C should be in unconnected storage along with other
+          // candidates
+          const HashSet<CandidateHash> unconnected_ref = {candidate_c_hash,
+                                                          candidate_d_hash,
+                                                          candidate_f_hash,
+                                                          candidate_a2_hash,
+                                                          candidate_b2_hash};
+          ASSERT_EQ(get_unconnected(chain), unconnected_ref);
         }
 
         // Cannot add as potential an already present candidate (whether it's in
@@ -924,7 +951,8 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
                       .has_value());
 
       {
-        const auto chain = populate_chain_from_previous_storage(scope, storage);
+        auto chain = populate_chain_from_previous_storage(scope, storage);
+
         {
           const Vec<CandidateHash> ref = {
               candidate_a_hash, candidate_b_hash, candidate_c_hash};
@@ -963,14 +991,16 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       // A2 and B2 will now be trimmed
       const auto chain = populate_chain_from_previous_storage(scope2, storage);
       {
-        const Vec<CandidateHash> ref = {
+        // Despite max_depth = 2, candidates A, B, C are all in best chain
+        // because they are marked as pending availability
+        const Vec<CandidateHash> best_chain_ref = {
             candidate_a_hash, candidate_b_hash, candidate_c_hash};
-        ASSERT_EQ(chain.best_chain_vec(), ref);
+        ASSERT_EQ(chain.best_chain_vec(), best_chain_ref);
       }
       {
-        const HashSet<CandidateHash> ref = {
+        const HashSet<CandidateHash> unconnected_ref = {
             candidate_d_hash, candidate_f_hash, candidate_e_hash};
-        ASSERT_EQ(get_unconnected(chain), ref);
+        ASSERT_EQ(get_unconnected(chain), unconnected_ref);
       }
 
       // Cannot add as potential an already pending availability candidate
@@ -991,20 +1021,22 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
           FragmentChain::init(hasher_, scope3, CandidateStorage{});
       chain_new.populate_from_previous(prev_chain);
       {
-        const Vec<CandidateHash> ref = {candidate_d_hash};
-        ASSERT_EQ(chain_new.best_chain_vec(), ref);
+        const Vec<CandidateHash> best_chain_ref = {candidate_d_hash};
+        ASSERT_EQ(chain_new.best_chain_vec(), best_chain_ref);
       }
       {
-        const HashSet<CandidateHash> ref = {candidate_e_hash, candidate_f_hash};
-        ASSERT_EQ(get_unconnected(chain_new), ref);
+        const HashSet<CandidateHash> unconnected_ref = {candidate_e_hash,
+                                                        candidate_f_hash};
+        ASSERT_EQ(get_unconnected(chain_new), unconnected_ref);
       }
 
       // Mark E as backed. F will be dropped for invalid watermark. No other
       // unconnected candidates.
       chain_new.candidate_backed(candidate_e_hash);
       {
-        const Vec<CandidateHash> ref = {candidate_d_hash, candidate_e_hash};
-        ASSERT_EQ(chain_new.best_chain_vec(), ref);
+        const Vec<CandidateHash> best_chain_ref = {candidate_d_hash,
+                                                   candidate_e_hash};
+        ASSERT_EQ(chain_new.best_chain_vec(), best_chain_ref);
       }
       ASSERT_EQ(chain_new.unconnected_len(), 0);
 
@@ -1051,7 +1083,7 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
   const ParachainId para_id{5};
   const auto relay_parent = fromNumber(1);
   HeadData required_parent = {0xff};
-  size_t max_depth = 5;
+  size_t max_depth = 6;
   BlockNumber relay_parent_number = 0;
   auto relay_parent_storage_root = fromNumber(0);
 
@@ -1120,12 +1152,14 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
   // Do tests with only a couple of candidates being backed.
   {
     auto chain_new = chain;
+    // Back candidate 5 (last one) first - this shouldn't create a chain yet
     chain_new.candidate_backed(candidate_hashes[5]);
     ASSERT_EQ(chain_new.unconnected_len(), 6);
     for (size_t count = 0; count < 10; ++count) {
       ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count).size(), 0);
     }
 
+    // Back candidates 3 and 4 - still no chain should form
     chain_new.candidate_backed(candidate_hashes[3]);
     ASSERT_EQ(chain_new.unconnected_len(), 6);
     chain_new.candidate_backed(candidate_hashes[4]);
@@ -1134,23 +1168,27 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
       ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count).size(), 0);
     }
 
+    // Back candidate 1 - still no chain
     chain_new.candidate_backed(candidate_hashes[1]);
     ASSERT_EQ(chain_new.unconnected_len(), 6);
     for (size_t count = 0; count < 10; ++count) {
       ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count).size(), 0);
     }
 
+    // Back candidate 0 - now we can form a chain with 0 and 1
     chain_new.candidate_backed(candidate_hashes[0]);
-    ASSERT_EQ(chain_new.unconnected_len(), 4);
+    ASSERT_EQ(chain_new.unconnected_len(),
+              4);  // 4 unconnected candidates remain
     ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, 1), hashes(0, 1));
     for (size_t count = 2; count < 10; ++count) {
       ASSERT_EQ(chain_new.find_backable_chain(Ancestors{}, count),
                 hashes(0, 2));
     }
 
-    // Now back the missing piece.
+    // Now back the missing piece (candidate 2)
     chain_new.candidate_backed(candidate_hashes[2]);
-    ASSERT_EQ(chain_new.unconnected_len(), 0);
+    ASSERT_EQ(chain_new.unconnected_len(),
+              0);  // All candidates in the chain now
     ASSERT_EQ(chain_new.best_chain_len(), 6);
 
     for (size_t count = 0; count < 10; ++count) {
@@ -1159,8 +1197,8 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
     }
   }
 
-  // Now back all candidates. Back them in a random order. The result should
-  // always be the same.
+  // Now back all candidates in a random order. The result should always be the
+  // same.
   auto candidates_shuffled = candidate_hashes;
   std::default_random_engine random_;
   std::shuffle(candidates_shuffled.begin(), candidates_shuffled.end(), random_);
@@ -1169,17 +1207,23 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
     storage.mark_backed(candidate);
   }
 
-  // No ancestors supplied.
+  // No ancestors supplied - test different counts
   ASSERT_EQ(chain.find_ancestor_path(Ancestors{}), 0);
-  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 0), hashes(0, 0));
-  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 1), hashes(0, 1));
-  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 2), hashes(0, 2));
-  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 5), hashes(0, 5));
+  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 0),
+            hashes(0, 0));  // Empty result for count 0
+  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 1),
+            hashes(0, 1));  // Just candidate 0
+  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 2),
+            hashes(0, 2));  // Candidates 0 and 1
+  ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 5),
+            hashes(0, 5));  // Candidates 0 through 4
 
+  // For counts larger than the chain length, should return the entire chain
   for (size_t count = 6; count < 10; ++count) {
     ASSERT_EQ(chain.find_backable_chain(Ancestors{}, count), hashes(0, 6));
   }
 
+  // Explicit tests for larger counts
   ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 7), hashes(0, 6));
   ASSERT_EQ(chain.find_backable_chain(Ancestors{}, 10), hashes(0, 6));
 
@@ -1191,12 +1235,15 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
   }
 
   {
+    // Ancestor is candidate 1, but with an invalid candidate - should be
+    // ignored
     Ancestors ancestors = {candidate_hashes[1], CandidateHash{}};
     ASSERT_EQ(chain.find_ancestor_path(ancestors), 0);
     ASSERT_EQ(chain.find_backable_chain(ancestors, 4), hashes(0, 4));
   }
 
   {
+    // Ancestor is candidate 0 - should start from position 1
     Ancestors ancestors = {candidate_hashes[0], CandidateHash{}};
     ASSERT_EQ(chain.find_ancestor_path(ancestors), 1);
     ASSERT_EQ(chain.find_backable_chain(ancestors, 4), hashes(1, 5));
@@ -1211,7 +1258,7 @@ TEST_F(FragmentChainTest, test_find_ancestor_path_and_find_backable_chain) {
   }
 
   {
-    // Valid ancestors.
+    // Valid ancestors in non-sequential order
     Ancestors ancestors = {
         candidate_hashes[2], candidate_hashes[0], candidate_hashes[1]};
     ASSERT_EQ(chain.find_ancestor_path(ancestors), 3);
