@@ -228,7 +228,6 @@ namespace kagome::parachain {
               BOOST_ASSERT(weak.lock());
               static bool fired = false;
               if (auto self = weak.lock()) {
-                SL_DEBUG(self->log_, "Sync event {}", to_string(event));
                 if (event == consensus::SyncState::SYNCHRONIZED && !fired) {
                   fired = true;
                   precompiler_bootstrap(self);
