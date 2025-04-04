@@ -36,23 +36,61 @@ namespace kagome::parachain {
   void FetchImpl::fetch(ChunkIndex chunk_index,
                         const runtime::OccupiedCore &core,
                         const runtime::SessionInfo &session) {
+    SL_TRACE(log(),
+             "fetch called Candidate {} chunk {}",
+             core.candidate_hash,
+             chunk_index);
     std::unique_lock lock{mutex_};
     if (active_.find(core.candidate_hash) != active_.end()) {
+      SL_TRACE(log(),
+               "fetch Candidate {}, chunk {} is already being fetched",
+               core.candidate_hash,
+               chunk_index);
       return;
     }
     if (av_store_->hasChunk(core.candidate_hash, chunk_index)) {
+      SL_TRACE(log(),
+               "fetch Candidate {}, chunk {} is already available",
+               core.candidate_hash,
+               chunk_index);
       return;
     }
+
+    SL_TRACE(log(),
+             "fetch Candidate {}, starting fetch of chunk {}",
+             core.candidate_hash,
+             chunk_index);
 
     Active active;
     active.chunk_index = chunk_index;
     active.relay_parent = core.candidate_descriptor.relay_parent;
     active.erasure_encoding_root =
         core.candidate_descriptor.erasure_encoding_root;
+
+    SL_TRACE(log(),
+             "fetch Candidate {}, setting up active fetch for chunk {}, "
+             "erasure_root={}",
+             core.candidate_hash,
+             chunk_index,
+             active.erasure_encoding_root);
+
     for (auto &validator_index :
          session.validator_groups[core.group_responsible]) {
       active.validators.emplace_back(session.discovery_keys[validator_index]);
+      SL_TRACE(
+          log(),
+          "fetch Candidate {}, added validator #{} to fetch list for chunk {}",
+          core.candidate_hash,
+          validator_index,
+          chunk_index);
     }
+
+    SL_TRACE(log(),
+             "fetch Candidate {}, prepared {} validators for fetching chunk {}",
+             core.candidate_hash,
+             active.validators.size(),
+             chunk_index);
+
     active_.emplace(core.candidate_hash, std::move(active));
     lock.unlock();
     fetch(core.candidate_hash);
