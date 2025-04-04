@@ -220,18 +220,12 @@ namespace kagome::parachain {
         precompiler_bootstrap(shared_from_this());
       } else {
         SL_DEBUG(log_, "Node is not synchronized, delay precompilation");
-        sync_state_sub_ = subscribe(
+        sync_state_sub_ = primitives::events::onSync(
             sync_state_sub_engine_,
-            primitives::events::SyncStateEventType::kSyncState,
-            [weak = weak_from_this(), precompiler_bootstrap](
-                const primitives::events::SyncStateEventParams &event) {
+            [weak = weak_from_this(), precompiler_bootstrap]() {
               BOOST_ASSERT(weak.lock());
-              static bool fired = false;
               if (auto self = weak.lock()) {
-                if (event == consensus::SyncState::SYNCHRONIZED && !fired) {
-                  fired = true;
-                  precompiler_bootstrap(self);
-                }
+                precompiler_bootstrap(self);
               }
             });
       }
