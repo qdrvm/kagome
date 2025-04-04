@@ -60,7 +60,7 @@ namespace kagome::log {
   auto _profiling_scope_##scope = ::kagome::log::ProfileScope{#scope, logger};
 
 #define KAGOME_PROFILE_START(scope) \
-  KAGOME_PROFILE_START_L(::kagome::log::profiling_logger, scope)
+  KAGOME_PROFILE_START_L(::kagome::log::profiling_logger(), scope)
 #define KAGOME_PROFILE_END(scope) _profiling_scope_##scope.end();
 
 #else
