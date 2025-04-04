@@ -108,6 +108,12 @@ hunter_config(
 )
 
 hunter_config(
+    libp2p
+    URL https://github.com/libp2p/cpp-libp2p/archive/refs/tags/v0.1.34.zip
+    SHA1 ad725b991c6845d0e5d9f42c639ea62fa05593ff
+)
+
+hunter_config(
     wabt
     URL https://github.com/qdrvm/wabt/archive/2e9d30c4a67c1b884a8162bf3f3a5a8585cfdb94.tar.gz
     SHA1 b5759660eb8ad3f074274341641e918f688868bd
