@@ -110,25 +110,47 @@ namespace kagome::parachain {
     Lock lock{mutex_};
     const auto &receipt = hashed_receipt.get();
     const auto &candidate_hash = hashed_receipt.getHash();
+    SL_TRACE(logger_,
+             "recover: Starting recovery process for candidate {}",
+             hashed_receipt.getHash());
     if (auto it = cached_.find(candidate_hash); it != cached_.end()) {
       auto r = it->second;
+      SL_TRACE(logger_,
+               "recover: Found candidate {} in cache, returning cached data",
+               candidate_hash);
       lock.unlock();
       cb(std::move(r));
       return;
     }
     if (auto it = active_.find(candidate_hash); it != active_.end()) {
+      SL_TRACE(logger_,
+               "recover: Recovery for candidate {} already in progress, adding "
+               "callback",
+               candidate_hash);
       it->second.cb.emplace_back(std::move(cb));
       return;
     }
     if (auto data = av_store_->getPovAndData(candidate_hash)) {
+      SL_TRACE(logger_,
+               "recover: Found candidate {} in availability store",
+               candidate_hash);
       cached_.emplace(candidate_hash, *data);
       lock.unlock();
       cb(std::move(*data));
       return;
     }
+
+    SL_TRACE(logger_,
+             "recover: Need to fetch data for candidate {}",
+             candidate_hash);
+
     auto block = block_tree_->bestBlock();
     auto _session = parachain_api_->session_info(block.hash, session_index);
     if (not _session) {
+      SL_ERROR(logger_,
+               "recover: Failed to get session info for candidate {}: {}",
+               candidate_hash,
+               _session.error());
       lock.unlock();
       cb(_session.error());
       return;
@@ -136,12 +158,21 @@ namespace kagome::parachain {
     auto &session = _session.value();
     auto _min = minChunks(session->validators.size());
     if (not _min) {
+      SL_ERROR(
+          logger_,
+          "recover: Failed to calculate minimum chunks for candidate {}: {}",
+          candidate_hash,
+          _min.error());
       lock.unlock();
       cb(_min.error());
       return;
     }
     auto _node_features = parachain_api_->node_features(block.hash);
     if (_node_features.has_error()) {
+      SL_ERROR(logger_,
+               "recover: Failed to get node features for candidate {}: {}",
+               candidate_hash,
+               _node_features.error());
       lock.unlock();
       cb(_node_features.error());
       return;
@@ -149,8 +180,17 @@ namespace kagome::parachain {
 
     ValidatorIndex start_pos = 0;
     if (core_index.has_value()) {
+      SL_TRACE(logger_,
+               "recover: Core index {} provided for candidate {}",
+               core_index.value(),
+               candidate_hash);
       if (availability_chunk_mapping_is_enabled(_node_features.value())) {
         start_pos = core_index.value() * _min.value();
+        SL_TRACE(logger_,
+                 "recover: Using core-based chunk mapping for candidate {}, "
+                 "start_pos={}",
+                 candidate_hash,
+                 start_pos);
       }
     }
 
@@ -168,6 +208,10 @@ namespace kagome::parachain {
     active.val2chunk = val2chunk;
 
     if (backing_group.has_value()) {
+      SL_TRACE(logger_,
+               "recover: Backing group {} provided for candidate {}",
+               backing_group.value(),
+               candidate_hash);
       const auto group = backing_group.value();
       BOOST_ASSERT(group < session->validator_groups.size());
       active.validators_of_group = session->validator_groups[group];
@@ -198,6 +242,10 @@ namespace kagome::parachain {
     if (auto indexed_key_pair_opt =
             session_keys_->getParaKeyPair(session->validators);
         indexed_key_pair_opt.has_value()) {
+      SL_TRACE(logger_,
+               "recover: Found our validator index {} for candidate {}",
+               indexed_key_pair_opt->second,
+               candidate_hash);
       auto our_validator_index = indexed_key_pair_opt->second;
       auto index_of_our_chunk = val2chunk(our_validator_index);
       auto min_chunks = _min.value();
@@ -210,6 +258,11 @@ namespace kagome::parachain {
                 index_of_our_chunk);
       } else {
         available_data_size = our_chunk->chunk.size() * min_chunks;
+        SL_TRACE(
+            logger_,
+            "recover: Estimated available data size for candidate {}: {} bytes",
+            candidate_hash,
+            available_data_size.value());
       }
     } else {
       SL_WARN(logger_, "Cannot retrieve our validator index");
@@ -219,9 +272,18 @@ namespace kagome::parachain {
     // data size can be calculated and less than limit
     if (available_data_size
         and available_data_size.value() < kMaxSizeOfDataToRecoverFromBackers) {
+      SL_TRACE(logger_,
+               "recover: Using recovery from backers strategy for candidate {} "
+               "(data size: {} bytes)",
+               candidate_hash,
+               available_data_size.value());
       return full_from_bakers_recovery_prepare(candidate_hash);
     }
 
+    SL_TRACE(
+        logger_,
+        "recover: Using systematic chunks recovery strategy for candidate {}",
+        candidate_hash);
     systematic_chunks_recovery_prepare(candidate_hash);
   }
 
