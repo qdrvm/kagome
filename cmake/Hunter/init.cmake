@@ -1,3 +1,25 @@
+# Set the default system name and processor
+if(NOT DEFINED CMAKE_SYSTEM_NAME OR CMAKE_SYSTEM_NAME STREQUAL "")
+    set(CMAKE_SYSTEM_NAME ${CMAKE_HOST_SYSTEM_NAME})
+endif()
+
+if(NOT DEFINED CMAKE_SYSTEM_PROCESSOR OR CMAKE_SYSTEM_PROCESSOR STREQUAL "")
+    if(DEFINED CMAKE_HOST_SYSTEM_PROCESSOR AND NOT CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "")
+        set(CMAKE_SYSTEM_PROCESSOR ${CMAKE_HOST_SYSTEM_PROCESSOR})
+    elseif(UNIX)
+        execute_process(
+            COMMAND uname -m
+            OUTPUT_VARIABLE _uname_m
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        set(CMAKE_SYSTEM_PROCESSOR ${_uname_m})
+    else()
+        set(CMAKE_SYSTEM_PROCESSOR "unknown")
+    endif()
+endif()
+
+set(HUNTER_ROOT "$ENV{HOME}/.hunter/${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}" CACHE PATH "Hunter root directory")
+
 # specify GITHUB_HUNTER_TOKEN and GITHUB_HUNTER_USERNAME to automatically upload binary cache to github.com/qdrvm/hunter-binary-cache
 # https://hunter.readthedocs.io/en/latest/user-guides/hunter-user/github-cache-server.html
 string(COMPARE EQUAL "$ENV{GITHUB_HUNTER_USERNAME}" "" username_is_empty)
@@ -20,6 +42,18 @@ set(HUNTER_PASSWORDS_PATH
     "${CMAKE_CURRENT_LIST_DIR}/passwords.cmake"
     CACHE FILEPATH "Hunter passwords"
 )
+
+#if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+#    set(HUNTER_CACHE_SERVERS
+#        "https://github.com/qdrvm/hunter-binary-cache"
+#        CACHE STRING "Binary cache server"
+#    )
+#else()
+#    set(HUNTER_CACHE_SERVERS
+#        "https://github.com/qdrvm/hunter-cache"
+#        CACHE STRING "Binary cache server"
+#    )
+#endif()
 
 set(HUNTER_CACHE_SERVERS
     "https://github.com/qdrvm/hunter-binary-cache"

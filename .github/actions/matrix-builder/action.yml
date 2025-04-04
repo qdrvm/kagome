@@ -1,0 +1,81 @@
+name: 'Setup Build Matrix'
+description: 'Dynamically configure the build matrix for platforms and build types'
+
+inputs:
+  build_amd64:
+    description: 'Build for AMD64 architecture'
+    required: false
+    default: 'true'
+  build_arm64:
+    description: 'Build for ARM64 architecture'
+    required: false
+    default: 'true'
+  build_debug:
+    description: 'Build Debug configuration'
+    required: false
+    default: 'true'
+  build_release:
+    description: 'Build Release configuration'
+    required: false
+    default: 'true'
+  build_relwithdebinfo:
+    description: 'Build RelWithDebInfo configuration'
+    required: false
+    default: 'true'
+  amd64_runner:
+    description: 'Runner label for AMD64 architecture'
+    required: false
+    default: 'actions-runner-controller'
+  arm64_runner:
+    description: 'Runner label for ARM64 architecture (JSON array as string)'
+    required: false
+    default: '["self-hosted","qdrvm-arm64"]'
+
+outputs:
+  matrix:
+    description: 'The generated build matrix'
+    value: ${{ steps.set-matrix.outputs.matrix }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: set-matrix
+      shell: bash
+      run: |
+        # Initialize empty array for matrix
+        MATRIX_ITEMS=()
+        
+        # Process AMD64 configs
+        if [[ "${{ inputs.build_amd64 }}" == "true" ]]; then
+          if [[ "${{ inputs.build_debug }}" == "true" ]]; then
+            MATRIX_ITEMS+=('{"platform":"linux/amd64","build_type":"Debug","runs_on":${{ inputs.amd64_runner }}}')
+          fi
+          if [[ "${{ inputs.build_release }}" == "true" ]]; then
+            MATRIX_ITEMS+=('{"platform":"linux/amd64","build_type":"Release","runs_on":${{ inputs.amd64_runner }}}')
+          fi
+          if [[ "${{ inputs.build_relwithdebinfo }}" == "true" ]]; then
+            MATRIX_ITEMS+=('{"platform":"linux/amd64","build_type":"RelWithDebInfo","runs_on":${{ inputs.amd64_runner }}}')
+          fi
+        fi
+        
+        # Process ARM64 configs
+        if [[ "${{ inputs.build_arm64 }}" == "true" ]]; then
+          if [[ "${{ inputs.build_debug }}" == "true" ]]; then
+            MATRIX_ITEMS+=('{"platform":"linux/arm64","build_type":"Debug","runs_on":${{ inputs.arm64_runner }}}')
+          fi
+          if [[ "${{ inputs.build_release }}" == "true" ]]; then
+            MATRIX_ITEMS+=('{"platform":"linux/arm64","build_type":"Release","runs_on":${{ inputs.arm64_runner }}}')
+          fi
+          if [[ "${{ inputs.build_relwithdebinfo }}" == "true" ]]; then
+            MATRIX_ITEMS+=('{"platform":"linux/arm64","build_type":"RelWithDebInfo","runs_on":${{ inputs.arm64_runner }}}')
+          fi
+        fi
+        
+        # Format the matrix JSON
+        if [[ ${#MATRIX_ITEMS[@]} -eq 0 ]]; then
+          echo "No matrix items selected! Defaulting to AMD64 Release"
+          MATRIX_ITEMS+=('{"platform":"linux/amd64","build_type":"Release","runs_on":${{ inputs.amd64_runner }}}')
+        fi
+        
+        MATRIX_JSON="{\"include\":[$(IFS=,; echo "${MATRIX_ITEMS[*]}")]}"
+        echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT

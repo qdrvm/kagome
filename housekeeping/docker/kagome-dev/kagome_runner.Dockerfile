@@ -6,11 +6,10 @@ ARG BASE_IMAGE_TAG
 ARG PROJECT_ID
 
 ARG REGION=europe-north1
-ARG ARCHITECTURE=x86_64
 
-ARG KAGOME_PACKAGE_VERSION
+ARG KAGOME_DEB_PACKAGE_VERSION
 
-FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG} AS base
+FROM ${BASE_IMAGE}:${BASE_IMAGE_TAG} AS kagome_base
 
 ARG AUTHOR
 ENV AUTHOR=${AUTHOR}
@@ -60,12 +59,12 @@ RUN sed -i 's|^\(\s*\)# *Service-Account-JSON ".*";|\1Service-Account-JSON "/roo
 
 RUN mkdir -p /root/.gcp
 
-ARG KAGOME_PACKAGE_VERSION
-ENV KAGOME_PACKAGE_VERSION=${KAGOME_PACKAGE_VERSION}
+ARG KAGOME_DEB_PACKAGE_VERSION
+ENV KAGOME_DEB_PACKAGE_VERSION=${KAGOME_DEB_PACKAGE_VERSION}
 
 RUN --mount=type=secret,id=google_creds,target=/root/.gcp/google_creds.json \
       install_packages \
-        kagome-dev=${KAGOME_PACKAGE_VERSION} && \
+        kagome-dev=${KAGOME_DEB_PACKAGE_VERSION} && \
         sed -i '1s/^/#/' /etc/apt/sources.list.d/kagome.list
 
 RUN install_packages \
@@ -81,8 +80,14 @@ RUN install_packages \
 CMD ["/usr/bin/tini", "--", "/bin/bash", "-c"]
 
 
-FROM base AS debug
+FROM kagome_base AS release
+ARG AUTHOR
+ENV AUTHOR=${AUTHOR}
+LABEL org.opencontainers.image.authors="${AUTHOR}"
+LABEL org.opencontainers.image.description="Kagome release image"
 
+
+FROM kagome_base AS debug
 ARG AUTHOR
 ENV AUTHOR=${AUTHOR}
 LABEL org.opencontainers.image.authors="${AUTHOR}"

@@ -1,0 +1,46 @@
+name: 'Setup Matrix'
+description: 'Dynamically configure the platform matrix'
+
+inputs:
+  run_amd64:
+    description: 'Run on AMD64 architecture'
+    required: false
+    default: 'true'
+  run_arm64:
+    description: 'Run on ARM64 architecture'
+    required: false
+    default: 'true'
+  amd64_runner:
+    description: 'Runner label for AMD64 architecture (as JSON)'
+    required: false
+    default: '"actions-runner-controller"'
+  arm64_runner:
+    description: 'Runner label for ARM64 architecture (as JSON)'
+    required: false
+    default: '["self-hosted","qdrvm-arm64"]'
+
+outputs:
+  matrix:
+    description: 'The generated matrix'
+    value: ${{ steps.set-matrix.outputs.matrix }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: set-matrix
+      shell: bash
+      run: |
+        ITEMS=()
+        if [[ "${{ inputs.run_amd64 }}" == "true" ]]; then
+          ITEMS+=('{"platform":"linux/amd64","runs_on":${{ inputs.amd64_runner }}}')
+        fi
+        if [[ "${{ inputs.run_arm64 }}" == "true" ]]; then
+          ITEMS+=('{"platform":"linux/arm64","runs_on":${{ inputs.arm64_runner }}}')
+        fi
+        if [[ ${#ITEMS[@]} -eq 0 ]]; then
+          echo "No platforms selected, defaulting to AMD64"
+          ITEMS+=('{"platform":"linux/amd64","runs_on":${{ inputs.amd64_runner }}}')
+        fi
+        
+        JSON="{\"include\":[$(IFS=,; echo "${ITEMS[*]}")]}"
+        echo "matrix=$JSON" >> $GITHUB_OUTPUT
