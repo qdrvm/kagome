@@ -2053,7 +2053,7 @@ namespace kagome::parachain {
 
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
     if (!opt_entry) {
-      logger_->warn(
+      logger_->trace(
           "Unexpected assignment. (peer id={}, block hash={}, validator "
           "index={})",
           source ? fmt::format("{}", source->get()) : "our",
@@ -2227,7 +2227,7 @@ namespace kagome::parachain {
 
     auto opt_entry = storedDistribBlockEntries().get(block_hash);
     if (!opt_entry) {
-      logger_->info(
+      logger_->trace(
           "Unexpected approval. (peer id={}, block hash={}, validator "
           "index={}, data={})",
           source ? fmt::format("{}", source->get()) : "our",
