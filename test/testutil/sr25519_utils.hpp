@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "consensus/timeline/types.hpp"
 #include "crypto/sr25519_types.hpp"
 
 namespace sr25519_constants = kagome::crypto::constants::sr25519;
