@@ -1,4 +1,4 @@
-﻿#
+#
 # Copyright Quadrivium LLC
 # All Rights Reserved
 # SPDX-License-Identifier: Apache-2.0
@@ -10,10 +10,10 @@ on:
   workflow_dispatch:
     inputs:
       zombie_tester_latest_tag:
-        description: 'Zombie Tester tag'
+        description: '(In) Zombie Tester tag'
         default: '20250323' # Or 'latest'
       kagome_for_runtime_gen_deb_package_version:
-        description: 'Custom Kagome for runtime gen deb package version'
+        description: '(In) Custom Kagome for runtime gen deb package version'
         default: '20250323-9b65150-Release'
         required: false
         type: 'string'

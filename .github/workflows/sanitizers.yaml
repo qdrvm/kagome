@@ -45,12 +45,12 @@ on:
         required: false
         default: false
       builder_latest_tag:
-        description: "Custom Builder tag"
+        description: "(In) Custom Builder tag"
         type: string
         required: false
         default: "20250322" # Default to latest
       sanitizer_image_tag:
-        description: "Custom Sanitizer Image tag"
+        description: "(Out) Custom Sanitizer Image tag"
         type: string
         required: false
         default: "latest" # Default to latest

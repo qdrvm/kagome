@@ -15,42 +15,42 @@ on:
   workflow_dispatch:
     inputs:
       build_amd64:
-        description: "Build linux/amd64?"
+        description: "Build linux/amd64"
         type: boolean
         required: false
         default: true
       build_arm64:
-        description: "Build linux/arm64?"
+        description: "Build linux/arm64"
         type: boolean
         required: false
         default: true
       build_debug:
-        description: "Build Debug?"
+        description: "Build Debug"
         type: boolean
         required: false
         default: true
       build_release:
-        description: "Build Release?"
+        description: "Build Release"
         type: boolean
         required: false
         default: true
       build_relwithdebinfo:
-        description: "Build RelWithDebInfo?"
+        description: "Build RelWithDebInfo"
         type: boolean
         required: false
         default: true
       use_cache:
-        description: "Use cache?"
+        description: "Use cache"
         type: boolean
         required: false
         default: true
       cache_upload_allowed:
-        description: "Force cache upload?"
+        description: "Force cache upload"
         type: boolean
         required: false
         default: false
       builder_latest_tag:
-        description: "Custom Builder tag"
+        description: "(In) Custom Builder tag"
         type: string
         required: false
         default: "20250322" # Default to latest

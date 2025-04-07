@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       builder_latest_tag:
-        description: 'Kagome Builder tag (latest or date "20251201")'
+        description: '(Out) Kagome Builder tag (latest or date "20251201")'
         default: 'latest'
         required: false
         type: 'string'

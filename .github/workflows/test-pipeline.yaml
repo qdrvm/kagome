@@ -25,7 +25,7 @@ on:
         required: false
         default: false
       builder_latest_tag:
-        description: "Custom Builder tag"
+        description: "(In) Custom Builder tag"
         type: string
         required: false
         default: "20250322" # Default to latest

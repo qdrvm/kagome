@@ -21,18 +21,18 @@ on:
         required: false
         default: 'true'
         type: 'boolean'
-      polkadot_builder_tag:
-        description: 'Polkadot Builder tag'
-        default: 'latest'
-        required: false
-        type: 'string'
       polkadot_sdk_tag:
-        description: 'Custom Polkadot SDK tag (e.g. polkadot-stable2412)'
+        description: '(In) Custom Polkadot SDK tag (e.g. polkadot-stable2412)'
         required: false
         type: 'string'
       polkadot_sdk_repo:
-        description: 'Custom Polkadot SDK repo'
+        description: '(In) Custom Polkadot SDK repo'
         default: 'https://github.com/paritytech/polkadot-sdk.git'
+        required: false
+        type: 'string'
+      polkadot_builder_tag:
+        description: '(Out) Polkadot Builder tag'
+        default: 'latest'
         required: false
         type: 'string'
 

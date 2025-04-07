@@ -64,17 +64,17 @@ on:
           - 'true'
           - 'false'
       builder_latest_tag:
-        description: 'Custom Builder tag'
+        description: '(In) Custom Builder tag'
         default: '20250322'
         required: false
         type: 'string'
       zombie_tester_latest_tag:
-        description: 'Custom Zombie Tester tag'
+        description: '(In) Custom Zombie Tester tag'
         default: '20250323'
         required: false
         type: 'string'
       runtime_package_version:
-        description: 'Custom runtime package version'
+        description: '(In) Custom runtime package version'
         default: '20250323-0.14.1-3fbf6c6'
         required: false
         type: 'string'
