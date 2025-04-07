@@ -15,7 +15,7 @@
 namespace kagome::network {
 
   template <typename RequestT, typename ResponseT>
-  struct ReqCollationProtocolImpl
+  struct ReqCollationProtocolInner
       : RequestResponseProtocolImpl<std::decay_t<RequestT>,
                                     std::decay_t<ResponseT>,
                                     ScaleMessageReadWriter>,
@@ -27,11 +27,11 @@ namespace kagome::network {
 
     static constexpr std::chrono::seconds kRequestTimeout{2};
 
-    ReqCollationProtocolImpl(RequestResponseInject inject,
-                             const libp2p::peer::ProtocolName &protoname,
-                             const application::ChainSpec &chain_spec,
-                             const blockchain::GenesisBlockHash &genesis_hash,
-                             std::shared_ptr<ReqCollationObserver> observer)
+    ReqCollationProtocolInner(RequestResponseInject inject,
+                              const libp2p::peer::ProtocolName &protoname,
+                              const application::ChainSpec &chain_spec,
+                              const blockchain::GenesisBlockHash &genesis_hash,
+                              std::shared_ptr<ReqCollationObserver> observer)
         : Base{kReqCollationProtocolName,
                std::move(inject),
                make_protocols(protoname, genesis_hash, kProtocolPrefixPolkadot),
@@ -59,18 +59,18 @@ namespace kagome::network {
     std::shared_ptr<ReqCollationObserver> observer_;
   };
 
-  ReqCollationProtocol::ReqCollationProtocol(
+  ReqCollationProtocolImpl::ReqCollationProtocolImpl(
       const RequestResponseInject &inject,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<ReqCollationObserver> observer)
       : v1_impl_{std::make_shared<
-          ReqCollationProtocolImpl<CollationFetchingRequest,
-                                   CollationFetchingResponse>>(
-          inject, kReqCollationProtocol, chain_spec, genesis_hash, observer)},
+            ReqCollationProtocolInner<CollationFetchingRequest,
+                                      CollationFetchingResponse>>(
+            inject, kReqCollationProtocol, chain_spec, genesis_hash, observer)},
         vstaging_impl_{std::make_shared<
-            ReqCollationProtocolImpl<vstaging::CollationFetchingRequest,
-                                     vstaging::CollationFetchingResponse>>(
+            ReqCollationProtocolInner<vstaging::CollationFetchingRequest,
+                                      vstaging::CollationFetchingResponse>>(
             inject,
             kReqCollationVStagingProtocol,
             chain_spec,
@@ -80,12 +80,12 @@ namespace kagome::network {
     BOOST_ASSERT(vstaging_impl_);
   }
 
-  const Protocol &ReqCollationProtocol::protocolName() const {
+  const Protocol &ReqCollationProtocolImpl::protocolName() const {
     BOOST_ASSERT_MSG(v1_impl_, "ReqCollationProtocolImpl must be initialized!");
     return v1_impl_->protocolName();
   }
 
-  bool ReqCollationProtocol::start() {
+  bool ReqCollationProtocolImpl::start() {
     BOOST_ASSERT_MSG(v1_impl_,
                      "v1 ReqCollationProtocolImpl must be initialized!");
     BOOST_ASSERT_MSG(vstaging_impl_,
@@ -93,15 +93,16 @@ namespace kagome::network {
     return v1_impl_->start() && vstaging_impl_->start();
   }
 
-  void ReqCollationProtocol::onIncomingStream(std::shared_ptr<Stream> stream) {}
+  void ReqCollationProtocolImpl::onIncomingStream(
+      std::shared_ptr<Stream> stream) {}
 
-  void ReqCollationProtocol::newOutgoingStream(
+  void ReqCollationProtocolImpl::newOutgoingStream(
       const PeerId &,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&) {
     BOOST_ASSERT_MSG(false, "Must not be called!");
   }
 
-  void ReqCollationProtocol::request(
+  void ReqCollationProtocolImpl::request(
       const PeerId &peer_id,
       CollationFetchingRequest request,
       std::function<void(outcome::result<CollationFetchingResponse>)>
@@ -111,7 +112,7 @@ namespace kagome::network {
     return v1_impl_->doRequest(peer_id, request, std::move(response_handler));
   }
 
-  void ReqCollationProtocol::request(
+  void ReqCollationProtocolImpl::request(
       const PeerId &peer_id,
       vstaging::CollationFetchingRequest request,
       std::function<void(outcome::result<vstaging::CollationFetchingResponse>)>
