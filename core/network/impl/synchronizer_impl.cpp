@@ -70,6 +70,9 @@ namespace {
 
   constexpr auto kRandomWarpInterval = std::chrono::minutes{1};
 
+  /// restart synchronizer if no blocks are applied within specified time
+  constexpr auto kHangTimer = std::chrono::minutes{5};
+
   kagome::network::BlockAttribute attributesForSync(
       kagome::application::SyncMethod method) {
     using SM = kagome::application::SyncMethod;
@@ -157,6 +160,7 @@ namespace kagome::network {
   /** @see AppStateManager::takeControl */
   bool SynchronizerImpl::start() {
     randomWarp();
+    setHangTimer();
     return true;
   }
   void SynchronizerImpl::stop() {
@@ -958,6 +962,7 @@ namespace kagome::network {
       std::unique_lock<std::mutex> &lock,
       outcome::result<StateResponse> &&_res) {
     OUTCOME_TRY(res, std::move(_res));
+    setHangTimer();
     OUTCOME_TRY(state_sync_flow_->onResponse(res));
     if (not state_sync_flow_->complete()) {
       syncState();
@@ -1044,6 +1049,7 @@ namespace kagome::network {
         }
 
       } else {
+        setHangTimer();
         SAFE_UNIQUE(executing_blocks_) {
           executing_blocks_.emplace(block_info);
         };
@@ -1612,5 +1618,26 @@ namespace kagome::network {
       }
     };
     router_->getWarpProtocol()->random(finalized.hash, cb);
+  }
+
+  void SynchronizerImpl::setHangTimer() {
+    hang_timer_ = scheduler_->scheduleWithHandle(
+        [WEAK_SELF] {
+          WEAK_LOCK(self);
+          self->onHangTimer();
+        },
+        kHangTimer);
+  }
+
+  void SynchronizerImpl::onHangTimer() {
+    SL_WARN(log_, "sync hung up, restarting sync");
+    known_blocks_.clear();
+    generations_.clear();
+    ancestry_.clear();
+    load_blocks_max_ = {};
+    {
+      std::unique_lock lock{load_blocks_mutex_};
+      load_blocks_.clear();
+    }
   }
 }  // namespace kagome::network
