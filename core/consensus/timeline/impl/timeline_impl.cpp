@@ -571,7 +571,8 @@ namespace kagome::consensus {
                  or current_state_ == SyncState::STATE_LOADING);
     if (current_state_ != SyncState::HEADERS_LOADED
         and current_state_ != SyncState::STATE_LOADING) {
-      SL_WARN(log_, "Syncing of state can not be start: Bad state of timeline");
+      SL_WARN(log_,
+              "Syncing of state can not be started: Bad state of timeline");
       return;
     }
 
