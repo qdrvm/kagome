@@ -37,7 +37,8 @@
 #include "mock/core/parachain/signer_factory_mock.hpp"
 #include "mock/core/parachain/statement_distribution_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
-#include "network/protocols/req_pov_protocol.hpp"
+#include "mock/core/network/protocols/req_pov_protocol_mock.hpp"
+#include "mock/core/network/protocols/req_collation_protocol_mock.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
 #include "parachain/validator/parachain_processor.hpp"
@@ -77,86 +78,6 @@ using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::primitives::events::SyncStateSubscriptionEnginePtr;
 using kagome::runtime::ParachainHost;
 using kagome::runtime::ParachainHostMock;
-
-class ReqPovProtocolMock : public kagome::network::IReqPovProtocol {
- public:
-  std::unordered_map<
-      kagome::network::RequestPov,
-      std::function<void(outcome::result<kagome::network::ResponsePov>)>>
-      cbs;
-
-  void request(
-      const libp2p::peer::PeerId &,
-      kagome::network::RequestPov req,
-      std::function<void(outcome::result<kagome::network::ResponsePov>)> &&cb)
-      override {
-    cbs[req] = std::move(cb);
-  }
-
-  MOCK_METHOD(const kagome::network::ProtocolName &,
-              protocolName,
-              (),
-              (const, override));
-
-  MOCK_METHOD(bool, start, (), (override));
-
-  MOCK_METHOD(void,
-              onIncomingStream,
-              (std::shared_ptr<kagome::network::Stream>),
-              (override));
-
-  MOCK_METHOD(
-      void,
-      newOutgoingStream,
-      (const libp2p::peer::PeerId &,
-       std::function<
-           void(outcome::result<std::shared_ptr<kagome::network::Stream>>)> &&),
-      (override));
-};
-
-class ReqCollationProtocolMock : public kagome::network::IReqCollationProtocol {
- public:
-  std::vector<std::function<void(
-      outcome::result<kagome::network::vstaging::CollationFetchingResponse>)>>
-      cbs;
-
-  void request(const PeerId &peer_id,
-               kagome::network::CollationFetchingRequest request,
-               std::function<void(
-                   outcome::result<kagome::network::CollationFetchingResponse>)>
-                   &&response_handler) {
-    UNREACHABLE
-  }
-
-  void request(
-      const PeerId &_,
-      kagome::network::vstaging::CollationFetchingRequest req,
-      std::function<void(outcome::result<
-                         kagome::network::vstaging::CollationFetchingResponse>)>
-          &&response_handler) {
-    cbs.push_back(std::move(response_handler));
-  }
-
-  MOCK_METHOD(const kagome::network::ProtocolName &,
-              protocolName,
-              (),
-              (const, override));
-
-  MOCK_METHOD(bool, start, (), (override));
-
-  MOCK_METHOD(void,
-              onIncomingStream,
-              (std::shared_ptr<kagome::network::Stream>),
-              (override));
-
-  MOCK_METHOD(
-      void,
-      newOutgoingStream,
-      (const libp2p::peer::PeerId &,
-       std::function<
-           void(outcome::result<std::shared_ptr<kagome::network::Stream>>)> &&),
-      (override));
-};
 
 class BackingTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
@@ -2051,7 +1972,7 @@ TEST_F(BackingTest, concurrent_dependent_candidates) {
   EXPECT_CALL(*query_audi_, get(test_state.validators[5]))
       .WillRepeatedly(Return(peer));
 
-  auto pov_proto = std::make_shared<ReqPovProtocolMock>();
+  auto pov_proto = std::make_shared<network::ReqPovProtocolMock>();
   EXPECT_CALL(*router_, getReqPovProtocol()).WillRepeatedly(Return(pov_proto));
 
   const RUNS runs[] = {A, B};
@@ -2174,7 +2095,6 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
 
   const auto head_c = fromNumber(130);
   const BlockNumber head_c_num = 3;
-  const auto last_block_from_view = head_c_num;
   network::ExView update{
       .view = {},
       .stripped_view = {},
@@ -2329,7 +2249,7 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
       .WillOnce(
           Return(std::make_optional(network::CollationVersion::VStaging)));
 
-  auto proto = std::make_shared<ReqCollationProtocolMock>();
+  auto proto = std::make_shared<network::ReqCollationProtocolMock>();
   EXPECT_CALL(*router_, getReqCollationProtocol()).WillOnce(Return(proto));
 
   {
@@ -2390,6 +2310,12 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
   my_view_observable_->notify(PeerViewMock::EventType::kViewUpdated, update);
   parachain_processor_->onIncomingCollator(
       peer_a, pair.public_key, test_state.chain_ids[0]);
+
+  EXPECT_CALL(*prospective_parachains_,
+              answerProspectiveValidationDataRequest(
+                  head_c, testing::_, test_state.chain_ids[0]))
+      .WillRepeatedly(Return(outcome::success(
+          std::optional<runtime::PersistedValidationData>{pvd})));
 
   std::optional<std::pair<CandidateHash, Hash>> prosp_candidate =
       std::make_pair(candidate_hash, parent_head_data_hash);
