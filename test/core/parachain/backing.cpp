@@ -26,6 +26,8 @@
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/core/network/peer_view_mock.hpp"
+#include "mock/core/network/protocols/req_collation_protocol_mock.hpp"
+#include "mock/core/network/protocols/req_pov_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/parachain/availability_store_mock.hpp"
 #include "mock/core/parachain/backing_store_mock.hpp"
@@ -37,13 +39,13 @@
 #include "mock/core/parachain/signer_factory_mock.hpp"
 #include "mock/core/parachain/statement_distribution_mock.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
-#include "network/protocols/req_pov_protocol.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "primitives/event_types.hpp"
 #include "scale/kagome_scale.hpp"
 #include "testutil/lazy.hpp"
+#include "testutil/sr25519_utils.hpp"
 #include "utils/map.hpp"
 
 using namespace kagome::parachain;
@@ -76,42 +78,6 @@ using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::primitives::events::SyncStateSubscriptionEnginePtr;
 using kagome::runtime::ParachainHost;
 using kagome::runtime::ParachainHostMock;
-
-class ReqPovProtocolMock : public kagome::network::IReqPovProtocol {
- public:
-  std::unordered_map<
-      kagome::network::RequestPov,
-      std::function<void(outcome::result<kagome::network::ResponsePov>)>>
-      cbs;
-
-  void request(
-      const libp2p::peer::PeerId &,
-      kagome::network::RequestPov req,
-      std::function<void(outcome::result<kagome::network::ResponsePov>)> &&cb)
-      override {
-    cbs[req] = std::move(cb);
-  }
-
-  MOCK_METHOD(const kagome::network::ProtocolName &,
-              protocolName,
-              (),
-              (const, override));
-
-  MOCK_METHOD(bool, start, (), (override));
-
-  MOCK_METHOD(void,
-              onIncomingStream,
-              (std::shared_ptr<kagome::network::Stream>),
-              (override));
-
-  MOCK_METHOD(
-      void,
-      newOutgoingStream,
-      (const libp2p::peer::PeerId &,
-       std::function<
-           void(outcome::result<std::shared_ptr<kagome::network::Stream>>)> &&),
-      (override));
-};
 
 class BackingTest : public ProspectiveParachainsTestHarness {
   void SetUp() override {
@@ -231,6 +197,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     SigningContext signing_context;
     uint32_t minimum_backing_votes;
     std::map<CoreIndex, std::vector<ParachainId>> claim_queue;
+    uint32_t scheduling_lookahead;
 
     struct {
       std::vector<runtime::ValidatorGroup> groups;
@@ -245,6 +212,8 @@ class BackingTest : public ProspectiveParachainsTestHarness {
 
       head_data[chain_a] = {4, 5, 6};
       head_data[chain_b] = {5, 6, 7};
+
+      scheduling_lookahead = 3;
 
       auto csprng = std::make_shared<kagome::crypto::BoostRandomGenerator>();
       crypto::Bip39ProviderImpl bip_provider{
@@ -471,6 +440,22 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     kagome::scale::EncoderToVector ec(bytes);
     kagome::scale::encode(std::forward<T>(t), ec);
     return hasher.blake2b_256(bytes);
+  }
+
+  /// Create a candidate receipt with a bogus signature and filler data.
+  /// Optionally set the commitment hash with the `commitments` arg.
+  kagome::network::CandidateReceipt dummy_candidate_receipt_bad_sig(
+      const Hash &relay_parent, const std::optional<Hash> &commitments) {
+    kagome::network::CandidateReceipt r;
+    if (commitments) {
+      r.descriptor = dummy_candidate_descriptor_bad_sig(relay_parent);
+      r.commitments_hash = *commitments;
+    } else {
+      r.descriptor = dummy_candidate_descriptor_bad_sig(relay_parent);
+      r.commitments_hash =
+          hash_of(dummy_candidate_commitments(dummy_head_data()));
+    }
+    return r;
   }
 
   Hash make_erasure_root(
@@ -1987,7 +1972,7 @@ TEST_F(BackingTest, concurrent_dependent_candidates) {
   EXPECT_CALL(*query_audi_, get(test_state.validators[5]))
       .WillRepeatedly(Return(peer));
 
-  auto pov_proto = std::make_shared<ReqPovProtocolMock>();
+  auto pov_proto = std::make_shared<network::ReqPovProtocolMock>();
   EXPECT_CALL(*router_, getReqPovProtocol()).WillRepeatedly(Return(pov_proto));
 
   const RUNS runs[] = {A, B};
@@ -2096,5 +2081,258 @@ TEST_F(BackingTest, concurrent_dependent_candidates) {
     } else {
       UNREACHABLE;
     }
+  }
+}
+
+TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
+  TestState test_state;
+
+  const auto para_id = test_state.chain_ids[0];
+
+  sync_state_observable_->notify(
+      kagome::primitives::events::SyncStateEventType::kSyncState,
+      kagome::primitives::events::SyncStateEventParams::SYNCHRONIZED);
+
+  const auto head_c = fromNumber(130);
+  const BlockNumber head_c_num = 3;
+  network::ExView update{
+      .view = {},
+      .stripped_view = {},
+      .new_head =
+          BlockHeader{
+              .number = head_c_num,
+              .parent_hash = get_parent_hash(head_c),
+              .state_root = {},
+              .extrinsics_root = {},
+              .digest = {},
+              .hash_opt = {},
+          },
+      .lost = {},
+  };
+  update.new_head.hash_opt = head_c;
+  update.view.heads_.push_back(head_c);
+
+  const auto leaf_hash = head_c;
+  const auto leaf_number = head_c_num;
+
+  EXPECT_CALL(*prospective_parachains_, prospectiveParachainsMode(testing::_))
+      .WillRepeatedly(Return(ProspectiveParachainsMode{
+          .max_candidate_depth = 4,
+          .allowed_ancestry_len = 3,
+      }));
+
+  EXPECT_CALL(*signer_, validatorIndex()).WillRepeatedly(Return(0));
+
+  EXPECT_CALL(*bitfield_store_, printStoragesLoad()).WillRepeatedly(Return());
+  EXPECT_CALL(*backing_store_, printStoragesLoad()).WillRepeatedly(Return());
+  EXPECT_CALL(*av_store_, printStoragesLoad()).WillRepeatedly(Return());
+  EXPECT_CALL(*prospective_parachains_, printStoragesLoad())
+      .WillRepeatedly(Return());
+
+  EXPECT_CALL(*backing_store_, onActivateLeaf(testing::_))
+      .WillRepeatedly(Return());
+  EXPECT_CALL(*prospective_parachains_, onActiveLeavesUpdate(testing::_))
+      .WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*peer_manager_, enumeratePeerState(testing::_))
+      .WillRepeatedly(Return());
+  EXPECT_CALL(*parachain_host_, session_index_for_child(testing::_))
+      .WillRepeatedly(Return(test_state.signing_context.session_index));
+
+  EXPECT_CALL(*parachain_host_, availability_cores(testing::_))
+      .WillRepeatedly(Return(test_state.availability_cores));
+
+  EXPECT_CALL(*signer_factory_, at(testing::_)).WillRepeatedly(Return(signer_));
+  EXPECT_CALL(*signer_factory_, getAuthorityValidatorIndex(testing::_))
+      .WillRepeatedly(Return(0));
+
+  EXPECT_CALL(*block_tree_, getBlockHeader(leaf_hash))
+      .WillRepeatedly(Return(BlockHeader{
+          .number = leaf_number,
+          .parent_hash = get_parent_hash(head_c),
+          .state_root = {},
+          .extrinsics_root = {},
+          .digest = {},
+          .hash_opt = {},
+      }));
+
+  EXPECT_CALL(*parachain_host_, validators(testing::_))
+      .WillRepeatedly(Return(test_state.validators));
+
+  runtime::SessionInfo si;
+  si.validators = test_state.validators;
+  si.discovery_keys = test_state.validators;
+  EXPECT_CALL(
+      *parachain_host_,
+      session_info(testing::_, test_state.signing_context.session_index))
+      .WillRepeatedly(Return(si));
+
+  EXPECT_CALL(*parachain_host_, node_features(testing::_))
+      .WillRepeatedly(Return(runtime::NodeFeatures()));
+
+  EXPECT_CALL(*parachain_host_,
+              minimum_backing_votes(testing::_,
+                                    test_state.signing_context.session_index))
+      .WillRepeatedly(Return(test_state.minimum_backing_votes));
+
+  EXPECT_CALL(*parachain_host_, claim_queue(testing::_))
+      .WillRepeatedly(Return(std::make_optional(runtime::ClaimQueueSnapshot{
+          .claimes = test_state.claim_queue,
+      })));
+
+  test_state.validator_groups.groups = {runtime::ValidatorGroup{
+                                            .validators = {0, 1},
+                                        },
+                                        runtime::ValidatorGroup{
+                                            .validators = {2, 3},
+                                        },
+                                        runtime::ValidatorGroup{
+                                            .validators = {4},
+                                        }};
+  EXPECT_CALL(*parachain_host_, validator_groups(testing::_))
+      .WillRepeatedly(Return(std::make_tuple(
+          test_state.validator_groups.groups,
+          runtime::GroupDescriptor{
+              .session_start_block = test_state.validator_groups.group_rotation
+                                         .session_start_block,
+              .group_rotation_frequency =
+                  test_state.validator_groups.group_rotation
+                      .group_rotation_frequency,
+              .now_block_num = leaf_number,
+          })));
+
+  const auto pair = generateSr25519Keypair(0);
+  const auto peer_a =
+      libp2p::peer::PeerId::fromBase58(
+          "12D3KooWE77U4m1d5mJxmU61AEsXewKjKnG7LiW2UQEPFnS6FXhv")
+          .value();
+
+  EXPECT_CALL(*peer_manager_,
+              setCollating(peer_a, pair.public_key, test_state.chain_ids[0]))
+      .WillOnce(Return());
+
+  EXPECT_CALL(*peer_manager_, getParachainId(peer_a))
+      .WillOnce(Return(test_state.chain_ids[0]));
+
+  EXPECT_CALL(
+      *peer_manager_,
+      insertAdvertisement(testing::_, testing::_, testing::_, testing::_))
+      .WillOnce(
+          Return(outcome::success(std::make_pair(pair.public_key, para_id))));
+
+  auto candidate = dummy_candidate_receipt_bad_sig(head_c, Hash{});
+  candidate.descriptor.para_id = test_state.chain_ids[0];
+  runtime::CandidateCommitments commitments{
+      .upward_msgs = {},
+      .outbound_hor_msgs = {},
+      .opt_para_runtime = std::nullopt,
+      .para_head = {1, 2, 3},
+      .downward_msgs_count = 0,
+      .watermark = 0,
+  };
+  candidate.commitments_hash = hash_of(commitments);
+
+  const HeadData parent_head_data = {4, 2, 0};
+  const auto parent_head_data_hash = hash_of(parent_head_data);
+  const HeadData wrong_parent_head_data = {4, 2};
+
+  auto pvd = dummy_pvd();
+  pvd.parent_head = parent_head_data;
+
+  candidate.descriptor.persisted_data_hash = hash_of(pvd);
+  const auto candidate_hash = hash_of(candidate);
+
+  EXPECT_CALL(*peer_manager_,
+              hasAdvertised(peer_a, leaf_hash, {candidate_hash}))
+      .WillOnce(Return(std::make_optional(true)));
+
+  EXPECT_CALL(*peer_manager_, getCollationVersion(peer_a))
+      .WillOnce(
+          Return(std::make_optional(network::CollationVersion::VStaging)));
+
+  auto proto = std::make_shared<network::ReqCollationProtocolMock>();
+  EXPECT_CALL(*router_, getReqCollationProtocol()).WillOnce(Return(proto));
+
+  {
+    std::vector<
+        std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>
+        r = {std::make_pair(
+            HypotheticalCandidateComplete{
+                .candidate_hash = candidate_hash,
+                .receipt =
+                    network::CommittedCandidateReceipt{
+                        .descriptor = candidate.descriptor,
+                        .commitments = commitments,
+                    },
+                .persisted_validation_data = pvd,
+            },
+            fragment::HypotheticalMembership{leaf_hash})};
+
+    EXPECT_CALL(*prospective_parachains_,
+                answer_hypothetical_membership_request(testing::_))
+        .WillOnce(Return(r));
+  }
+
+  const auto min_number = kagome::math::sat_sub_unsigned(
+      leaf_number, test_state.scheduling_lookahead);
+  const auto ancestry_len = leaf_number + 1 - min_number;
+
+  // How many blocks were actually requested.
+  size_t requested_len = 0;
+
+  Hash h = leaf_hash;
+  BlockNumber n = leaf_number;
+  for (uint32_t i = 0; i < ancestry_len; ++i) {
+    const auto hash = get_parent_hash(h);
+    h = hash;
+    const auto number = n--;
+    const auto parent_hash = get_parent_hash(hash);
+
+    EXPECT_CALL(*block_tree_, getBlockHeader(hash))
+        .WillRepeatedly(Return(BlockHeader{
+            .number = number,
+            .parent_hash = parent_hash,
+            .state_root = {},
+            .extrinsics_root = {},
+            .digest = {},
+            .hash_opt = {},
+        }));
+
+    if (requested_len == 0) {
+      std::vector<std::pair<ParachainId, BlockNumber>> r = {
+          {para_id, min_number}};
+      EXPECT_CALL(*prospective_parachains_,
+                  answerMinimumRelayParentsRequest(leaf_hash))
+          .WillRepeatedly(Return(r));
+    }
+    requested_len += 1;
+  }
+
+  my_view_observable_->notify(PeerViewMock::EventType::kViewUpdated, update);
+  parachain_processor_->onIncomingCollator(
+      peer_a, pair.public_key, test_state.chain_ids[0]);
+
+  EXPECT_CALL(*prospective_parachains_,
+              answerProspectiveValidationDataRequest(
+                  head_c, testing::_, test_state.chain_ids[0]))
+      .WillRepeatedly(Return(outcome::success(
+          std::optional<runtime::PersistedValidationData>{pvd})));
+
+  std::optional<std::pair<CandidateHash, Hash>> prosp_candidate =
+      std::make_pair(candidate_hash, parent_head_data_hash);
+  parachain_processor_->handle_advertisement(
+      head_c, peer_a, std::move(prosp_candidate));
+
+  const kagome::network::PoV pov{
+      .payload = {1},
+  };
+  kagome::network::vstaging::CollationFetchingResponse resp{
+      .response_data = kagome::network::CollationWithParentHeadData{
+          .receipt = candidate,
+          .pov = pov,
+          .parent_head_data = wrong_parent_head_data,
+      }};
+
+  for (const auto &cb : proto->cbs) {
+    cb(outcome::success(resp));
   }
 }
