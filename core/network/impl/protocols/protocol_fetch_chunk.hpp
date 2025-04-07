@@ -24,7 +24,7 @@
 
 namespace kagome::network {
 
-  struct ReqPovProtocolImpl;
+  class ReqPovProtocol;
 
   class FetchChunkProtocol
       : virtual public RequestResponseProtocol<FetchChunkRequest,

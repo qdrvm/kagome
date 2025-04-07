@@ -49,12 +49,12 @@ namespace kagome::network {
                 (),
                 (const, override));
 
-    MOCK_METHOD(std::shared_ptr<IReqCollationProtocol>,
+    MOCK_METHOD(std::shared_ptr<ReqCollationProtocol>,
                 getReqCollationProtocol,
                 (),
                 (const, override));
 
-    MOCK_METHOD(std::shared_ptr<IReqPovProtocol>,
+    MOCK_METHOD(std::shared_ptr<ReqPovProtocol>,
                 getReqPovProtocol,
                 (),
                 (const, override));

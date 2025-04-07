@@ -12,7 +12,7 @@
 
 namespace kagome::network {
 
-  class ReqCollationProtocolMock : public IReqCollationProtocol {
+  class ReqCollationProtocolMock : public ReqCollationProtocol {
    public:
     std::vector<std::function<void(
         outcome::result<vstaging::CollationFetchingResponse>)>>
@@ -20,40 +20,31 @@ namespace kagome::network {
 
     void request(const PeerId &peer_id,
                  CollationFetchingRequest request,
-                 std::function<void(
-                     outcome::result<CollationFetchingResponse>)>
+                 std::function<void(outcome::result<CollationFetchingResponse>)>
                      &&response_handler) override {
       UNREACHABLE
     }
 
-    void request(
-        const PeerId &_,
-        vstaging::CollationFetchingRequest req,
-        std::function<void(outcome::result<
-                           vstaging::CollationFetchingResponse>)>
-            &&response_handler) override {
+    void request(const PeerId &_,
+                 vstaging::CollationFetchingRequest req,
+                 std::function<
+                     void(outcome::result<vstaging::CollationFetchingResponse>)>
+                     &&response_handler) override {
       cbs.push_back(std::move(response_handler));
     }
 
-    MOCK_METHOD(const ProtocolName &,
-                protocolName,
-                (),
-                (const, override));
+    MOCK_METHOD(const ProtocolName &, protocolName, (), (const, override));
 
     MOCK_METHOD(bool, start, (), (override));
 
-    MOCK_METHOD(void,
-                onIncomingStream,
-                (std::shared_ptr<Stream>),
-                (override));
+    MOCK_METHOD(void, onIncomingStream, (std::shared_ptr<Stream>), (override));
 
     MOCK_METHOD(
         void,
         newOutgoingStream,
         (const libp2p::peer::PeerId &,
-         std::function<
-             void(outcome::result<std::shared_ptr<Stream>>)> &&),
+         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&),
         (override));
   };
 
-}  // namespace kagome::network 
+}  // namespace kagome::network
