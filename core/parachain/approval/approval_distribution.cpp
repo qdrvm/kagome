@@ -3562,8 +3562,8 @@ namespace kagome::parachain {
               approval_entry.routing_info.required_routing;
           [[maybe_unused]] auto &routing_info = approval_entry.routing_info;
 
-          auto peer_filter = [&approval_entry,
-                              &peer_id](const libp2p::peer::PeerId &peer) {
+          auto is_peer_in_required_grid_routing = [&approval_entry,
+                                                   &peer_id]() {
             // Handle different routing requirements based on the grid topology
             if (approval_entry.routing_info.required_routing.value
                 != grid::RequiredRouting::None) {
@@ -3610,7 +3610,7 @@ namespace kagome::parachain {
             return false;
           };
 
-          if (!peer_filter(peer_id)) {
+          if (not is_peer_in_required_grid_routing()) {
             continue;
           }
 
