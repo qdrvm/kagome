@@ -17,7 +17,7 @@
 
 namespace kagome::network {
 
-  class IReqCollationProtocol : public ProtocolBase {
+  class ReqCollationProtocol : public ProtocolBase {
    public:
     virtual void request(
         const PeerId &peer_id,

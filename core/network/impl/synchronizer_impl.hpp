@@ -252,6 +252,9 @@ namespace kagome::network {
 
     void randomWarp();
 
+    void setHangTimer();
+    void onHangTimer();
+
     log::Logger log_;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -329,6 +332,8 @@ namespace kagome::network {
              const char *>
         recent_requests_;
     SafeObject<std::set<BlockInfo>> executing_blocks_;
+
+    libp2p::Cancel hang_timer_;
   };
 
 }  // namespace kagome::network
