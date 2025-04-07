@@ -7,6 +7,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 
 namespace kagome::consensus {
 
@@ -32,9 +33,29 @@ namespace kagome::consensus {
     /// to confirm state  'synchronized'
     WAIT_BLOCK_ANNOUNCE,
 
-    /// All missing blocks were received and applied, current  peer doing
+    /// All missing blocks were received and applied, current peer doing
     /// block production
     SYNCHRONIZED
   };
 
-}
+  inline std::string_view to_string(SyncState s) {
+    switch (s) {
+      case SyncState::WAIT_REMOTE_STATUS:
+        return "WAIT_REMOTE_STATUS";
+      case SyncState::HEADERS_LOADING:
+        return "HEADERS_LOADING";
+      case SyncState::HEADERS_LOADED:
+        return "HEADERS_LOADED";
+      case SyncState::STATE_LOADING:
+        return "STATE_LOADING";
+      case SyncState::CATCHING_UP:
+        return "CATCHING_UP";
+      case SyncState::WAIT_BLOCK_ANNOUNCE:
+        return "WAIT_BLOCK_ANNOUNCE";
+      case SyncState::SYNCHRONIZED:
+        return "SYNCHRONIZED";
+    }
+    __builtin_unreachable();
+  }
+
+}  // namespace kagome::consensus
