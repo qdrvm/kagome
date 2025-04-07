@@ -11,12 +11,17 @@
 #include <thread>
 
 #include "crypto/sr25519_provider.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
+#include "primitives/event_types.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
-#include "runtime/wabt/instrument.hpp"
 
 namespace kagome {
   class PoolHandler;
+
+  namespace consensus {
+    class Timeline;
+  }
 }  // namespace kagome
 
 namespace kagome::application {
@@ -72,7 +77,10 @@ namespace kagome::parachain {
             std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
             PvfThreadPool &pvf_thread_pool,
             std::shared_ptr<application::AppStateManager> app_state_manager,
-            std::shared_ptr<application::AppConfiguration> app_configuration);
+            std::shared_ptr<application::AppConfiguration> app_configuration,
+            std::shared_ptr<primitives::events::SyncStateSubscriptionEngine>
+                sync_state_sub_engine,
+            LazySPtr<const consensus::Timeline> timeline);
 
     ~PvfImpl() override;
 
@@ -120,7 +128,10 @@ namespace kagome::parachain {
     std::shared_ptr<ModulePrecompiler> precompiler_;
     std::shared_ptr<PoolHandler> pvf_thread_handler_;
     std::shared_ptr<application::AppConfiguration> app_configuration_;
-
+    std::shared_ptr<primitives::events::SyncStateSubscriptionEngine>
+        sync_state_sub_engine_;
+    std::shared_ptr<void> sync_state_sub_;
     std::unique_ptr<std::thread> precompiler_thread_;
+    LazySPtr<const consensus::Timeline> timeline_;
   };
 }  // namespace kagome::parachain

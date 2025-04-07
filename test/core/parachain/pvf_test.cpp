@@ -15,6 +15,7 @@
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/consensus/timeline/timeline_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
 #include "mock/core/runtime/instrument_wasm.hpp"
@@ -29,8 +30,10 @@
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/types.hpp"
+#include "primitives/event_types.hpp"
 #include "runtime/executor.hpp"
 #include "runtime/instance_environment.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
@@ -49,6 +52,7 @@ using kagome::parachain::PvfImpl;
 using kagome::parachain::PvfPool;
 using kagome::parachain::PvfThreadPool;
 using kagome::parachain::ValidationResult;
+using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::runtime::MemoryLimits;
 using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
@@ -60,6 +64,7 @@ namespace runtime = kagome::runtime;
 namespace blockchain = kagome::blockchain;
 namespace primitives = kagome::primitives;
 namespace parachain = kagome::parachain;
+namespace consensus = kagome::consensus;
 
 using namespace kagome::common::literals;
 
@@ -98,6 +103,9 @@ class PvfTest : public testing::Test {
 
     auto app_state_manager = std::make_shared<StartApp>();
 
+    auto timeline = std::make_shared<consensus::TimelineMock>();
+    auto state_sub_engine = std::make_shared<SyncStateSubscriptionEngine>();
+
     PvfThreadPool pvf_thread{TestThreadPool{io_}};
     pvf_ = std::make_shared<PvfImpl>(
         PvfImpl::Config{
@@ -116,7 +124,9 @@ class PvfTest : public testing::Test {
         ctx_factory,
         pvf_thread,
         app_state_manager,
-        app_config_);
+        app_config_,
+        state_sub_engine,
+        testutil::sptr_to_lazy<const consensus::Timeline>(timeline));
     app_state_manager->start();
   }
 
