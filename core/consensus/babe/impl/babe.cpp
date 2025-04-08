@@ -15,6 +15,7 @@
 #include "application/app_state_manager.hpp"
 #include "authorship/proposer.hpp"
 #include "blockchain/block_tree.hpp"
+#include "common/hexutil.hpp"
 #include "common/main_thread_pool.hpp"
 #include "common/worker_thread_pool.hpp"
 #include "consensus/babe/babe_config_repository.hpp"
@@ -541,6 +542,18 @@ namespace kagome::consensus::babe {
         });
         latch.wait();
       }
+    }
+
+    // Log scale-encoded ParachainInherentData
+    auto encoded_parachain_data = scale::encode(parachain_inherent_data);
+    if (encoded_parachain_data) {
+      SL_INFO(log_,
+              "Scale encoded ParachainInherentData: {}",
+              common::hex_lower_0x(encoded_parachain_data.value()));
+    } else {
+      SL_ERROR(log_,
+               "Failed to scale encode ParachainInherentData: {}",
+               encoded_parachain_data.error());
     }
 
     if (auto res = inherent_data.putData(kParachainId, parachain_inherent_data);

@@ -3498,12 +3498,54 @@ namespace kagome::parachain {
   ParachainProcessorImpl::extractParachainInherentData(
       const std::vector<primitives::Extrinsic> &block_body) const {
     for (const auto &extrinsic : block_body) {
-      if (extrinsic.data.size() < 3
-          || extrinsic.data[0] != parachain_inherent_data_extrinsic_version
-          || extrinsic.data[1] != parachain_inherent_data_call
-          || extrinsic.data[2] != parachain_inherent_data_module) {
+      SL_INFO(logger_, "Extrinsic body: {}", extrinsic.data.toHex());
+
+      SL_INFO(logger_, "Checking extrinsic for parachain inherent data");
+
+      // Check size first
+      if (extrinsic.data.size() < 3) {
+        SL_INFO(logger_,
+                "Extrinsic too small (size={}), skipping",
+                extrinsic.data.size());
         continue;
       }
+
+      // Check extrinsic version
+      if (extrinsic.data[0] != parachain_inherent_data_extrinsic_version) {
+        SL_INFO(logger_,
+                "Extrinsic version mismatch (got={}, expected={}), skipping",
+                extrinsic.data[0],
+                parachain_inherent_data_extrinsic_version);
+        continue;
+      } else {
+        SL_INFO(logger_,
+                "Extrinsic version matches expected version {}",
+                parachain_inherent_data_extrinsic_version);
+      }
+
+      // Check call identifier
+      if (extrinsic.data[1] != parachain_inherent_data_call) {
+        SL_INFO(logger_,
+                "Extrinsic call mismatch (got={}, expected={}), skipping",
+                extrinsic.data[1],
+                parachain_inherent_data_call);
+        continue;
+      } else {
+        SL_INFO(logger_,
+                "Extrinsic call matches expected call {}",
+                parachain_inherent_data_call);
+      }
+
+      // Check module identifier
+      if (extrinsic.data[2] != parachain_inherent_data_module) {
+        SL_INFO(logger_,
+                "Extrinsic module mismatch (got={}, expected={}), skipping",
+                extrinsic.data[2],
+                parachain_inherent_data_module);
+        continue;
+      }
+
+      SL_INFO(logger_, "Extrinsic matches parachain inherent data pattern");
 
       std::span<const uint8_t> buffer(&extrinsic.data[3],
                                       extrinsic.data.size() - 3);
