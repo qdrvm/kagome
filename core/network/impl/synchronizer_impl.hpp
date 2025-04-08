@@ -173,6 +173,8 @@ namespace kagome::network {
                    const primitives::BlockInfo &block,
                    SyncResultHandler &&handler) override;
 
+    void unsafe(PeerId peer_id, BlockNumber max, UnsafeCb cb) override;
+
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is
     /// the needed block
@@ -249,6 +251,9 @@ namespace kagome::network {
     void afterStateSync();
 
     void randomWarp();
+
+    void setHangTimer();
+    void onHangTimer();
 
     log::Logger log_;
 
@@ -327,6 +332,8 @@ namespace kagome::network {
              const char *>
         recent_requests_;
     SafeObject<std::set<BlockInfo>> executing_blocks_;
+
+    libp2p::Cancel hang_timer_;
   };
 
 }  // namespace kagome::network

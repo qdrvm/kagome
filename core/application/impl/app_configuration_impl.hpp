@@ -241,6 +241,9 @@ namespace kagome::application {
     std::optional<PrecompileWasmConfig> precompileWasm() const override {
       return precompile_wasm_;
     }
+    std::optional<BlockNumber> unsafeSyncTo() const override {
+      return unsafe_sync_to_;
+    }
 
     std::optional<std::string> getValidatorAddress() const override {
       return validator_address_ss58_;
@@ -395,6 +398,7 @@ namespace kagome::application {
     std::optional<PrecompileWasmConfig> precompile_wasm_;
     std::optional<std::string> validator_address_ss58_;
     uint32_t max_parallel_downloads_{};
+    std::optional<BlockNumber> unsafe_sync_to_;
   };
 
 }  // namespace kagome::application
