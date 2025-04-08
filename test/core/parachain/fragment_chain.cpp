@@ -823,16 +823,12 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
 
     const auto chain = populate_chain_from_previous_storage(scope, storage);
     {
-      // Since max_depth = 2, only candidates A and B are allowed in the
-      // best chain
       const Vec<CandidateHash> best_chain_ref = {candidate_a_hash,
                                                  candidate_b_hash,
                                                  candidate_c_hash};
       ASSERT_EQ(chain.best_chain_vec(), best_chain_ref);
     }
     {
-      // Candidate C should be in unconnected storage along with other
-      // candidates
       const HashSet<CandidateHash> unconnected_ref =
           HashSet<CandidateHash>({candidate_d_hash,
                                   candidate_f_hash,
