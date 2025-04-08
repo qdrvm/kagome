@@ -515,9 +515,12 @@ namespace kagome::parachain {
     SL_TRACE(logger_,
              "Candidate {}. "
              "Systematic recovery progress. "
-             "Collected {} systematic chunks",
+             "Collected {} systematic chunks, active requests: {}, queued "
+             "requests: {}",
              candidate_hash,
-             systematic_chunk_count);
+             systematic_chunk_count,
+             active.chunks_active,
+             active.order.size());
 
     // All systematic chunks are collected
     if (systematic_chunk_count >= active.chunks_required) {
@@ -601,6 +604,18 @@ namespace kagome::parachain {
     // Send requests
     auto max = std::min(kParallelRequests,
                         active.chunks_required - systematic_chunk_count);
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Starting systematic chunks parallel requests. Max parallel: {}, "
+             "current active: "
+             "{}, queued: {}. Collected systematic chunks: {}/{} required",
+             candidate_hash,
+             max,
+             active.chunks_active,
+             active.order.size(),
+             systematic_chunk_count,
+             active.chunks_required);
+
     while (not active.order.empty() and active.chunks_active < max) {
       auto validator_index = active.order.back();
       active.order.pop_back();
@@ -610,10 +625,12 @@ namespace kagome::parachain {
         SL_TRACE(logger_,
                  "Candidate {}. "
                  "Systematic recovery progress. "
-                 "Asking validator #{} aka peer {}",
+                 "Starting request to validator #{} aka peer {} (active "
+                 "requests: {})",
                  candidate_hash,
                  validator_index,
-                 peer->id);
+                 peer->id,
+                 active.chunks_active);
         active.queried.emplace(validator_index);
         send_fetch_chunk_request(
             peer->id,
@@ -867,6 +884,18 @@ namespace kagome::parachain {
     // Send requests
     auto max = std::min(kParallelRequests,
                         active.chunks_required - active.chunks.size());
+    SL_TRACE(logger_,
+             "Candidate {}. "
+             "Starting regular chunks parallel requests. Max parallel: {}, "
+             "current active: "
+             "{}, queued: {}. Collected chunks: {}/{} required",
+             candidate_hash,
+             max,
+             active.chunks_active,
+             active.order.size(),
+             active.chunks.size(),
+             active.chunks_required);
+
     while (not active.order.empty() and active.chunks_active < max) {
       auto validator_index = active.order.back();
       active.order.pop_back();
@@ -876,10 +905,12 @@ namespace kagome::parachain {
         SL_TRACE(logger_,
                  "Candidate {}. "
                  "Regular recovery progress. "
-                 "Asking validator #{} aka peer {}",
+                 "Starting request to validator #{} aka peer {} (active "
+                 "requests: {})",
                  candidate_hash,
                  validator_index,
-                 peer->id);
+                 peer->id,
+                 active.chunks_active);
         active.queried.emplace(validator_index);
         send_fetch_chunk_request(peer->id,
                                  candidate_hash,

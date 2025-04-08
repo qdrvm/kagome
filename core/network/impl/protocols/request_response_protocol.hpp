@@ -100,6 +100,12 @@ namespace kagome::network {
               stream->reset();
               IF_WEAK_LOCK(self) {
                 self->metrics_.timeout_->inc();
+                SL_WARN(
+                    self->base_.logger(),
+                    "Request timeout for {} protocol with peer {} after {}ms",
+                    self->protocolName(),
+                    stream->remotePeerId().value(),
+                    self->timeout_.count());
               }
             }
           },
