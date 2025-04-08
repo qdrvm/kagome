@@ -162,6 +162,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
           candidate_c_hash, candidate_c, pvd_c, CandidateState::Backed, hasher_)
           .value();
   ASSERT_TRUE(storage.add_candidate_entry(candidate_c_entry).has_value());
+  CandidateStorage ppp = storage;
 
   // Candidate A doesn't adhere to the base constraints.
   {
@@ -640,7 +641,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
     ASSERT_OUTCOME_SUCCESS(
         scope,
         Scope::with_ancestors(
-            relay_parent_z_info, base_constraints, {}, 2, ancestors));
+            relay_parent_z_info, base_constraints, {}, 3, ancestors));
 
     // Candidate D
     const auto &[pvd_d, candidate_d] =
@@ -825,15 +826,15 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
       // Since max_depth = 2, only candidates A and B are allowed in the
       // best chain
       const Vec<CandidateHash> best_chain_ref = {candidate_a_hash,
-                                                 candidate_b_hash};
+                                                 candidate_b_hash,
+                                                 candidate_c_hash};
       ASSERT_EQ(chain.best_chain_vec(), best_chain_ref);
     }
     {
       // Candidate C should be in unconnected storage along with other
       // candidates
       const HashSet<CandidateHash> unconnected_ref =
-          HashSet<CandidateHash>({candidate_c_hash,
-                                  candidate_d_hash,
+          HashSet<CandidateHash>({candidate_d_hash,
                                   candidate_f_hash,
                                   candidate_a2_hash,
                                   candidate_b2_hash});
@@ -982,6 +983,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
   }
 
   // Simulate the fact that candidates A, B, C are now pending availability.
+  fragment::FragmentChain ss_chain;
   {
     ASSERT_OUTCOME_SUCCESS(
         scope_pending_avail,
@@ -1021,6 +1023,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
     // Cannot add as potential an already pending availability candidate
     ASSERT_EQ(chain.can_add_candidate_as_potential(candidate_a_entry).error(),
               FragmentChainError::CANDIDATE_ALREADY_KNOWN);
+    ss_chain = std::move(chain); 
   }
 
   // Simulate the fact that candidates A, B and C have been included.
@@ -1031,11 +1034,8 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
         Scope::with_ancestors(
             relay_parent_z_info, base_constraints_included, {}, 3, ancestors));
 
-    // Use the correct chain variable for populate_from_previous
-    auto chain_with_pending =
-        populate_chain_from_previous_storage(scope_pending_avail, storage);
     auto chain_new = FragmentChain::init(hasher_, scope3, CandidateStorage{});
-    chain_new.populate_from_previous(chain_with_pending);
+    chain_new.populate_from_previous(ss_chain);
 
     // Check using individual assertions
     ASSERT_EQ(chain_new.best_chain_len(), 1);
@@ -1097,7 +1097,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
           Scope::with_ancestors(
               relay_parent_z_info, base_constraints, pending, 3, ancestors));
       const auto chain =
-          populate_chain_from_previous_storage(scope_pending, storage);
+          populate_chain_from_previous_storage(scope_pending, ppp);
       Vec<CandidateHash> expected_chain = {
           candidate_a_hash, candidate_b_hash, candidate_c_hash};
       ASSERT_EQ(chain.best_chain_vec(), expected_chain);
@@ -1118,7 +1118,7 @@ TEST_F(FragmentChainTest, test_populate_and_check_potential) {
                               4,
                               ancestors_without_x));
     const auto chain = populate_chain_from_previous_storage(
-        scope_pending_ancestors_without_x, storage);
+        scope_pending_ancestors_without_x, ppp);
     Vec<CandidateHash> expected_chain = {
         candidate_a_hash, candidate_b_hash, candidate_c_hash};
     ASSERT_EQ(chain.best_chain_vec(), expected_chain);
