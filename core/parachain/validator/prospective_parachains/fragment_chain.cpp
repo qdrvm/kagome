@@ -42,6 +42,7 @@ namespace kagome::parachain::fragment {
     const auto parent_head_hash = it->second.parent_head_data_hash;
 
     unconnected.mark_backed(newly_backed_candidate);
+
     if (!revert_to(parent_head_hash)) {
       return;
     }
@@ -185,9 +186,13 @@ namespace kagome::parachain::fragment {
     }
 
     bool found_candidate = true;
-    while (found_candidate && best_chain.chain.size() <= scope.max_depth) {
+    while (found_candidate) {
       found_candidate = false;
 
+      const auto max_best_chain_size =
+          scope.max_depth > 0 ? scope.max_depth : 0;
+      bool only_consider_pending =
+          best_chain.chain.size() >= max_best_chain_size;
       Constraints child_constraints;
       if (auto c = scope.base_constraints.apply_modifications(
               cumulative_modifications);
@@ -214,6 +219,11 @@ namespace kagome::parachain::fragment {
           required_head_hash, [&](const auto &candidate) {
             auto pending =
                 scope.get_pending_availability(candidate.candidate_hash);
+
+            if (only_consider_pending && !pending) {
+              return;
+            }
+
             Option<RelayChainBlockInfo> relay_parent = utils::map(
                 pending, [](const auto &v) { return v.get().relay_parent; });
             if (!relay_parent) {
