@@ -145,6 +145,9 @@ namespace {
     if (str == "Warp") {
       return SM::Warp;
     }
+    if (str == "Unsafe") {
+      return SM::Unsafe;
+    }
     if (str == "Auto") {
       return SM::Auto;
     }
@@ -869,6 +872,7 @@ namespace kagome::application {
         ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
         ("precompile-relay", po::bool_switch(), "precompile relay")
         ("precompile-para", po::value<decltype(PrecompileWasmConfig::parachains)>()->multitoken(), "paths to wasm or chainspec files")
+        ("unsafe-sync-to", po::value<BlockNumber>(), "unsafe sync to specified or earlier block")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -1602,6 +1606,11 @@ namespace kagome::application {
     max_parallel_downloads_ =
         find_argument<uint32_t>(vm, "max-parallel-downloads")
             .value_or(def_max_parallel_downloads);
+
+    unsafe_sync_to_ = find_argument<BlockNumber>(vm, "unsafe-sync-to");
+    if (unsafe_sync_to_) {
+      sync_method_ = SyncMethod::Unsafe;
+    }
     // if something wrong with config print help message
     if (not validate_config()) {
       std::cout << desc << '\n';

@@ -12,6 +12,7 @@
 #include "clock/impl/clock_impl.hpp"
 #include "common/main_thread_pool.hpp"
 #include "consensus/consensus_selector.hpp"
+#include "consensus/grandpa/guess_set_id.hpp"
 #include "consensus/grandpa/justification_observer.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
@@ -23,8 +24,11 @@
 #include "runtime/runtime_api/core.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
+#include "utils/sptr.hpp"
+#include "utils/weak_macro.hpp"
 
 #include <libp2p/basic/scheduler.hpp>
+#include <libp2p/common/final_action.hpp>
 
 namespace {
   constexpr const char *kIsMajorSyncing = "kagome_sub_libp2p_is_major_syncing";
@@ -92,6 +96,10 @@ namespace kagome::consensus {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(state_sub_engine_);
     BOOST_ASSERT(core_api_);
+
+    if (app_config.syncMethod() == SyncMethod::Unsafe) {
+      unsafe_sync_ = UnsafeSync{.number = app_config.unsafeSyncTo()};
+    }
 
     // Register metrics
     metrics_registry_->registerGaugeFamily(
@@ -232,6 +240,9 @@ namespace kagome::consensus {
                   "Fast sync would be faster than Warp sync that was selected");
         }
         break;
+      case SyncMethod::Unsafe: {
+        break;
+      }
     }
 
     chain_sub_.onFinalize([weak{weak_from_this()}](
@@ -267,7 +278,7 @@ namespace kagome::consensus {
              current_epoch_,
              current_slot_);
 
-    if (sync_method_ != SyncMethod::Warp) {
+    if (sync_method_ == SyncMethod::Full or sync_method_ == SyncMethod::Fast) {
       auto consensus = consensus_selector_->getProductionConsensus(best_block_);
 
       auto validator_status =
@@ -293,6 +304,7 @@ namespace kagome::consensus {
 
       case SyncMethod::Fast:
       case SyncMethod::Warp:
+      case SyncMethod::Unsafe:
       case SyncMethod::FastWithoutState: {
         current_state_ = SyncState::HEADERS_LOADING;
         state_sub_engine_->notify(
@@ -454,6 +466,49 @@ namespace kagome::consensus {
 
   bool TimelineImpl::warpSync(const libp2p::peer::PeerId &peer_id,
                               primitives::BlockNumber block_number) {
+    if (unsafe_sync_) {
+      if (not unsafe_sync_->number) {
+        if (block_number == 0) {
+          return true;
+        }
+        unsafe_sync_ = UnsafeSync{.number = block_number};
+      } else if (*unsafe_sync_->number <= block_tree_->bestBlock().number) {
+        unsafe_sync_.reset();
+        current_state_ = SyncState::CATCHING_UP;
+        return false;
+      }
+      if (unsafe_sync_busy_) {
+        return true;
+      }
+      unsafe_sync_busy_ = true;
+      auto busy = toSptr(libp2p::common::MovableFinalAction{[WEAK_SELF] {
+        WEAK_LOCK(self);
+        self->unsafe_sync_busy_ = false;
+      }});
+      using S = network::Synchronizer;
+      synchronizer_->unsafe(
+          peer_id,
+          *unsafe_sync_->number,
+          [WEAK_SELF, peer_id, block_number, busy{std::move(busy)}](
+              S::UnsafeRes res) mutable {
+            WEAK_LOCK(self);
+            busy.reset();
+            if (auto *ok = std::get_if<S::UnsafeOk>(&res)) {
+              auto set = consensus::grandpa::guessSetId(ok->second);
+              if (not set.has_value()) {
+                return;
+              }
+              self->warp_sync_->unsafe(ok->first, ok->second, set.value());
+              self->unsafe_sync_.reset();
+              self->current_state_ = SyncState::HEADERS_LOADED;
+              self->startStateSyncing(peer_id);
+              return;
+            }
+            self->unsafe_sync_->number = std::get<BlockNumber>(res);
+            self->warpSync(peer_id, block_number);
+          });
+      return true;
+    }
     if (current_state_ != SyncState::HEADERS_LOADING) {
       return false;
     }

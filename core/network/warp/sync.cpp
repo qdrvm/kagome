@@ -21,7 +21,7 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome::network {
-
+  using consensus::grandpa::HasAuthoritySetChange;
   using consensus::grandpa::IsBlockFinalized;
 
   WarpSync::WarpSync(
@@ -117,6 +117,22 @@ namespace kagome::network {
     if (not res.is_finished) {
       done_ = false;
     }
+  }
+
+  void WarpSync::unsafe(const BlockHeader &header,
+                        const GrandpaJustification &j,
+                        consensus::grandpa::AuthoritySetId set) {
+    HasAuthoritySetChange{header}.scheduled.value();
+    SL_INFO(
+        log_, "unsafe sync completed, block {}, set {}", header.number, set);
+    Op op{
+        .block_info = header.blockInfo(),
+        .header = header,
+        .justification = j,
+        .authorities = {.id = set, .authorities = {}},
+    };
+    db_->put(storage::kWarpSyncOp, scale::encode(op).value()).value();
+    applyInner(op);
   }
 
   void WarpSync::applyInner(const Op &op) {

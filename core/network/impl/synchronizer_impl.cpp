@@ -82,6 +82,7 @@ namespace {
       case SM::Fast:
       case SM::FastWithoutState:
       case SM::Warp:
+      case SM::Unsafe:
         return kagome::network::BlockAttribute::HEADER
              | kagome::network::BlockAttribute::JUSTIFICATION;
       case SM::Auto:
@@ -1620,6 +1621,60 @@ namespace kagome::network {
     router_->getWarpProtocol()->random(finalized.hash, cb);
   }
 
+  void SynchronizerImpl::unsafe(PeerId peer_id, BlockNumber max, UnsafeCb cb) {
+    BlocksRequest request{
+        .fields = BlockAttribute::HEADER | BlockAttribute::JUSTIFICATION,
+        .from = max,
+        .direction = Direction::DESCENDING,
+        .max = std::nullopt,
+        .multiple_justifications = false,
+    };
+    auto cb2 = [WEAK_SELF, max, cb{std::move(cb)}](
+                   outcome::result<BlocksResponse> res) mutable {
+      WEAK_LOCK(self);
+      if (not res) {
+        return;
+      }
+      auto &blocks = res.value().blocks;
+      if (blocks.empty()) {
+        return;
+      }
+      auto next = max;
+      for (auto &block : blocks) {
+        if (not block.header) {
+          break;
+        }
+        if (block.header->number != next) {
+          break;
+        }
+        if (block.header->number == 0) {
+          break;
+        }
+        --next;
+        consensus::grandpa::HasAuthoritySetChange digest{*block.header};
+        if (digest.scheduled && block.justification) {
+          primitives::calculateBlockHash(*block.header, *self->hasher_);
+          auto justification_res =
+              scale::decode<GrandpaJustification>(block.justification->data);
+          if (not justification_res) {
+            break;
+          }
+          auto &justification = justification_res.value();
+          if (justification.block_info != block.header->blockInfo()) {
+            break;
+          }
+          cb(std::make_pair(*block.header, justification));
+          return;
+        }
+      }
+      if (next == max) {
+        return;
+      }
+      cb(next);
+    };
+    fetch(peer_id, std::move(request), "unsafe", std::move(cb2));
+  }
+  
   void SynchronizerImpl::setHangTimer() {
     hang_timer_ = scheduler_->scheduleWithHandle(
         [WEAK_SELF] {
