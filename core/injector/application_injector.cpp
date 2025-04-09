@@ -589,6 +589,17 @@ namespace {
         primitives::GenesisBlockHeader{*header_opt, hash});
   }
 
+  template <typename Injector>
+  sptr<api::StateApiImpl> get_state_api(const Injector &injector) {
+    return std::make_shared<api::StateApiImpl>(
+        injector.template create<sptr<const storage::trie::TrieStorage>>(),
+        injector.template create<sptr<blockchain::BlockTree>>(),
+        injector.template create<sptr<runtime::Core>>(),
+        injector.template create<sptr<runtime::Metadata>>(),
+        injector.template create<sptr<runtime::Executor>>(),
+        injector.template create<LazySPtr<api::ApiService>>());
+  }
+
   template <typename... Ts>
   auto makeApplicationInjector(sptr<application::AppConfiguration> config,
                                Ts &&...args) {
@@ -710,7 +721,9 @@ namespace {
             di::bind<network::Roles>.to(config->roles()),
             di::bind<api::ChainApi>.template to<api::ChainApiImpl>(),
             di::bind<api::ChildStateApi>.template to<api::ChildStateApiImpl>(),
-            di::bind<api::StateApi>.template to<api::StateApiImpl>(),
+            bind_by_lambda<api::StateApi>([](const auto &injector) {
+              return get_state_api(injector);
+            }),
             di::bind<api::SystemApi>.template to<api::SystemApiImpl>(),
             di::bind<api::RpcApi>.template to<api::RpcApiImpl>(),
             di::bind<api::PaymentApi>.template to<api::PaymentApiImpl>(),
