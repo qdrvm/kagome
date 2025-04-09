@@ -93,19 +93,56 @@ namespace kagome::network {
     static void wrap(const std::shared_ptr<T> &self,
                      auto &cb,
                      std::weak_ptr<Stream> weak_stream) {
+      // Capture peer ID immediately while the stream is guaranteed to be valid
+      std::optional<libp2p::peer::PeerId> peer_id;
+      if (auto stream = weak_stream.lock()) {
+        auto peer_id_res = stream->remotePeerId();
+        if (peer_id_res.has_value()) {
+          peer_id = peer_id_res.value();
+        }
+      }
+
       auto timer = self->scheduler_->scheduleWithHandle(
           [weak_self{std::weak_ptr{self}},
-           weak_stream{std::move(weak_stream)}] {
+           weak_stream{std::move(weak_stream)},
+           peer_id{std::move(peer_id)}] {
             IF_WEAK_LOCK(stream) {
               stream->reset();
               IF_WEAK_LOCK(self) {
                 self->metrics_.timeout_->inc();
-                SL_WARN(
-                    self->base_.logger(),
-                    "Request timeout for {} protocol with peer {} after {}ms",
-                    self->protocolName(),
-                    stream->remotePeerId().value(),
-                    self->timeout_.count());
+                if (peer_id) {
+                  SL_WARN(
+                      self->base_.logger(),
+                      "Request timeout for {} protocol with peer {} after {}ms",
+                      self->protocolName(),
+                      peer_id.value(),
+                      self->timeout_.count());
+                } else {
+                  SL_WARN(self->base_.logger(),
+                          "Request timeout for {} protocol with unknown peer "
+                          "after {}ms",
+                          self->protocolName(),
+                          self->timeout_.count());
+                }
+              }
+            }
+            else {
+              IF_WEAK_LOCK(self) {
+                self->metrics_.timeout_->inc();
+                if (peer_id) {
+                  SL_WARN(self->base_.logger(),
+                          "Request timeout for {} protocol with peer {} after "
+                          "{}ms (stream already closed)",
+                          self->protocolName(),
+                          peer_id.value(),
+                          self->timeout_.count());
+                } else {
+                  SL_WARN(self->base_.logger(),
+                          "Request timeout for {} protocol with unknown peer "
+                          "after {}ms (stream already closed)",
+                          self->protocolName(),
+                          self->timeout_.count());
+                }
               }
             }
           },
