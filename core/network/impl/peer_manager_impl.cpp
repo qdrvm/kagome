@@ -540,6 +540,10 @@ namespace kagome::network {
   void PeerManagerImpl::enumeratePeerState(const PeersCallback &callback) {
     std::unique_lock lock{mutex_};
     for (auto &[peer, state] : peer_states_) {
+      // TODO(turuslan): don't add self to peer_states_
+      if (peer == host_.getId()) {
+        continue;
+      }
       if (!callback(peer, state)) {
         break;
       }

@@ -74,8 +74,6 @@ namespace kagome::storage::trie_pruner {
 }
 
 namespace kagome::network {
-  using primitives::BlockInfo;
-
   class SynchronizerImpl
       : public Synchronizer,
         public std::enable_shared_from_this<SynchronizerImpl> {
@@ -142,18 +140,15 @@ namespace kagome::network {
     /// {@param handler} will be called when this process is finished or failed
     /// @returns true if sync is ran (peer is not busy)
     /// @note Is used for start/continue catching up.
-    bool syncByBlockInfo(const primitives::BlockInfo &block_info,
-                         const libp2p::peer::PeerId &peer_id,
-                         SyncResultHandler &&handler,
-                         bool subscribe_to_block) override;
+    void onBlockAnnounceHandshake(const BlockInfo &block_info,
+                                  const PeerId &peer_id) override;
 
     /// Enqueues loading and applying block {@param block_info} from peer
     /// {@param peer_id}.
     /// @returns true if sync is ran (peer is not busy)
     /// If provided block is the best after applying, {@param handler} be called
-    bool syncByBlockHeader(const primitives::BlockHeader &header,
-                           const libp2p::peer::PeerId &peer_id,
-                           SyncResultHandler &&handler) override;
+    void onBlockAnnounce(const BlockHeader &header,
+                         const PeerId &peer_id) override;
 
     bool fetchJustification(const primitives::BlockInfo &block,
                             CbResultVoid cb) override;
@@ -169,66 +164,23 @@ namespace kagome::network {
     /// Enqueues loading and applying state on block {@param block}
     /// from peer {@param peer_id}.
     /// If finished, {@param handler} be called
-    void syncState(const libp2p::peer::PeerId &peer_id,
-                   const primitives::BlockInfo &block,
-                   SyncResultHandler &&handler) override;
-
+    void syncState(const BlockInfo &block, SyncStateCb handler) override;
+    void fetchGrandpaFork(const PeerId &peer_id,
+                          const primitives::BlockInfo &vote) override;
     void unsafe(PeerId peer_id, BlockNumber max, UnsafeCb cb) override;
-
-    /// Finds best common block with peer {@param peer_id} in provided interval.
-    /// It is using tail-recursive algorithm, till {@param hint} is
-    /// the needed block
-    /// @param lower is number of definitely known common block (i.e. last
-    /// finalized).
-    /// @param upper is number of definitely unknown block.
-    /// @param hint is examining block for current call
-    /// @param handler callback what is called at the end of process
-    void findCommonBlock(const libp2p::peer::PeerId &peer_id,
-                         primitives::BlockNumber lower,
-                         primitives::BlockNumber upper,
-                         primitives::BlockNumber hint,
-                         SyncResultHandler &&handler,
-                         std::map<primitives::BlockNumber,
-                                  primitives::BlockHash> &&observed = {});
 
     /// Loads blocks from peer {@param peer_id} since block {@param from} till
     /// its best. Calls {@param handler} when process is finished or failed
-    void loadBlocks(const libp2p::peer::PeerId &peer_id,
-                    primitives::BlockInfo from,
-                    SyncResultHandler &&handler);
+    void loadBlocks(const PeerId &peer_id,
+                    const BlocksRequest &request,
+                    size_t &fetching,
+                    const char *reason);
 
    private:
-    void postApplyBlock();
-    void processBlockAdditionResult(outcome::result<void> block_addition_result,
-                                    const primitives::BlockHash &hash,
-                                    SyncResultHandler &&handler);
-    /// Subscribes handler for block with provided {@param block_info}
-    /// {@param handler} will be called When block is received or discarded
-    /// @returns true if subscription is successful
-    bool subscribeToBlock(const primitives::BlockInfo &block_info,
-                          SyncResultHandler &&handler);
-
-    /// Notifies subscribers about arrived block
-    void notifySubscribers(const primitives::BlockInfo &block_info,
-                           outcome::result<void> res);
-
-    /// Tries to request another portion of block
-    void askNextPortionOfBlocks();
-
-    void post_block_addition(outcome::result<void> block_addition_result,
-                             Synchronizer::SyncResultHandler &&handler,
-                             const primitives::BlockHash &hash);
+    void updateRoots();
 
     /// Pops next block from queue and tries to apply that
     void applyNextBlock();
-
-    /// Removes block {@param block} and all all dependent on it from the queue
-    /// @returns number of affected blocks
-    size_t discardBlock(const primitives::BlockHash &block);
-
-    /// Removes blocks what will never be applied because they are contained in
-    /// side-branch for provided finalized block {@param finalized_block}
-    void prune(const primitives::BlockInfo &finalized_block);
 
     /// Purges internal cache of recent requests for specified {@param peer_id}
     /// and {@param fingerprint} after kRecentnessDuration timeout
@@ -254,6 +206,16 @@ namespace kagome::network {
 
     void setHangTimer();
     void onHangTimer();
+
+    bool addHeader(const PeerId &peer_id, primitives::BlockData &&data);
+    void fetchTasks();
+    void visitAncestry(const BlockInfo &root, const auto &f);
+    bool canFetchMore(size_t &fetching) const;
+    bool validate(const BlocksRequest &request, BlocksResponse &response);
+    size_t maxAllowedBlock() const;
+    bool isBlockAllowed(const BlockHeader &header) const;
+    void removeBlock(const BlockInfo &block);
+    void removeBlockRecursive(const BlockInfo &block);
 
     log::Logger log_;
 
@@ -286,7 +248,7 @@ namespace kagome::network {
 
     struct StateSync {
       libp2p::peer::PeerId peer;
-      SyncResultHandler cb;
+      SyncStateCb cb;
     };
 
     mutable std::mutex state_sync_mutex_;
@@ -295,45 +257,35 @@ namespace kagome::network {
 
     bool node_is_shutting_down_ = false;
 
+    using Ancestry = std::unordered_multimap<BlockInfo, BlockInfo>;
     struct KnownBlock {
       /// Data of block
       primitives::BlockData data;
       /// Peers who know this block
       std::set<libp2p::peer::PeerId> peers;
+      Ancestry::iterator ancestry_it;
     };
 
     // Already known (enqueued) but is not applied yet
     std::unordered_map<primitives::BlockHash, KnownBlock> known_blocks_;
-
-    // Blocks grouped by number
-    std::set<primitives::BlockInfo> generations_;
+    std::set<BlockInfo> attached_roots_;
+    std::set<BlockInfo> detached_roots_;
 
     // Links parent->child
-    std::unordered_multimap<primitives::BlockHash, primitives::BlockHash>
-        ancestry_;
+    Ancestry ancestry_;
 
-    // BlockNumber of blocks (aka height) that is potentially best now
-    primitives::BlockNumber watched_blocks_number_{};
-
-    // Handlers what will be called when block is apply
-    std::unordered_multimap<primitives::BlockHash, SyncResultHandler>
-        watched_blocks_;
-
-    std::multimap<primitives::BlockInfo, SyncResultHandler> subscriptions_;
-
-    std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
-    std::unordered_map<primitives::BlockInfo, uint32_t> load_blocks_;
-    std::shared_mutex load_blocks_mutex_;
-    std::pair<primitives::BlockNumber, std::chrono::milliseconds>
-        load_blocks_max_{};
 
     std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,
              const char *>
         recent_requests_;
-    SafeObject<std::set<BlockInfo>> executing_blocks_;
+    std::set<BlockInfo> executing_blocks_;
 
     libp2p::Cancel hang_timer_;
+
+    size_t fetching_range_ = 0;
+    size_t fetching_gap_ = 0;
+    size_t fetching_body_ = 0;
   };
 
 }  // namespace kagome::network

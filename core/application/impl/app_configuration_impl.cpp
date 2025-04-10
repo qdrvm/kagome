@@ -176,12 +176,12 @@ namespace {
 
   static constexpr std::array<std::string_view,
                               1 + KAGOME_WASM_COMPILER_WASM_EDGE>
-      interpreters {
+      interpreters{
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-    "WasmEdge",
+          "WasmEdge",
 #endif
-        "Binaryen"
-  };
+          "Binaryen",
+      };
 
   static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));
@@ -1604,13 +1604,15 @@ namespace kagome::application {
     }
 
     max_parallel_downloads_ =
-        find_argument<uint32_t>(vm, "max-parallel-downloads")
-            .value_or(def_max_parallel_downloads);
+        std::max<uint32_t>(1,
+                           find_argument<uint32_t>(vm, "max-parallel-downloads")
+                               .value_or(def_max_parallel_downloads));
 
     unsafe_sync_to_ = find_argument<BlockNumber>(vm, "unsafe-sync-to");
     if (unsafe_sync_to_) {
       sync_method_ = SyncMethod::Unsafe;
     }
+
     // if something wrong with config print help message
     if (not validate_config()) {
       std::cout << desc << '\n';

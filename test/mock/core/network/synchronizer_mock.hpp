@@ -16,31 +16,15 @@ namespace kagome::network {
 
   class SynchronizerMock : public Synchronizer {
    public:
-    MOCK_METHOD(bool,
-                syncByBlockInfo,
-                (const primitives::BlockInfo &,
-                 const libp2p::peer::PeerId &,
-                 const SyncResultHandler &,
-                 bool),
-                ());
-    bool syncByBlockInfo(const primitives::BlockInfo &block_info,
-                         const libp2p::peer::PeerId &peer_id,
-                         SyncResultHandler &&handler,
-                         bool subscribe_to_block) override {
-      return syncByBlockInfo(block_info, peer_id, handler, subscribe_to_block);
-    }
+    MOCK_METHOD(void,
+                onBlockAnnounceHandshake,
+                (const BlockInfo &, const PeerId &),
+                (override));
 
-    MOCK_METHOD(bool,
-                syncByBlockHeader,
-                (const primitives::BlockHeader &,
-                 const libp2p::peer::PeerId &,
-                 const SyncResultHandler &),
-                ());
-    bool syncByBlockHeader(const primitives::BlockHeader &block_header,
-                           const libp2p::peer::PeerId &peer_id,
-                           SyncResultHandler &&handler) override {
-      return syncByBlockHeader(block_header, peer_id, handler);
-    }
+    MOCK_METHOD(void,
+                onBlockAnnounce,
+                (const BlockHeader &, const PeerId &),
+                (override));
 
     MOCK_METHOD(bool,
                 fetchJustification,
@@ -54,9 +38,7 @@ namespace kagome::network {
 
     MOCK_METHOD(void,
                 syncState,
-                (const libp2p::peer::PeerId &,
-                 const primitives::BlockInfo &,
-                 const SyncResultHandler &),
+                (const primitives::BlockInfo &, SyncStateCb),
                 ());
 
     MOCK_METHOD(bool,
@@ -67,11 +49,10 @@ namespace kagome::network {
                  CbResultVoid),
                 (override));
 
-    void syncState(const libp2p::peer::PeerId &peer_id,
-                   const primitives::BlockInfo &block_info,
-                   SyncResultHandler &&handler) override {
-      return syncState(peer_id, block_info, handler);
-    }
+    MOCK_METHOD(void,
+                fetchGrandpaFork,
+                (const PeerId &, const primitives::BlockInfo &),
+                (override));
 
     MOCK_METHOD(void, unsafe, (PeerId, BlockNumber, UnsafeCb), (override));
   };

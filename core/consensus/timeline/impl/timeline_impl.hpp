@@ -134,7 +134,7 @@ namespace kagome::consensus {
 
     void onCaughtUp(const primitives::BlockInfo &block);
 
-    void startStateSyncing(const libp2p::peer::PeerId &peer_id);
+    void startStateSyncing();
 
     void onSynchronized();
 
@@ -165,6 +165,7 @@ namespace kagome::consensus {
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     primitives::events::ChainSub chain_sub_;
+    primitives::events::ChainSub on_head_;
     primitives::events::SyncStateSubscriptionEnginePtr state_sub_engine_;
     std::shared_ptr<runtime::Core> core_api_;
 
@@ -200,6 +201,8 @@ namespace kagome::consensus {
     bool unsafe_sync_busy_ = false;
 
     telemetry::Telemetry telemetry_;
+
+    BlockNumber best_announce_ = 0;
   };
 
 }  // namespace kagome::consensus
