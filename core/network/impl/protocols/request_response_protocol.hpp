@@ -8,6 +8,7 @@
 
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/shared_fn.hpp>
+#include <qtils/option_take.hpp>
 
 #include "common/main_thread_pool.hpp"
 #include "metrics/metrics.hpp"
@@ -102,10 +103,13 @@ namespace kagome::network {
         }
       }
 
+      auto cb_shared =
+          std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
       auto timer = self->scheduler_->scheduleWithHandle(
           [weak_self{std::weak_ptr{self}},
            weak_stream{std::move(weak_stream)},
-           peer_id{std::move(peer_id)}] {
+           peer_id{std::move(peer_id)},
+           cb_shared] {
             IF_WEAK_LOCK(stream) {
               stream->reset();
               IF_WEAK_LOCK(self) {
@@ -123,6 +127,9 @@ namespace kagome::network {
                           "after {}ms",
                           self->protocolName(),
                           self->timeout_.count());
+                }
+                if (auto cb = qtils::optionTake(*cb_shared)) {
+                  (*cb)(outcome::failure(ProtocolError::TIMEOUT));
                 }
               }
             }
@@ -143,20 +150,26 @@ namespace kagome::network {
                           self->protocolName(),
                           self->timeout_.count());
                 }
+                if (auto cb = qtils::optionTake(*cb_shared)) {
+                  (*cb)(outcome::failure(ProtocolError::TIMEOUT));
+                }
               }
             }
           },
           self->timeout_);
+
       cb = libp2p::SharedFn{[weak_self{std::weak_ptr{self}},
-                             cb{std::move(cb)},
+                             cb_shared,
                              lost{RequestResponseMetrics::Lost{self->metrics_}},
-                             timer{std::move(timer)}](auto r) mutable {
+                             timer{std::move(timer)}](auto &&r) mutable {
         lost.notLost();
         timer.reset();
         IF_WEAK_LOCK(self) {
           (r ? self->metrics_.success_ : self->metrics_.failure_)->inc();
         }
-        cb(std::move(r));
+        if (auto cb = qtils::optionTake(*cb_shared)) {
+          (*cb)(std::move(r));
+        }
       }};
     }
   };
