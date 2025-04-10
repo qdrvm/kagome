@@ -172,7 +172,7 @@ namespace kagome::network {
     /// Loads blocks from peer {@param peer_id} since block {@param from} till
     /// its best. Calls {@param handler} when process is finished or failed
     void loadBlocks(const PeerId &peer_id,
-                    const BlocksRequest &request,
+                    BlocksRequest request,
                     size_t &fetching,
                     const char *reason);
 

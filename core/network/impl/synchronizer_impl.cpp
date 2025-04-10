@@ -78,7 +78,7 @@ namespace {
 }  // namespace
 
 namespace kagome::network {
-  enum class VisitAncestryResult {
+  enum class VisitAncestryResult : uint8_t {
     CONTINUE,
     STOP,
     IGNORE_SUBTREE,
@@ -187,7 +187,7 @@ namespace kagome::network {
   }
 
   void SynchronizerImpl::loadBlocks(const PeerId &peer_id,
-                                    const BlocksRequest &request,
+                                    BlocksRequest request,
                                     size_t &fetching,
                                     const char *reason) {
     ++fetching;
@@ -671,7 +671,7 @@ namespace kagome::network {
         .direction = Direction::DESCENDING,
     };
     static size_t fetching = 0;
-    loadBlocks(peer_id, request, fetching, "grandpa-fork");
+    loadBlocks(peer_id, std::move(request), fetching, "grandpa-fork");
   }
 
   void SynchronizerImpl::randomWarp() {
@@ -856,7 +856,8 @@ namespace kagome::network {
                     choose_peer(block_info, request.fingerprint())) {
               SL_VERBOSE(
                   log_, "fetch body {} from {}", block_info, *chosen_peer);
-              loadBlocks(*chosen_peer, request, fetching_body_, "body");
+              loadBlocks(
+                  *chosen_peer, std::move(request), fetching_body_, "body");
               return VisitAncestryResult::IGNORE_SUBTREE;
             }
           }
@@ -875,7 +876,7 @@ namespace kagome::network {
       };
       if (auto chosen_peer = choose_peer(root, request.fingerprint())) {
         SL_VERBOSE(log_, "fetch gap {} from {}", root, *chosen_peer);
-        loadBlocks(*chosen_peer, request, fetching_gap_, "gap");
+        loadBlocks(*chosen_peer, std::move(request), fetching_gap_, "gap");
       }
     }
     if (canFetchMore(fetching_range_)) {
