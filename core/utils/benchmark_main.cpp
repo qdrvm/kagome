@@ -4,11 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <libp2p/common/final_action.hpp>
 #include "application/impl/app_configuration_impl.hpp"
 #include "benchmark/block_execution_benchmark.hpp"
 #include "common/visitor.hpp"
 #include "injector/application_injector.hpp"
 #include "runtime/runtime_api/impl/core.hpp"
+#include "utils/watchdog.hpp"
 
 namespace kagome {
 
@@ -30,6 +32,10 @@ namespace kagome {
     kagome::log::tuneLoggingSystem(app_config->log());
 
     injector::KagomeNodeInjector injector{app_config};
+
+    auto watchdog = injector.injectWatchdog();
+
+    libp2p::common::FinalAction stop_watchdog{[watchdog] { watchdog->stop(); }};
 
     auto config_opt = app_config->getBenchmarkConfig();
     if (!config_opt) {

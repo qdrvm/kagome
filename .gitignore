@@ -35,3 +35,6 @@ examples/**/db
 /examples/rococo/syncing/
 
 CMakeUserPresets.json
+
+# perf reports
+perf.data*

@@ -421,6 +421,7 @@ namespace kagome::runtime::wasm_edge {
         compiler.raw(), code.data(), code.size(), tmp.path().c_str()));
     OUTCOME_TRY(tmp.rename());
     SL_INFO(log_, "Compilation finished, saved at {}", path_compiled);
+
     return outcome::success();
   }
 

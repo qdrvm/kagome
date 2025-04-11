@@ -174,6 +174,12 @@ namespace kagome::host_api {
     outcome::result<std::optional<common::Buffer>> getStorageNextKey(
         const common::Buffer &key) const;
 
+    mutable struct Stats {
+      std::chrono::nanoseconds time_reading;
+      std::chrono::nanoseconds time_writing;
+      std::chrono::nanoseconds time_committing;
+    } stats{};  // stats are reset with every tree commit
+
     std::shared_ptr<runtime::TrieStorageProvider> storage_provider_;
     std::shared_ptr<const runtime::MemoryProvider> memory_provider_;
     std::shared_ptr<const crypto::Hasher> hasher_;

@@ -20,7 +20,7 @@ namespace kagome {
   pretty_duration(std::chrono::duration<Rep, Period>)
       -> pretty_duration<Rep, Period>;
 
-  const char *suffix(unsigned denominator) {
+  inline const char *suffix(unsigned denominator) {
     switch (denominator) {
       case 1:
         return "s";
