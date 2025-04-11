@@ -210,8 +210,6 @@ include_directories($<INSTALL_INTERFACE:${CMAKE_INSTALL_FULL_INCLUDEDIR}/kagome>
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/third_party> # for generated file
 )
 
-# add_compile_definitions(BOOST_ASIO_ENABLE_HANDLER_TRACKING)
-
 add_subdirectory(core)
 add_subdirectory(third_party)
 

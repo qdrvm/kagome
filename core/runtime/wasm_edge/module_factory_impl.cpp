@@ -407,17 +407,6 @@ namespace kagome::runtime::wasm_edge {
       return outcome::success();
     }
 
-    static std::unordered_set<std::string> compiled_modules;
-    static std::mutex compiled_modules_mtx;
-
-    {
-      std::scoped_lock l{compiled_modules_mtx};
-      if (compiled_modules.contains(path_compiled.string())) {
-        std::abort();
-      }
-      compiled_modules.insert(path_compiled.string());
-    }
-
     OUTCOME_TRY(configure_ctx, configureCtx(config));
     auto configure_ctx_raw = configure_ctx.raw();
     WasmEdge_ConfigureCompilerSetOptimizationLevel(
@@ -432,14 +421,6 @@ namespace kagome::runtime::wasm_edge {
         compiler.raw(), code.data(), code.size(), tmp.path().c_str()));
     OUTCOME_TRY(tmp.rename());
     SL_INFO(log_, "Compilation finished, saved at {}", path_compiled);
-
-    {
-      std::scoped_lock l{compiled_modules_mtx};
-      if (!compiled_modules.contains(path_compiled.string())) {
-        std::abort();
-      }
-      compiled_modules.erase(path_compiled.string());
-    }
 
     return outcome::success();
   }
