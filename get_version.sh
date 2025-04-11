@@ -27,27 +27,26 @@ fi
 if [ -x "$(which git 2>/dev/null)" ] && [ -e ".git" ]; then
   if [ -x "$(which sed 2>/dev/null)" ]; then
     HEAD=$(git rev-parse --short HEAD)
-    COMMON=$(git merge-base HEAD master)
-
-    DESCR=$(git describe --tags --long "${COMMON}")
+    
+    # Use git describe to get the most recent tag reachable from HEAD
+    DESCR=$(git describe --tags --long)
     if [ "$DESCR" = "" ]; then
       DESCR=$HEAD-0-g$HEAD
     fi
 
-    TAG_IN_MASTER=$(echo "$DESCR" | sed -E "s/v?(.*)-([0-9]+)-g[a-f0-9]+/\1/")
-    TAG_TO_FORK_DISTANCE=$(echo "$DESCR" | sed -E "s/v?(.*)-([0-9]+)-g[a-f0-9]+/\2/")
+    TAG=$(echo "$DESCR" | sed -E "s/v?(.*)-([0-9]+)-g[a-f0-9]+/\1/")
+    COMMITS_SINCE_TAG=$(echo "$DESCR" | sed -E "s/v?(.*)-([0-9]+)-g[a-f0-9]+/\2/")
 
     BRANCH=$(git branch --show-current)
     if [ "$BRANCH" = "" ]; then
       BRANCH=$HEAD
     fi
-    FORK_TO_HEAD_DISTANCE=$(git rev-list --count "${COMMON}..HEAD")
 
-    RESULT=$TAG_IN_MASTER
-    if [ "$TAG_TO_FORK_DISTANCE" != "0" ]; then
-      RESULT=$RESULT-$TAG_TO_FORK_DISTANCE
+    RESULT=$TAG
+    if [ "$COMMITS_SINCE_TAG" != "0" ]; then
+      RESULT=$RESULT-$COMMITS_SINCE_TAG
       if [ "$BRANCH" != "master" ]; then
-        RESULT=$RESULT-$BRANCH-$FORK_TO_HEAD_DISTANCE-$HEAD
+        RESULT=$RESULT-$BRANCH-$COMMITS_SINCE_TAG-$HEAD
       fi
     fi
   else
