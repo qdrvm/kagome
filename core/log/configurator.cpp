@@ -32,6 +32,7 @@ groups:
       - name: kagome
         children:
           - name: profile
+          - name: benchmark
           - name: injector
           - name: application
           - name: rpc

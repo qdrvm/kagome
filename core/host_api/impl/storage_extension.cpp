@@ -10,6 +10,7 @@
 #include <thread>
 
 #include <fmt/std.h>
+#include <libp2p/common/final_action.hpp>
 
 #include "clock/impl/clock_impl.hpp"
 #include "common/monadic_utils.hpp"
@@ -28,8 +29,17 @@
 #include "storage/predefined_keys.hpp"
 #include "storage/trie/impl/topper_trie_batch_impl.hpp"
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
+#include "utils/pretty_duration.hpp"
 
 using kagome::common::Buffer;
+
+#define KAGOME_STORAGE_EXTENSION_STATS(action)                       \
+  auto start = std::chrono::steady_clock::now();                     \
+  auto timestamp = __rdtsc();                                        \
+  libp2p::common::FinalAction stats_end{[this, start, timestamp] {   \
+    stats.time_##action += std::chrono::steady_clock::now() - start; \
+    stats.cycles_##action += __rdtsc() - timestamp;                  \
+  }};
 
 namespace kagome::host_api {
   StorageExtension::StorageExtension(
@@ -66,6 +76,7 @@ namespace kagome::host_api {
       runtime::WasmSpan key_pos,
       runtime::WasmSpan value_out,
       runtime::WasmOffset offset) {
+    KAGOME_STORAGE_EXTENSION_STATS(reading);
     auto [key_ptr, key_size] = runtime::PtrSize(key_pos);
     auto value = runtime::PtrSize(value_out);
     auto &memory = memory_provider_->getCurrentMemory()->get();
@@ -117,6 +128,7 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_set_version_1(
       runtime::WasmSpan key_span, runtime::WasmSpan value_span) {
+    KAGOME_STORAGE_EXTENSION_STATS(writing);
     auto [key_ptr, key_size] = runtime::PtrSize(key_span);
     auto [value_ptr, value_size] = runtime::PtrSize(value_span);
     auto &memory = memory_provider_->getCurrentMemory()->get();
@@ -136,6 +148,7 @@ namespace kagome::host_api {
 
   runtime::WasmSpan StorageExtension::ext_storage_get_version_1(
       runtime::WasmSpan key) {
+    KAGOME_STORAGE_EXTENSION_STATS(reading);
     auto [key_ptr, key_size] = runtime::PtrSize(key);
     auto &memory = memory_provider_->getCurrentMemory()->get();
     auto key_buffer = memory.loadN(key_ptr, key_size);
@@ -163,6 +176,8 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_clear_version_1(
       runtime::WasmSpan key_data) {
+    KAGOME_STORAGE_EXTENSION_STATS(writing);
+
     auto [key_ptr, key_size] = runtime::PtrSize(key_data);
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory()->get();
@@ -180,6 +195,8 @@ namespace kagome::host_api {
 
   runtime::WasmSize StorageExtension::ext_storage_exists_version_1(
       runtime::WasmSpan key_data) const {
+    KAGOME_STORAGE_EXTENSION_STATS(reading);
+
     auto [key_ptr, key_size] = runtime::PtrSize(key_data);
     auto batch = storage_provider_->getCurrentBatch();
     auto &memory = memory_provider_->getCurrentMemory()->get();
@@ -189,21 +206,40 @@ namespace kagome::host_api {
   }
 
   void StorageExtension::ext_storage_clear_prefix_version_1(BufferView prefix) {
+    KAGOME_STORAGE_EXTENSION_STATS(writing);
+
     storage_provider_->clearPrefix(std::nullopt, prefix, std::nullopt);
   }
 
   KillStorageResult StorageExtension::ext_storage_clear_prefix_version_2(
       BufferView prefix, ClearPrefixLimit limit) {
+    KAGOME_STORAGE_EXTENSION_STATS(writing);
     return storage_provider_->clearPrefix(std::nullopt, prefix, limit);
   }
 
   Hash256 StorageExtension::ext_storage_root_version_1() {
+    KAGOME_STORAGE_EXTENSION_STATS(committing);
     return ext_storage_root_version_2(storage::trie::StateVersion::V0);
   }
 
   Hash256 StorageExtension::ext_storage_root_version_2(
       storage::trie::StateVersion version) {
-    return storage_provider_->commit(std::nullopt, version).value();
+    Hash256 res;
+    {
+      KAGOME_STORAGE_EXTENSION_STATS(committing);
+      res = storage_provider_->commit(std::nullopt, version).value();
+    }
+    SL_DEBUG(logger_,
+             "Storage extension stats: read time: {}, read cycles: {}, write "
+             "time: {}, write cycles: {}, commit time: {}, commit cycles: {}",
+             pretty_duration(stats.time_reading),
+             stats.cycles_reading,
+             pretty_duration(stats.time_writing),
+             stats.cycles_writing,
+             pretty_duration(stats.time_committing),
+             stats.cycles_committing);
+    stats = {};
+    return res;
   }
 
   runtime::WasmSpan StorageExtension::ext_storage_changes_root_version_1(
@@ -215,6 +251,8 @@ namespace kagome::host_api {
 
   runtime::WasmSpan StorageExtension::ext_storage_next_key_version_1(
       runtime::WasmSpan key_span) const {
+    KAGOME_STORAGE_EXTENSION_STATS(reading);
+
     static constexpr runtime::WasmSpan kErrorSpan = -1;
 
     auto [key_ptr, key_size] = runtime::PtrSize(key_span);
@@ -244,6 +282,8 @@ namespace kagome::host_api {
 
   void StorageExtension::ext_storage_append_version_1(
       runtime::WasmSpan key_span, runtime::WasmSpan append_span) const {
+    KAGOME_STORAGE_EXTENSION_STATS(writing);
+
     auto [key_ptr, key_size] = runtime::PtrSize(key_span);
     auto [append_ptr, append_size] = runtime::PtrSize(append_span);
     auto &memory = memory_provider_->getCurrentMemory()->get();
