@@ -16,6 +16,7 @@
 #include <boost/variant.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
+#include "authority_discovery/query/query.hpp"
 #include "blockchain/block_tree.hpp"
 #include "consensus/babe/types/babe_block_header.hpp"
 #include "consensus/timeline/slots_util.hpp"
@@ -260,8 +261,9 @@ namespace kagome::parachain {
       CandidateEntry(const network::CandidateReceipt &receipt,
                      SessionIndex session_index,
                      size_t approvals_size)
-          : CandidateEntry(
-              HashedCandidateReceipt{receipt}, session_index, approvals_size) {}
+          : CandidateEntry(HashedCandidateReceipt{receipt},
+                           session_index,
+                           approvals_size) {}
 
       std::optional<std::reference_wrapper<ApprovalEntry>> approval_entry(
           const network::RelayHash &relay_hash) {
@@ -327,7 +329,8 @@ namespace kagome::parachain {
         std::shared_ptr<parachain::Recovery> recovery,
         ApprovalThreadPool &approval_thread_pool,
         common::MainThreadPool &main_thread_pool,
-        LazySPtr<dispute::DisputeCoordinator> dispute_coordinator);
+        LazySPtr<dispute::DisputeCoordinator> dispute_coordinator,
+        std::shared_ptr<authority_discovery::Query> query_audi);
     ~ApprovalDistribution() = default;
 
     /// AppStateManager impl
@@ -418,14 +421,22 @@ namespace kagome::parachain {
 
     /// Contains topology routing information for assignments and approvals.
     struct ApprovalRouting {
+      /// Required routing according to the protocol
       grid::RequiredRouting required_routing;
+      /// Is the message local/from our node
       bool local;
+      /// Random routing tracker
       grid::RandomRouting random_routing;
-      std::vector<libp2p::peer::PeerId> peers_randomly_routed;
+      /// Peers that are randomly picked for routing
+      std::unordered_set<libp2p::peer::PeerId> peers_randomly_routed;
+      /// Peers in the X dimension (row) of the grid topology
+      std::unordered_set<libp2p::peer::PeerId> grid_peers_x;
+      /// Peers in the Y dimension (column) of the grid topology
+      std::unordered_set<libp2p::peer::PeerId> grid_peers_y;
 
       void mark_randomly_sent(const libp2p::peer::PeerId &peer) {
         random_routing.inc_sent();
-        peers_randomly_routed.emplace_back(peer);
+        peers_randomly_routed.insert(peer);
       }
     };
 
@@ -906,6 +917,7 @@ namespace kagome::parachain {
     std::shared_ptr<parachain::Recovery> recovery_;
     std::shared_ptr<PoolHandler> main_pool_handler_;
     LazySPtr<dispute::DisputeCoordinator> dispute_coordinator_;
+    std::shared_ptr<authority_discovery::Query> query_audi_;
 
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
 
