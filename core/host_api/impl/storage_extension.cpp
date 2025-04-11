@@ -35,7 +35,6 @@ using kagome::common::Buffer;
 
 #define KAGOME_STORAGE_EXTENSION_STATS(action)                       \
   auto start = std::chrono::steady_clock::now();                     \
-  auto timestamp = __rdtsc();                                        \
   libp2p::common::FinalAction stats_end{[this, start, timestamp] {   \
     stats.time_##action += std::chrono::steady_clock::now() - start; \
   }};
