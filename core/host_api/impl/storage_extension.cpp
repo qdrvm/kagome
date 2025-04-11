@@ -38,7 +38,6 @@ using kagome::common::Buffer;
   auto timestamp = __rdtsc();                                        \
   libp2p::common::FinalAction stats_end{[this, start, timestamp] {   \
     stats.time_##action += std::chrono::steady_clock::now() - start; \
-    stats.cycles_##action += __rdtsc() - timestamp;                  \
   }};
 
 namespace kagome::host_api {
@@ -230,14 +229,11 @@ namespace kagome::host_api {
       res = storage_provider_->commit(std::nullopt, version).value();
     }
     SL_DEBUG(logger_,
-             "Storage extension stats: read time: {}, read cycles: {}, write "
-             "time: {}, write cycles: {}, commit time: {}, commit cycles: {}",
+             "Storage extension stats: read time: {}, write time: {}, commit "
+             "time: {}",
              pretty_duration(stats.time_reading),
-             stats.cycles_reading,
              pretty_duration(stats.time_writing),
-             stats.cycles_writing,
-             pretty_duration(stats.time_committing),
-             stats.cycles_committing);
+             pretty_duration(stats.time_committing));
     stats = {};
     return res;
   }
