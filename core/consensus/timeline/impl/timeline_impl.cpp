@@ -78,6 +78,7 @@ namespace kagome::consensus {
         scheduler_(std::move(scheduler)),
         chain_sub_engine_(std::move(chain_sub_engine)),
         chain_sub_{chain_sub_engine_},
+        on_head_{chain_sub_engine_},
         state_sub_engine_(std::move(state_sub_engine)),
         core_api_(std::move(core_api)),
         sync_method_(app_config.syncMethod()),
@@ -265,6 +266,38 @@ namespace kagome::consensus {
       }
     });
 
+    on_head_.onHead([WEAK_SELF](const primitives::BlockHeader &header) {
+      WEAK_LOCK(self);
+      // TODO(turuslan): subscript inside subscription event deadlocks
+      self->scheduler_->schedule([weak_self, header] {
+        WEAK_LOCK(self);
+        if (header.number >= self->best_announce_) {
+          // Headers are loaded; Start sync of state
+          if (self->current_state_ == SyncState::HEADERS_LOADING) {
+            self->current_state_ = SyncState::HEADERS_LOADED;
+            self->state_sub_engine_->notify(
+                primitives::events::SyncStateEventType::kSyncState,
+                self->current_state_);
+            self->startStateSyncing();
+            return;
+          }
+          // Caught up some block, possible block of current slot
+          if (self->current_state_ == SyncState::CATCHING_UP
+              or self->current_state_ == SyncState::WAIT_REMOTE_STATUS) {
+            self->onCaughtUp(header.blockInfo());
+          }
+        }
+        if (self->current_state_ == SyncState::SYNCHRONIZED) {
+          self->block_announce_transmitter_->blockAnnounce({
+              .header = header,
+              .state = header.blockInfo() == self->block_tree_->bestBlock()
+                         ? network::BlockState::Best
+                         : network::BlockState::Normal,
+          });
+        }
+      });
+    });
+
     return true;
   }
 
@@ -329,9 +362,11 @@ namespace kagome::consensus {
   void TimelineImpl::onBlockAnnounceHandshake(
       const libp2p::peer::PeerId &peer_id,
       const network::BlockAnnounceHandshake &handshake) {
+    best_announce_ = std::max(best_announce_, handshake.best_block.number);
+
     // If state is loading, just to ping of loading
     if (current_state_ == SyncState::STATE_LOADING) {
-      startStateSyncing(peer_id);
+      startStateSyncing();
       return;
     }
 
@@ -346,7 +381,7 @@ namespace kagome::consensus {
         current_state_ = SyncState::HEADERS_LOADED;
         state_sub_engine_->notify(
             primitives::events::SyncStateEventType::kSyncState, current_state_);
-        startStateSyncing(peer_id);
+        startStateSyncing();
       } else if (current_state_ == SyncState::CATCHING_UP
                  or current_state_ == SyncState::WAIT_REMOTE_STATUS) {
         onCaughtUp(current_best_block);
@@ -361,13 +396,17 @@ namespace kagome::consensus {
     }
 
     startCatchUp(peer_id, handshake.best_block);
+
+    synchronizer_->onBlockAnnounceHandshake(handshake.best_block, peer_id);
   }
 
   void TimelineImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,
                                      const network::BlockAnnounce &announce) {
+    best_announce_ = std::max(best_announce_, announce.header.number);
+
     // If state is loading, just to ping of loading
     if (current_state_ == SyncState::STATE_LOADING) {
-      startStateSyncing(peer_id);
+      startStateSyncing();
       return;
     }
 
@@ -383,56 +422,11 @@ namespace kagome::consensus {
     }
 
     // Start catching up if a gap recognized
-    if (current_state_ == SyncState::SYNCHRONIZED
-        or current_state_ == SyncState::HEADERS_LOADED) {
-      if (announce.header.number > current_best_block.number + 1) {
-        startCatchUp(peer_id, announce.header.blockInfo());
-        return;
-      }
-    }
+    startCatchUp(peer_id, announce.header.blockInfo());
 
     // Received announce that has the same block number as ours best,
     // or greater by one. Using a simple way to load block
-    synchronizer_->syncByBlockHeader(
-        announce.header,
-        peer_id,
-        [wp{weak_from_this()}, announce = announce, peer_id](
-            outcome::result<primitives::BlockInfo> block_res) mutable {
-          if (auto self = wp.lock()) {
-            if (block_res.has_error()) {
-              return;
-            }
-            const auto &block = block_res.value();
-
-            // Headers are loaded; Start sync of state
-            if (self->current_state_ == SyncState::HEADERS_LOADING) {
-              self->current_state_ = SyncState::HEADERS_LOADED;
-              self->state_sub_engine_->notify(
-                  primitives::events::SyncStateEventType::kSyncState,
-                  self->current_state_);
-              self->startStateSyncing(peer_id);
-              return;
-            }
-
-            // Caught up some block, possible block of current slot
-            if (self->current_state_ == SyncState::CATCHING_UP
-                or self->current_state_ == SyncState::WAIT_REMOTE_STATUS) {
-              self->onCaughtUp(block);
-            }
-
-            // Synced
-            if (self->current_state_ == SyncState::SYNCHRONIZED) {
-              // Set actual block status
-              announce.state = block == self->block_tree_->bestBlock()
-                                 ? network::BlockState::Best
-                                 : network::BlockState::Normal;
-              // Propagate announce
-              self->block_announce_transmitter_->blockAnnounce(
-                  std::move(announce));
-              return;
-            }
-          }
-        });
+    synchronizer_->onBlockAnnounce(announce.header, peer_id);
   }
 
   bool TimelineImpl::updateSlot(TimePoint now) {
@@ -501,7 +495,7 @@ namespace kagome::consensus {
               self->warp_sync_->unsafe(ok->first, ok->second, set.value());
               self->unsafe_sync_.reset();
               self->current_state_ = SyncState::HEADERS_LOADED;
-              self->startStateSyncing(peer_id);
+              self->startStateSyncing();
               return;
             }
             self->unsafe_sync_->number = std::get<BlockNumber>(res);
@@ -518,7 +512,7 @@ namespace kagome::consensus {
     auto target = warp_sync_->request();
     if (not target) {
       current_state_ = SyncState::HEADERS_LOADED;
-      startStateSyncing(peer_id);
+      startStateSyncing();
       return true;
     }
     if (block_number <= target->number) {
@@ -549,47 +543,25 @@ namespace kagome::consensus {
 
   void TimelineImpl::startCatchUp(const libp2p::peer::PeerId &peer_id,
                                   const primitives::BlockInfo &target_block) {
-    BOOST_ASSERT(current_state_ != SyncState::STATE_LOADING);
-
-    // synchronize missing blocks with their bodies
-    auto is_ran = synchronizer_->syncByBlockInfo(
-        target_block,
-        peer_id,
-        [wp{weak_from_this()}, block = target_block, peer_id](
-            outcome::result<primitives::BlockInfo> res) {
-          if (auto self = wp.lock()) {
-            if (res.has_error()) {
-              SL_DEBUG(self->log_,
-                       "Catching up {} to block {} is failed: {}",
-                       peer_id,
-                       block,
-                       res.error());
-              return;
-            }
-
-            SL_DEBUG(self->log_,
-                     "Catching up {} to block {} is going; on block {} now",
-                     peer_id,
-                     block,
-                     res.value());
-          }
-        },
-        false);
-
-    if (is_ran) {
+    if (target_block.number <= block_tree_->bestBlock().number + 1) {
+      return;
+    }
+    auto log = [&] {
       SL_VERBOSE(
           log_, "Catching up {} to block {} is ran", peer_id, target_block);
-      if (current_state_ == SyncState::HEADERS_LOADED) {
-        current_state_ = SyncState::HEADERS_LOADING;
-        state_sub_engine_->notify(
-            primitives::events::SyncStateEventType::kSyncState, current_state_);
-      } else if (current_state_ == SyncState::WAIT_BLOCK_ANNOUNCE
-                 or current_state_ == SyncState::WAIT_REMOTE_STATUS
-                 or current_state_ == SyncState::SYNCHRONIZED) {
-        current_state_ = SyncState::CATCHING_UP;
-        state_sub_engine_->notify(
-            primitives::events::SyncStateEventType::kSyncState, current_state_);
-      }
+    };
+    if (current_state_ == SyncState::HEADERS_LOADED) {
+      log();
+      current_state_ = SyncState::HEADERS_LOADING;
+      state_sub_engine_->notify(
+          primitives::events::SyncStateEventType::kSyncState, current_state_);
+    } else if (current_state_ == SyncState::WAIT_BLOCK_ANNOUNCE
+               or current_state_ == SyncState::WAIT_REMOTE_STATUS
+               or current_state_ == SyncState::SYNCHRONIZED) {
+      log();
+      current_state_ = SyncState::CATCHING_UP;
+      state_sub_engine_->notify(
+          primitives::events::SyncStateEventType::kSyncState, current_state_);
     }
   }
 
@@ -621,7 +593,7 @@ namespace kagome::consensus {
     onSynchronized();
   }
 
-  void TimelineImpl::startStateSyncing(const libp2p::peer::PeerId &peer_id) {
+  void TimelineImpl::startStateSyncing() {
     BOOST_ASSERT(current_state_ == SyncState::HEADERS_LOADED
                  or current_state_ == SyncState::STATE_LOADING);
     if (current_state_ != SyncState::HEADERS_LOADED
@@ -664,25 +636,11 @@ namespace kagome::consensus {
 
     block_tree_->removeUnfinalized();
 
-    SL_TRACE(log_,
-             "Trying to sync state on block {} from {}",
-             block_at_state,
-             peer_id);
+    SL_TRACE(log_, "Trying to sync state on block {}", block_at_state);
 
     synchronizer_->syncState(
-        peer_id,
-        block_at_state,
-        [wp{weak_from_this()}, block_at_state, peer_id](auto res) mutable {
+        block_at_state, [wp{weak_from_this()}, block_at_state] {
           if (auto self = wp.lock()) {
-            if (res.has_error()) {
-              SL_WARN(self->log_,
-                      "Syncing of state with {} on block {} is failed: {}",
-                      peer_id,
-                      block_at_state,
-                      res.error());
-              return;
-            }
-
             self->justification_observer_->reload();
             self->trie_pruner_->restoreStateAtFinalized(*self->block_tree_);
             self->block_tree_->notifyBestAndFinalized();
