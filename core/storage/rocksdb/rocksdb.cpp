@@ -129,13 +129,19 @@ namespace kagome::storage {
 
     std::vector<rocksdb::ColumnFamilyDescriptor> column_family_descriptors;
     std::vector<int32_t> ttls;
-    configureColumnFamilies(column_family_descriptors,
-                            ttls,
-                            all_families,
-                            column_ttl,
-                            trie_space_cache_size,
-                            other_spaces_cache_size,
-                            log);
+
+    {
+      static std::mutex config_mutex;
+      std::lock_guard<std::mutex> lock(config_mutex);
+
+      configureColumnFamilies(column_family_descriptors,
+                              ttls,
+                              all_families,
+                              column_ttl,
+                              trie_space_cache_size,
+                              other_spaces_cache_size,
+                              log);
+    }
 
     options.create_missing_column_families = true;
     auto rocks_db = std::shared_ptr<RocksDb>(new RocksDb);
