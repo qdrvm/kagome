@@ -133,22 +133,22 @@ namespace {
   std::optional<kagome::application::SyncMethod> str_to_sync_method(
       std::string_view str) {
     using SM = kagome::application::SyncMethod;
-    if (str == "Full") {
+    if (boost::iequals(str, "Full")) {
       return SM::Full;
     }
-    if (str == "Fast") {
+    if (boost::iequals(str, "Fast")) {
       return SM::Fast;
     }
-    if (str == "FastWithoutState") {
+    if (boost::iequals(str, "FastWithoutState")) {
       return SM::FastWithoutState;
     }
-    if (str == "Warp") {
+    if (boost::iequals(str, "Warp")) {
       return SM::Warp;
     }
-    if (str == "Unsafe") {
+    if (boost::iequals(str, "Unsafe")) {
       return SM::Unsafe;
     }
-    if (str == "Auto") {
+    if (boost::iequals(str, "Auto")) {
       return SM::Auto;
     }
     return std::nullopt;
@@ -176,12 +176,12 @@ namespace {
 
   static constexpr std::array<std::string_view,
                               1 + KAGOME_WASM_COMPILER_WASM_EDGE>
-      interpreters {
+      interpreters{
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-    "WasmEdge",
+          "WasmEdge",
 #endif
-        "Binaryen"
-  };
+          "Binaryen",
+      };
 
   static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));
@@ -189,10 +189,10 @@ namespace {
   std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
   str_to_runtime_exec_method(std::string_view str) {
     using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
-    if (str == "Interpreted") {
+    if (boost::iequals(str, "Interpreted")) {
       return REM::Interpret;
     }
-    if (str == "Compiled") {
+    if (boost::iequals(str, "Compiled")) {
       return REM::Compile;
     }
     return std::nullopt;
@@ -201,10 +201,10 @@ namespace {
   std::optional<kagome::application::AppConfiguration::RuntimeInterpreter>
   str_to_runtime_interpreter(std::string_view str) {
     using RI = kagome::application::AppConfiguration::RuntimeInterpreter;
-    if (str == "WasmEdge") {
+    if (boost::iequals(str, "WasmEdge")) {
       return RI::WasmEdge;
     }
-    if (str == "Binaryen") {
+    if (boost::iequals(str, "Binaryen")) {
       return RI::Binaryen;
     }
     return std::nullopt;
@@ -213,13 +213,13 @@ namespace {
   std::optional<kagome::application::AppConfiguration::OffchainWorkerMode>
   str_to_offchain_worker_mode(std::string_view str) {
     using Mode = kagome::application::AppConfiguration::OffchainWorkerMode;
-    if (str == "Always") {
+    if (boost::iequals(str, "Always")) {
       return Mode::Always;
     }
-    if (str == "Never") {
+    if (boost::iequals(str, "Never")) {
       return Mode::Never;
     }
-    if (str == "WhenValidating") {
+    if (boost::iequals(str, "WhenValidating")) {
       return Mode::WhenValidating;
     }
     return std::nullopt;
@@ -1604,13 +1604,15 @@ namespace kagome::application {
     }
 
     max_parallel_downloads_ =
-        find_argument<uint32_t>(vm, "max-parallel-downloads")
-            .value_or(def_max_parallel_downloads);
+        std::max<uint32_t>(1,
+                           find_argument<uint32_t>(vm, "max-parallel-downloads")
+                               .value_or(def_max_parallel_downloads));
 
     unsafe_sync_to_ = find_argument<BlockNumber>(vm, "unsafe-sync-to");
     if (unsafe_sync_to_) {
       sync_method_ = SyncMethod::Unsafe;
     }
+
     // if something wrong with config print help message
     if (not validate_config()) {
       std::cout << desc << '\n';
