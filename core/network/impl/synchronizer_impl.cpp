@@ -338,48 +338,67 @@ namespace kagome::network {
 
   void SynchronizerImpl::applyNextBlock() {
     if (state_sync_.has_value()) {
+      // Skip block application during state synchronization
       return;
     }
     for (auto &block_info : attached_roots_) {
+      // Skip blocks that are already being processed
       if (executing_blocks_.contains(block_info)) {
         continue;
       }
       auto &known = known_blocks_.at(block_info.hash);
+
+      // Create callback for handling block application result
       auto make_cb = [&] {
+        // Mark block as being processed
         executing_blocks_.emplace(block_info);
+        // Create destructor-like object to clean up executing_blocks_ when done
         auto dtor =
             toSptr(libp2p::common::MovableFinalAction{[WEAK_SELF, block_info] {
               WEAK_LOCK(self);
               self->executing_blocks_.erase(block_info);
             }});
+
+        // Return callback that handles success/failure of block application
         return [WEAK_SELF, block_info, dtor](
                    outcome::result<void> result) mutable {
           WEAK_LOCK(self);
+          // Schedule a task to process the result asynchronously
           self->scheduler_->schedule(
               [weak_self, block_info, dtor, result]() mutable {
                 WEAK_LOCK(self);
+                // Clean up executing_blocks_ entry
                 dtor.reset();
                 if (result.has_value()) {
+                  // On success: notify telemetry about block import
                   self->telemetry_->notifyBlockImported(
                       block_info, telemetry::BlockOrigin::kNetworkInitialSync);
                 } else {
+                  // On failure: log error and remove the invalid block
                   SL_ERROR(self->log_,
                            "apply block {} error: {}",
                            block_info,
                            result.error());
                   if (self->attached_roots_.erase(block_info) != 0) {
+                    // Remove the block and all its descendants from the queue
                     self->removeBlockRecursive(block_info);
                   }
                 }
+                // Update the roots after processing this block
                 self->updateRoots();
               });
         };
       };
+
       auto &header = known.data.header.value();
+
       if (sync_method_ == application::SyncMethod::Full) {
+        // For full synchronization, we need both header and body
         if (not known.data.body.has_value()) {
+          // Skip blocks with missing bodies, they'll be fetched later
           continue;
         }
+        // Apply full block (header + body + optional justification)
         block_executor_->applyBlock(
             {
                 .header = header,
@@ -388,6 +407,7 @@ namespace kagome::network {
             known.data.justification,
             make_cb());
       } else {
+        // For header-only synchronization, just append the header
         block_appender_->appendHeader(
             BlockHeader{header}, known.data.justification, make_cb());
       }
@@ -792,14 +812,20 @@ namespace kagome::network {
       if (block_tree_->has(block_info.hash)) {
         return false;
       }
+      // Skip headers of blocks that don't meet the validation criteria
+      // and clean up any child blocks that might already be in our tree
       if (not isBlockAllowed(header)) {
+        // Find all child blocks of this disallowed block in the ancestry map
         for (auto [it, end] = ancestry_.equal_range(block_info); it != end;) {
           auto child = it->second;
           ++it;
+          // Remove the child from detached roots since its parent is invalid
           detached_roots_.erase(child);
+          // Recursively remove the child and its descendants from the known
+          // blocks
           removeBlockRecursive(child);
         }
-        return false;
+        return false;  // Indicate that the header was not added
       }
       known.insert({
           .data = std::move(data),
@@ -822,6 +848,7 @@ namespace kagome::network {
   }
 
   void SynchronizerImpl::fetchTasks() {
+    // Lambda to select a peer from which to request blocks
     auto choose_peer = [&](const BlockInfo &block, size_t fingerprint) {
       std::optional<PeerId> chosen_peer;
       visitAncestry(block, [&](const KnownBlock &block) {
@@ -837,34 +864,60 @@ namespace kagome::network {
       return chosen_peer;
     };
     if (sync_method_ == application::SyncMethod::Full) {
+      // Fetches block bodies for blocks in attached_roots_ that have headers
+      // but no bodies This loop processes each attached root and traverses its
+      // ancestry tree to find blocks that need their bodies fetched from peers
       for (auto &root : attached_roots_) {
+        // Check if we've reached the parallel download limit before continuing
         if (not canFetchMore(fetching_body_)) {
           break;
         }
+
+        // For each root, traverse the ancestry tree to look for blocks that
+        // need bodies
         visitAncestry(root, [&](const KnownBlock &block) {
+          // Stop traversal if we've hit the download limit during traversal
           if (not canFetchMore(fetching_body_)) {
             return VisitAncestryResult::STOP;
           }
+
+          // If this block has a header but no body, try to fetch its body
           if (not block.data.body.has_value()) {
             auto block_info = block.data.header.value().blockInfo();
+
+            // Create a request for the block body
             BlocksRequest request{
                 .fields = BlockAttribute::HEADER | BlockAttribute::BODY,
                 .from = block_info.hash,
                 .direction = Direction::ASCENDING,
             };
+
+            // Find a suitable peer that knows about this block and isn't busy
             if (auto chosen_peer =
                     choose_peer(block_info, request.fingerprint())) {
               SL_VERBOSE(
                   log_, "fetch body {} from {}", block_info, *chosen_peer);
+
+              // Request the block body from the chosen peer
               loadBlocks(
                   *chosen_peer, std::move(request), fetching_body_, "body");
+
+              // Skip the subtree after requesting a body - we want to process
+              // this block and its ancestors fully before moving on to its
+              // descendants
               return VisitAncestryResult::IGNORE_SUBTREE;
             }
           }
+
+          // Continue traversal for blocks that already have bodies or couldn't
+          // be requested
           return VisitAncestryResult::CONTINUE;
         });
       }
     }
+
+    // Fetches headers and justifications for detached blocks in the blockchain
+    // This helps "fill the gap" between detached blocks and the main chain
     for (auto &root : detached_roots_) {
       if (not canFetchMore(fetching_gap_)) {
         break;
@@ -879,8 +932,14 @@ namespace kagome::network {
         loadBlocks(*chosen_peer, std::move(request), fetching_gap_, "gap");
       }
     }
+
+    // Fetch block ranges from peers when we have capacity
     if (canFetchMore(fetching_range_)) {
+      // Start with the best block number we know from the main chain
       BlockNumber max_attached = block_tree_->bestBlock().number;
+
+      // Find the highest block number among all attached blocks and their
+      // descendants
       for (auto &root : attached_roots_) {
         visitAncestry(root, [&](const KnownBlock &block) {
           max_attached =
@@ -888,17 +947,27 @@ namespace kagome::network {
           return VisitAncestryResult::CONTINUE;
         });
       }
+
+      // Only fetch if we haven't reached our maximum allowed block height
       if (max_attached < maxAllowedBlock()) {
+        // Prepare a request to get blocks after our highest known block
         BlocksRequest request{
             .fields = BlockAttribute::HEADER | BlockAttribute::JUSTIFICATION,
             .from = max_attached,
-            .direction = Direction::ASCENDING,
+            .direction =
+                Direction::ASCENDING,  // Get blocks newer than max_attached
         };
+
+        // Look through all peers to find candidates for fetching
         peer_manager_->enumeratePeerState([&](const PeerId &peer_id,
                                               PeerState &state) {
+          // Stop if we've reached parallel download limit during enumeration
           if (not canFetchMore(fetching_range_)) {
             return false;
           }
+
+          // Check if peer has newer blocks and isn't already busy with another
+          // request Also avoid duplicate requests to the same peer
           if (state.best_block.number >= max_attached
               and not busy_peers_.contains(peer_id)
               and not recent_requests_.contains(
@@ -906,7 +975,7 @@ namespace kagome::network {
             SL_VERBOSE(log_, "fetch range {} from {}", max_attached, peer_id);
             loadBlocks(peer_id, request, fetching_range_, "range");
           }
-          return true;
+          return true;  // Continue to check other peers
         });
       }
     }
