@@ -19,7 +19,7 @@
 
 hunter_config(
     qtils
-    VERSION 0.1.0
+    VERSION 0.1.1
     CMAKE_ARGS
       FORMAT_ERROR_WITH_FULLTYPE=ON
 )
@@ -109,8 +109,7 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/refs/tags/v0.1.34.zip
-    SHA1 ad725b991c6845d0e5d9f42c639ea62fa05593ff
+    VERSION 0.1.35
 )
 
 hunter_config(
