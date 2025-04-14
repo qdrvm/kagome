@@ -404,9 +404,9 @@ namespace kagome::network {
 
     libp2p::Cancel hang_timer_;
 
-    size_t fetching_range_ = 0;
-    size_t fetching_gap_ = 0;
-    size_t fetching_body_ = 0;
+    size_t fetching_range_count_ = 0;
+    size_t fetching_gap_count_ = 0;
+    size_t fetching_body_count_ = 0;
   };
 
 }  // namespace kagome::network

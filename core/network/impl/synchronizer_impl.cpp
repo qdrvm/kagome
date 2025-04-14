@@ -869,7 +869,7 @@ namespace kagome::network {
       // ancestry tree to find blocks that need their bodies fetched from peers
       for (auto &root : attached_roots_) {
         // Check if we've reached the parallel download limit before continuing
-        if (not canFetchMore(fetching_body_)) {
+        if (not canFetchMore(fetching_body_count_)) {
           break;
         }
 
@@ -877,7 +877,7 @@ namespace kagome::network {
         // need bodies
         visitAncestry(root, [&](const KnownBlock &block) {
           // Stop traversal if we've hit the download limit during traversal
-          if (not canFetchMore(fetching_body_)) {
+          if (not canFetchMore(fetching_body_count_)) {
             return VisitAncestryResult::STOP;
           }
 
@@ -899,8 +899,10 @@ namespace kagome::network {
                   log_, "fetch body {} from {}", block_info, *chosen_peer);
 
               // Request the block body from the chosen peer
-              loadBlocks(
-                  *chosen_peer, std::move(request), fetching_body_, "body");
+              loadBlocks(*chosen_peer,
+                         std::move(request),
+                         fetching_body_count_,
+                         "body");
 
               // Skip the subtree after requesting a body - we want to process
               // this block and its ancestors fully before moving on to its
@@ -919,7 +921,7 @@ namespace kagome::network {
     // Fetches headers and justifications for detached blocks in the blockchain
     // This helps "fill the gap" between detached blocks and the main chain
     for (auto &root : detached_roots_) {
-      if (not canFetchMore(fetching_gap_)) {
+      if (not canFetchMore(fetching_gap_count_)) {
         break;
       }
       BlocksRequest request{
@@ -929,12 +931,13 @@ namespace kagome::network {
       };
       if (auto chosen_peer = choose_peer(root, request.fingerprint())) {
         SL_VERBOSE(log_, "fetch gap {} from {}", root, *chosen_peer);
-        loadBlocks(*chosen_peer, std::move(request), fetching_gap_, "gap");
+        loadBlocks(
+            *chosen_peer, std::move(request), fetching_gap_count_, "gap");
       }
     }
 
     // Fetch block ranges from peers when we have capacity
-    if (canFetchMore(fetching_range_)) {
+    if (canFetchMore(fetching_range_count_)) {
       // Start with the best block number we know from the main chain
       BlockNumber max_attached = block_tree_->bestBlock().number;
 
@@ -962,7 +965,7 @@ namespace kagome::network {
         peer_manager_->enumeratePeerState([&](const PeerId &peer_id,
                                               PeerState &state) {
           // Stop if we've reached parallel download limit during enumeration
-          if (not canFetchMore(fetching_range_)) {
+          if (not canFetchMore(fetching_range_count_)) {
             return false;
           }
 
@@ -973,7 +976,7 @@ namespace kagome::network {
               and not recent_requests_.contains(
                   {peer_id, request.fingerprint()})) {
             SL_VERBOSE(log_, "fetch range {} from {}", max_attached, peer_id);
-            loadBlocks(peer_id, request, fetching_range_, "range");
+            loadBlocks(peer_id, request, fetching_range_count_, "range");
           }
           return true;  // Continue to check other peers
         });
