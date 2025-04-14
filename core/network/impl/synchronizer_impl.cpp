@@ -799,7 +799,7 @@ namespace kagome::network {
   bool SynchronizerImpl::addHeader(const PeerId &peer_id,
                                    primitives::BlockData &&data) {
     auto &header = data.header.value();
-    if (header.number > maxAllowedBlock()) {
+    if (header.number > highestAllowedBlock()) {
       return false;
     }
     auto block_info = header.blockInfo();
@@ -949,7 +949,7 @@ namespace kagome::network {
       }
 
       // Only fetch if we haven't reached our maximum allowed block height
-      if (max_attached < maxAllowedBlock()) {
+      if (max_attached < highestAllowedBlock()) {
         // Prepare a request to get blocks after our highest known block
         BlocksRequest request{
             .fields = BlockAttribute::HEADER | BlockAttribute::JUSTIFICATION,
@@ -1079,7 +1079,7 @@ namespace kagome::network {
     return true;
   }
 
-  size_t SynchronizerImpl::maxAllowedBlock() const {
+  size_t SynchronizerImpl::highestAllowedBlock() const {
     return block_tree_->bestBlock().number
          + (sync_method_ == application::SyncMethod::Full
                 ? kMinPreloadedBlockAmount
