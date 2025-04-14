@@ -1009,7 +1009,7 @@ namespace kagome::network {
   }
 
   bool SynchronizerImpl::validate(const BlocksRequest &request,
-                                  BlocksResponse &response) {
+                                  BlocksResponse &response) const {
     auto &blocks = response.blocks;
     if (blocks.empty()) {
       return false;

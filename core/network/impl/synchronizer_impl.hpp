@@ -318,7 +318,7 @@ namespace kagome::network {
      * @param response The blocks response to validate
      * @return true if the response is valid, false if validation fails
      */
-    bool validate(const BlocksRequest &request, BlocksResponse &response);
+    bool validate(const BlocksRequest &request, BlocksResponse &response) const;
     size_t highestAllowedBlock() const;
     /**
      * @brief Determines if a block header is valid for processing
