@@ -802,6 +802,7 @@ namespace kagome::network {
     if (header.number > highestAllowedBlock()) {
       return false;
     }
+    // save info before moving `data`
     auto block_info = header.blockInfo();
     auto parent_info = header.parentInfo();
     if (not parent_info.has_value()) {
