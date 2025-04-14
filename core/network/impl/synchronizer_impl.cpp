@@ -226,7 +226,7 @@ namespace kagome::network {
                  response.blocks.size(),
                  reason,
                  peer_id);
-      for (auto &block : response.blocks) {
+      for (auto &block : response.blocks | std::views::reverse) {
         if (block.header.has_value()) {
           if (not self->addHeader(peer_id, std::move(block))) {
             continue;
@@ -1075,7 +1075,6 @@ namespace kagome::network {
         }
       }
     }
-    std::ranges::reverse(blocks);
     return true;
   }
 
