@@ -105,53 +105,82 @@ namespace kagome::network {
 
       auto cb_shared =
           std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
+      static auto request_id = 0;
+      request_id++;
       auto timer = self->scheduler_->scheduleWithHandle(
           [weak_self{std::weak_ptr{self}},
            weak_stream{std::move(weak_stream)},
            peer_id{std::move(peer_id)},
-           cb_shared] {
+           cb_shared,
+           request_id] {
             IF_WEAK_LOCK(stream) {
               stream->reset();
               IF_WEAK_LOCK(self) {
+                SL_DEBUG(self->base_.logger(),
+                         "Handle timeout stream->reset() request_id: {}",
+                         request_id);
                 self->metrics_.timeout_->inc();
                 if (peer_id) {
-                  SL_WARN(
-                      self->base_.logger(),
-                      "Request timeout for {} protocol with peer {} after {}ms",
-                      self->protocolName(),
-                      peer_id.value(),
-                      self->timeout_.count());
+                  SL_WARN(self->base_.logger(),
+                          "Request timeout for {} protocol with peer {} after "
+                          "{}ms (request_id: {})",
+                          self->protocolName(),
+                          peer_id.value(),
+                          self->timeout_.count(),
+                          request_id);
                 } else {
                   SL_WARN(self->base_.logger(),
                           "Request timeout for {} protocol with unknown peer "
-                          "after {}ms",
+                          "after {}ms (request_id: {})",
                           self->protocolName(),
-                          self->timeout_.count());
+                          self->timeout_.count(),
+                          request_id);
                 }
                 if (auto cb = qtils::optionTake(*cb_shared)) {
+                  SL_DEBUG(self->base_.logger(),
+                           "optionTake success request_id: {}",
+                           request_id);
                   (*cb)(outcome::failure(ProtocolError::TIMEOUT));
+                } else {
+                  SL_DEBUG(
+                      self->base_.logger(),
+                      "Handle timeout optionTake is nullptr request_id: {}",
+                      request_id);
                 }
               }
             }
             else {
               IF_WEAK_LOCK(self) {
+                SL_DEBUG(self->base_.logger(),
+                         "Handle timeout self is nullptr request_id: {}",
+                         request_id);
                 self->metrics_.timeout_->inc();
                 if (peer_id) {
                   SL_WARN(self->base_.logger(),
                           "Request timeout for {} protocol with peer {} after "
-                          "{}ms (stream already closed)",
+                          "{}ms (stream already closed, request_id: {})",
                           self->protocolName(),
                           peer_id.value(),
-                          self->timeout_.count());
+                          self->timeout_.count(),
+                          request_id);
                 } else {
                   SL_WARN(self->base_.logger(),
                           "Request timeout for {} protocol with unknown peer "
-                          "after {}ms (stream already closed)",
+                          "after {}ms (stream already closed, request_id: {})",
                           self->protocolName(),
-                          self->timeout_.count());
+                          self->timeout_.count(),
+                          request_id);
                 }
                 if (auto cb = qtils::optionTake(*cb_shared)) {
+                  SL_DEBUG(self->base_.logger(),
+                           "Handle timeout optionTake success request_id: {}",
+                           request_id);
                   (*cb)(outcome::failure(ProtocolError::TIMEOUT));
+                } else {
+                  SL_DEBUG(
+                      self->base_.logger(),
+                      "Handle timeout optionTake is nullptr request_id: {}",
+                      request_id);
                 }
               }
             }
@@ -161,14 +190,35 @@ namespace kagome::network {
       cb = libp2p::SharedFn{[weak_self{std::weak_ptr{self}},
                              cb_shared,
                              lost{RequestResponseMetrics::Lost{self->metrics_}},
-                             timer{std::move(timer)}](auto &&r) mutable {
+                             timer{std::move(timer)},
+                             request_id](auto &&r) mutable {
         lost.notLost();
         timer.reset();
         IF_WEAK_LOCK(self) {
-          (r ? self->metrics_.success_ : self->metrics_.failure_)->inc();
-        }
-        if (auto cb = qtils::optionTake(*cb_shared)) {
-          (*cb)(std::move(r));
+          SL_DEBUG(self->base_.logger(),
+                   "Success callback request_id: {}",
+                   request_id);
+          if (r) {
+            SL_DEBUG(self->base_.logger(),
+                     "Success callback request_id: {}",
+                     request_id);
+            self->metrics_.success_->inc();
+          } else {
+            SL_DEBUG(self->base_.logger(),
+                     "Failure callback request_id: {}",
+                     request_id);
+            self->metrics_.failure_->inc();
+          }
+          if (auto cb = qtils::optionTake(*cb_shared)) {
+            SL_DEBUG(self->base_.logger(),
+                     "Success optionTake request_id: {}",
+                     request_id);
+            (*cb)(std::move(r));
+          } else {
+            SL_DEBUG(self->base_.logger(),
+                     "Failure optionTake request_id: {}",
+                     request_id);
+          }
         }
       }};
     }
