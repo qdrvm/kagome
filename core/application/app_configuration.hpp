@@ -19,10 +19,12 @@
 #include "log/logger.hpp"
 #include "network/peering_config.hpp"
 #include "network/types/roles.hpp"
+#include "primitives/account.hpp"
 #include "primitives/block_id.hpp"
 #include "telemetry/endpoint.hpp"
 
 namespace kagome::application {
+  using primitives::BlockNumber;
 
   enum class Subcommand : uint8_t {
     ChainInfo,
@@ -218,8 +220,8 @@ namespace kagome::application {
      * List of telemetry endpoints specified via CLI argument or config file
      * @return a vector of parsed telemetry endpoints
      */
-    virtual const std::vector<telemetry::TelemetryEndpoint>
-        &telemetryEndpoints() const = 0;
+    virtual const std::vector<telemetry::TelemetryEndpoint> &
+    telemetryEndpoints() const = 0;
 
     /**
      * @return enum constant of the chosen sync method
@@ -330,6 +332,12 @@ namespace kagome::application {
         const = 0;
 
     virtual std::optional<PrecompileWasmConfig> precompileWasm() const = 0;
+
+    virtual std::optional<std::string> getValidatorAddress() const = 0;
+
+    virtual uint32_t maxParallelDownloads() const = 0;
+    
+    virtual std::optional<BlockNumber> unsafeSyncTo() const = 0;
   };
 
 }  // namespace kagome::application

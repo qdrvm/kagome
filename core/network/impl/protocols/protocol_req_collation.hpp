@@ -17,6 +17,7 @@
 #include "application/chain_spec.hpp"
 #include "common/main_thread_pool.hpp"
 #include "log/logger.hpp"
+#include "network/impl/protocols/request_response_protocol.hpp"
 #include "network/peer_manager.hpp"
 #include "network/protocols/req_collation_protocol.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
@@ -30,20 +31,19 @@ namespace kagome::blockchain {
 namespace kagome::network {
 
   template <typename RequestT, typename ResponseT>
-  struct ReqCollationProtocolImpl;
+  struct ReqCollationProtocolInner;
 
-  class ReqCollationProtocol final : public IReqCollationProtocol,
-                                     NonCopyable,
-                                     NonMovable {
+  class ReqCollationProtocolImpl final : public ReqCollationProtocol,
+                                         NonCopyable,
+                                         NonMovable {
    public:
-    ReqCollationProtocol() = delete;
-    ~ReqCollationProtocol() override = default;
+    ReqCollationProtocolImpl() = delete;
+    ~ReqCollationProtocolImpl() override = default;
 
-    ReqCollationProtocol(libp2p::Host &host,
-                         const application::ChainSpec &chain_spec,
-                         const blockchain::GenesisBlockHash &genesis_hash,
-                         std::shared_ptr<ReqCollationObserver> observer,
-                         common::MainThreadPool &main_thread_pool);
+    ReqCollationProtocolImpl(const RequestResponseInject &inject,
+                             const application::ChainSpec &chain_spec,
+                             const blockchain::GenesisBlockHash &genesis_hash,
+                             std::shared_ptr<ReqCollationObserver> observer);
 
     const Protocol &protocolName() const override;
 
@@ -67,12 +67,12 @@ namespace kagome::network {
                      &&response_handler) override;
 
    private:
-    std::shared_ptr<ReqCollationProtocolImpl<CollationFetchingRequest,
-                                             CollationFetchingResponse>>
+    std::shared_ptr<ReqCollationProtocolInner<CollationFetchingRequest,
+                                              CollationFetchingResponse>>
         v1_impl_;
     std::shared_ptr<
-        ReqCollationProtocolImpl<vstaging::CollationFetchingRequest,
-                                 vstaging::CollationFetchingResponse>>
+        ReqCollationProtocolInner<vstaging::CollationFetchingRequest,
+                                  vstaging::CollationFetchingResponse>>
         vstaging_impl_;
   };
 

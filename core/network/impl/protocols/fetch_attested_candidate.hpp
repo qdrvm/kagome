@@ -29,28 +29,29 @@ namespace kagome::network {
                                            ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
+    static constexpr std::chrono::milliseconds kRequestTimeout{2500};
+
    public:
     FetchAttestedCandidateProtocol(
-        libp2p::Host &host,
+        RequestResponseInject inject,
         const application::ChainSpec &chain_spec,
         const blockchain::GenesisBlockHash &genesis_hash,
         std::shared_ptr<
             parachain::statement_distribution::StatementDistribution>
-            statement_distribution,
-        common::MainThreadPool &main_thread_pool)
+            statement_distribution)
         : RequestResponseProtocolImpl<
-              vstaging::AttestedCandidateRequest,
-              vstaging::AttestedCandidateResponse,
-              ScaleMessageReadWriter>{kFetchAttestedCandidateProtocolName,
-                                      host,
-                                      make_protocols(
-                                          kFetchAttestedCandidateProtocol,
-                                          genesis_hash,
-                                          kProtocolPrefixPolkadot),
-                                      log::createLogger(
-                                          kFetchAttestedCandidateProtocolName,
-                                          "req_attested_candidate_protocol"),
-                                      main_thread_pool},
+            vstaging::AttestedCandidateRequest,
+            vstaging::AttestedCandidateResponse,
+            ScaleMessageReadWriter>{kFetchAttestedCandidateProtocolName,
+                                    std::move(inject),
+                                    make_protocols(
+                                        kFetchAttestedCandidateProtocol,
+                                        genesis_hash,
+                                        kProtocolPrefixPolkadot),
+                                    log::createLogger(
+                                        kFetchAttestedCandidateProtocolName,
+                                        "req_attested_candidate_protocol"),
+                                    kRequestTimeout},
           statement_distribution_(std::move(statement_distribution)) {
       BOOST_ASSERT(statement_distribution_);
     }

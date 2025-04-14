@@ -198,8 +198,8 @@ namespace kagome::authority_discovery {
       if (has(authorities, it->second)) {
         ++it;
       } else {
-        it = peer_to_auth_cache_.erase(it);
         validation_protocol_.get()->reserve(it->first, false);
+        it = peer_to_auth_cache_.erase(it);
       }
     }
     std::shuffle(authorities.begin(), authorities.end(), random_);
@@ -309,10 +309,10 @@ namespace kagome::authority_discovery {
     std::optional<Timestamp> time{};
     if (record.has_creation_time()) {
       OUTCOME_TRY(tmp,
-                  scale::decode<TimestampScale>(
+                  scale::decode<Timestamp>(
                       qtils::str2byte(record.creation_time().timestamp())));
-      time = *tmp;
-      if (it and it->time and time <= it->time->number) {
+      time = tmp;
+      if (it and it->time and time <= it->time) {
         SL_TRACE(log_, "lookup: outdated record for authority {}", authority);
         return outcome::success();
       }
@@ -365,14 +365,12 @@ namespace kagome::authority_discovery {
     if (not audi_store_->contains(authority)) {
       metric_known_authorities_count->inc();
     }
-    audi_store_->store(
-        authority,
-        AuthorityPeerInfo{
-            .raw = std::move(signed_record_pb),
-            .time = time.has_value() ? std::make_optional(TimestampScale{*time})
-                                     : std::nullopt,
-            .peer = peer,
-        });
+    audi_store_->store(authority,
+                       AuthorityPeerInfo{
+                           .raw = std::move(signed_record_pb),
+                           .time = time,
+                           .peer = peer,
+                       });
 
     validation_protocol_.get()->reserve(peer.id, true);
 

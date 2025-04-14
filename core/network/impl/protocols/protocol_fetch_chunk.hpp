@@ -24,7 +24,7 @@
 
 namespace kagome::network {
 
-  struct ReqPovProtocolImpl;
+  class ReqPovProtocol;
 
   class FetchChunkProtocol
       : virtual public RequestResponseProtocol<FetchChunkRequest,
@@ -37,25 +37,25 @@ namespace kagome::network {
                                            ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
+    static constexpr std::chrono::seconds kRequestTimeout{1};
+
    public:
-    FetchChunkProtocolImpl(
-        libp2p::Host &host,
-        const application::ChainSpec & /*chain_spec*/,
-        const blockchain::GenesisBlockHash &genesis_hash,
-        std::shared_ptr<parachain::ParachainProcessorImpl> pp,
-        std::shared_ptr<PeerManager> pm,
-        common::MainThreadPool &main_thread_pool)
+    FetchChunkProtocolImpl(RequestResponseInject inject,
+                           const application::ChainSpec & /*chain_spec*/,
+                           const blockchain::GenesisBlockHash &genesis_hash,
+                           std::shared_ptr<parachain::ParachainStorage> pp,
+                           std::shared_ptr<PeerManager> pm)
         : RequestResponseProtocolImpl<
               FetchChunkRequest,
               FetchChunkResponse,
               ScaleMessageReadWriter>{kFetchChunkProtocolName,
-                                      host,
+                                      std::move(inject),
                                       make_protocols(kFetchChunkProtocol,
                                                      genesis_hash,
                                                      kProtocolPrefixPolkadot),
                                       log::createLogger(kFetchChunkProtocolName,
                                                         "req_chunk_protocol"),
-                                      main_thread_pool},
+                                      kRequestTimeout},
           pp_{std::move(pp)},
           pm_{std::move(pm)} {
       BOOST_ASSERT(pp_);
@@ -75,17 +75,7 @@ namespace kagome::network {
         BOOST_ASSERT(res.has_value());
         return res.value();
       }();
-      auto &peer_state = [&]() -> PeerState & {
-        auto res = pm_->getPeerState(peer_id);
-        if (!res) {
-          SL_TRACE(base_.logger(),
-                   "No PeerState of peer {}. Default one has created",
-                   peer_id);
-          res = pm_->createDefaultPeerState(peer_id);
-        }
-        return res.value().get();
-      }();
-      peer_state.req_chunk_version = ReqChunkVersion::V2;
+      pm_->setReqChunkVersion(peer_id, ReqChunkVersion::V2);
 
       SL_TRACE(
           base_.logger(),
@@ -121,7 +111,7 @@ namespace kagome::network {
                  peer_id);
       }
 
-      return std::move(res);
+      return res;
     }
 
     void onTxRequest(const RequestType &request) override {
@@ -132,7 +122,7 @@ namespace kagome::network {
     }
 
     inline static const auto kFetchChunkProtocolName = "FetchChunkProtocol_v2"s;
-    std::shared_ptr<parachain::ParachainProcessorImpl> pp_;
+    std::shared_ptr<parachain::ParachainStorage> pp_;
     std::shared_ptr<PeerManager> pm_;
   };
 

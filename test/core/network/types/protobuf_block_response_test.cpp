@@ -7,7 +7,7 @@
 
 #include <gmock/gmock.h>
 
-#include "testutil/outcome.hpp"
+#include <qtils/test/outcome.hpp>
 
 using kagome::network::BlocksResponse;
 using kagome::network::ProtobufMessageAdapter;
@@ -23,29 +23,29 @@ struct ProtobufBlockResponseAdapterTest : public ::testing::Test {
   using AdapterType = ProtobufMessageAdapter<BlocksResponse>;
 
   void SetUp() {
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         hash,
         BlockHash::fromHex("11111403ba5b6a3f3bd0b0604ce439a78244"
                            "c7d43b127ec35cd8325602dd47fd"));
 
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         parent_hash,
         BlockHash::fromHex("22111403ba5b6a3f3bd0b0604ce439a78244"
                            "c7d43b127ec35cd8325602dd47fd"));
 
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         root_hash,
         BlockHash::fromHex("23648236745b6a3f3bd0b0604ce439a78244"
                            "c7d43b127ec35cd8325602dd47fd"));
 
-    EXPECT_OUTCOME_TRUE(
+    ASSERT_OUTCOME_SUCCESS(
         ext_hash,
         BlockHash::fromHex("2364823674278726578628756faad1a78244"
                            "c7d43b127ec35cd8325602dd47fd"));
 
-    EXPECT_OUTCOME_TRUE(ext, Buffer::fromHex("11223344"));
-    EXPECT_OUTCOME_TRUE(receipt, Buffer::fromHex("55ffddeeaa"));
-    EXPECT_OUTCOME_TRUE(message_queue, Buffer::fromHex("1a2b3c4d5e6f"));
+    ASSERT_OUTCOME_SUCCESS(ext, Buffer::fromHex("11223344"));
+    ASSERT_OUTCOME_SUCCESS(receipt, Buffer::fromHex("55ffddeeaa"));
+    ASSERT_OUTCOME_SUCCESS(message_queue, Buffer::fromHex("1a2b3c4d5e6f"));
 
     response.blocks.emplace_back(BlockData{.hash = hash,
                                            .header =
@@ -76,7 +76,7 @@ TEST_F(ProtobufBlockResponseAdapterTest, Serialization) {
 
   AdapterType::write(response, data, data.end());
   BlocksResponse r2;
-  EXPECT_OUTCOME_TRUE(it_read, AdapterType::read(r2, data, data.begin()));
+  ASSERT_OUTCOME_SUCCESS(it_read, AdapterType::read(r2, data, data.begin()));
 
   ASSERT_EQ(it_read, data.end());
   for (size_t ix = 0; ix < response.blocks.size(); ++ix) {

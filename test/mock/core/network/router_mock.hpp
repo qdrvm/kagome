@@ -11,6 +11,8 @@
 #include <gmock/gmock.h>
 
 #include "mock/core/network/protocol_mocks.hpp"
+#include "mock/core/network/protocols/req_collation_protocol_mock.hpp"
+#include "mock/core/network/protocols/req_pov_protocol_mock.hpp"
 
 namespace kagome::network {
   /**

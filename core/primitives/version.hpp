@@ -11,7 +11,9 @@
 #include <vector>
 
 #include "common/blob.hpp"
-#include "scale/tie.hpp"
+#include "common/buffer.hpp"
+#include "crypto/hasher/hasher_impl.hpp"
+#include "scale/kagome_scale.hpp"
 
 namespace kagome::primitives {
   /**
@@ -35,6 +37,22 @@ namespace kagome::primitives {
    */
   using ApisVec = std::vector<Api>;
 
+  namespace detail {
+    inline std::optional<uint32_t> coreVersionFromApis(const ApisVec &apis) {
+      // We break DI principle here since we need to use hasher in decode scale
+      // operator overload and we cannot inject it there
+      static auto api_id =
+          crypto::HasherImpl{}.blake2b_64(common::Buffer::fromString("Core"));
+
+      auto result = std::ranges::find_if(
+          apis, [&](auto &api) { return api.first == api_id; });
+      if (result == apis.end()) {
+        return std::nullopt;
+      }
+      return result->second;
+    }
+  }  // namespace detail
+
   /**
    * Runtime version.
    * This should not be thought of as classic Semver (major/minor/tiny).
@@ -44,8 +62,6 @@ namespace kagome::primitives {
    * `impl_version` since they change the semantics of the runtime.
    */
   struct Version {
-    SCALE_TIE(8);
-
     /**
      * Identifies the different Substrate runtimes. There'll be at least
      * polkadot and node.
@@ -98,24 +114,53 @@ namespace kagome::primitives {
      * `Version.apis` is stored separately from other `Version` fields.
      * https://github.com/paritytech/polkadot-sdk/blob/aaf0443591b134a0da217d575161872796e75059/substrate/primitives/version/src/lib.rs#L242
      */
-    static outcome::result<Version> decode(
-        scale::ScaleDecoderStream &s, std::optional<uint32_t> core_version);
+    static outcome::result<Version> decodeConsideringToCoreVersion(
+        scale::Decoder &decoder, std::optional<uint32_t> core_version) {
+      Version v;
+      try {
+        decode(std::tie(v.spec_name,
+                        v.impl_name,
+                        v.authoring_version,
+                        v.spec_version,
+                        v.impl_version,
+                        v.apis),
+               decoder);
+      } catch (std::system_error &e) {
+        return outcome::failure(e.code());
+      }
 
-    friend scale::ScaleDecoderStream &operator>>(scale::ScaleDecoderStream &s,
-                                                 Version &v) {
+      if (not core_version) {
+        core_version = detail::coreVersionFromApis(v.apis);
+      }
+      // old Kusama runtimes do not contain transaction_version and
+      // state_version
+      // https://github.com/paritytech/substrate/blob/1b3ddae9dec6e7653b5d6ef0179df1af831f46f0/primitives/version/src/lib.rs#L238
+      if (core_version and *core_version >= 3) {
+        try {
+          decode(v.transaction_version, decoder);
+        } catch (std::system_error &e) {
+          return outcome::failure(e.code());
+        }
+      } else {
+        v.transaction_version = 1;
+      }
+      if (core_version and *core_version >= 4) {
+        try {
+          decode(v.state_version, decoder);
+        } catch (std::system_error &e) {
+          return outcome::failure(e.code());
+        }
+      } else {
+        v.state_version = 0;
+      }
+      return v;
+    }
+
+    friend void decode(Version &v, scale::Decoder &decoder) {
       // `.value()` may throw, `scale::decode` will catch that
-      v = Version::decode(s, std::nullopt).value();
-      return s;
+      v = Version::decodeConsideringToCoreVersion(decoder, std::nullopt)
+              .value();
     }
   };
-
-  namespace detail {
-    /**
-     * Returns the version of the `Core` runtime API.
-     * @param apis - List of supported API "features" along with their versions
-     * @return - version of `Core` API if listed
-     */
-    std::optional<uint32_t> coreVersionFromApis(const ApisVec &apis);
-  }  // namespace detail
 
 }  // namespace kagome::primitives

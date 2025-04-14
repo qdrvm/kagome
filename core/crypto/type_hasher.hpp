@@ -12,15 +12,72 @@
 #include "scale/kagome_scale.hpp"
 
 namespace kagome::crypto {
+  enum class EncodeForHashError : uint8_t {
+    ALREADY_FINALIZED = 1,
+  };
+}
+OUTCOME_HPP_DECLARE_ERROR(kagome::crypto, EncodeForHashError);
+inline OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, EncodeForHashError, e) {
+  switch (e) {
+    case EncodeForHashError::ALREADY_FINALIZED:
+      return "Calculation of hash has already finalized before";
+  }
+  return "Unknown error (EncodeForHashError)";
+}
+
+namespace kagome::crypto {
+
+  template <typename H>
+  class EncoderToHash final : public scale::Encoder {
+   public:
+    EncoderToHash(H &hasher){};
+
+    EncoderToHash() = default;
+    EncoderToHash(EncoderToHash &&) noexcept = delete;
+    EncoderToHash(const EncoderToHash &) = delete;
+    ~EncoderToHash() override = default;
+    EncoderToHash &operator=(EncoderToHash &&) noexcept = delete;
+    EncoderToHash &operator=(const EncoderToHash &) = delete;
+    /// @node Does not matter here. Implemented to follow interface
+    [[nodiscard]] constexpr bool isContinuousReceiver() const override {
+      return true;
+    }
+    void put(uint8_t byte) override {
+      [[unlikely]] if (finalized_) {
+        scale::raise(EncodeForHashError::ALREADY_FINALIZED);
+      }
+      hasher_.update({&byte, 1});
+    }
+    void write(std::span<const uint8_t> bytes) override {
+      [[unlikely]] if (finalized_) {
+        scale::raise(EncodeForHashError::ALREADY_FINALIZED);
+      }
+      hasher_.update(bytes);
+    }
+    void get_final(common::Blob<H::kOutlen> &out) & {
+      [[unlikely]] if (finalized_) {
+        scale::raise(EncodeForHashError::ALREADY_FINALIZED);
+      }
+      hasher_.get_final(out);
+    }
+
+   private:
+    [[deprecated("size() is not allowed in EncoderToHash")]]  //
+    [[noreturn]]                                              //
+    size_t
+    size() const override {
+      throw std::logic_error("size() is not allowed in EncoderToHash");
+    }
+
+    H hasher_;
+    bool finalized_ = false;
+  };
 
   template <typename H, typename... T>
   inline void hashTypes(H &hasher, common::Blob<H::kOutlen> &out, T &&...t) {
-    scale::encode(
-        [&](const uint8_t *const ptr, size_t count) {
-          hasher.update(std::span<const uint8_t>(ptr, count));
-        },
-        std::forward<T>(t)...);
-    hasher.get_final(out);
+    EncoderToHash<H> to_hasher{};
+    scale::encode(std::tie(std::forward<T>(t)...), to_hasher);
+    to_hasher.get_final(out);
   }
 
   template <typename T, size_t N, typename StreamHasherT>

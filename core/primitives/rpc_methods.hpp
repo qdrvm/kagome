@@ -9,8 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "scale/tie.hpp"
-
 namespace kagome::primitives {
 
   // The version number is just hardcoded in substrate implementation
@@ -21,8 +19,6 @@ namespace kagome::primitives {
    * A descriptor for a set of methods supported via RPC
    */
   struct RpcMethods {
-    SCALE_TIE(2);
-
     using Version = uint32_t;
     using Methods = std::vector<std::string>;
 

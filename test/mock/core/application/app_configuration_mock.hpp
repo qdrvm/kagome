@@ -199,6 +199,18 @@ namespace kagome::application {
                 precompileWasm,
                 (),
                 (const, override));
+
+    MOCK_METHOD(std::optional<std::string>,
+                getValidatorAddress,
+                (),
+                (const, override));
+
+    MOCK_METHOD(uint32_t, maxParallelDownloads, (), (const, override));
+
+    MOCK_METHOD(std::optional<BlockNumber>,
+                unsafeSyncTo,
+                (),
+                (const, override));
   };
 
 }  // namespace kagome::application

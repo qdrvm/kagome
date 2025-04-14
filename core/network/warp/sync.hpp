@@ -42,6 +42,9 @@ namespace kagome::storage {
 }  // namespace kagome::storage
 
 namespace kagome::network {
+  using consensus::grandpa::GrandpaJustification;
+  using primitives::BlockHeader;
+
   /**
    * Applies warp sync changes to other components.
    * Recovers when process was restarted.
@@ -49,8 +52,6 @@ namespace kagome::network {
   class WarpSync : public std::enable_shared_from_this<WarpSync> {
    public:
     struct Op {
-      SCALE_TIE(4);
-
       primitives::BlockInfo block_info;
       primitives::BlockHeader header;
       consensus::grandpa::GrandpaJustification justification;
@@ -85,6 +86,14 @@ namespace kagome::network {
      * Process response
      */
     void onResponse(const WarpSyncProof &res);
+
+    /**
+     * Sync to specified justification.
+     * Doesn't check justification chain.
+     */
+    void unsafe(const BlockHeader &header,
+                const GrandpaJustification &j,
+                consensus::grandpa::AuthoritySetId set);
 
    private:
     void applyInner(const Op &op);

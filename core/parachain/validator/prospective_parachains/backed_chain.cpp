@@ -11,7 +11,7 @@
 
 namespace kagome::parachain::fragment {
 
-  void BackedChain::push(FragmentNode candidate) {
+  void BackedChain::push(const FragmentNode &candidate) {
     candidates.emplace(candidate.candidate_hash);
     by_parent_head.insert_or_assign(candidate.parent_head_data_hash,
                                     candidate.candidate_hash);

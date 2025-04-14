@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+#include <qtils/test/outcome.hpp>
+
 #include "crypto/random_generator/boost_generator.hpp"
 #include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/authority_discovery/query_mock.hpp"
@@ -21,7 +23,6 @@
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::Buffer;
@@ -36,7 +37,6 @@ using kagome::network::CandidateHash;
 using kagome::network::CandidateReceipt;
 using kagome::network::Chunk;
 using kagome::network::PeerManagerMock;
-using kagome::network::PeerState;
 using kagome::network::RouterMock;
 using kagome::parachain::AvailabilityStoreMock;
 using kagome::parachain::CoreIndex;
@@ -108,9 +108,9 @@ class RecoveryTest : public testing::Test {
         .WillByDefault(Invoke([&] { return session; }));
     ON_CALL(*parachain_api, node_features(best_block.hash))
         .WillByDefault(Invoke([&] {
-          scale::BitVec bits;
-          bits.bits.resize(NodeFeatures::FirstUnassigned);
-          bits.bits[NodeFeatures::AvailabilityChunkMapping] = true;
+          scale::BitVector bits;
+          bits.resize(NodeFeatures::FirstUnassigned);
+          bits[NodeFeatures::AvailabilityChunkMapping] = true;
           return NodeFeatures{.bits = std::move(bits)};
         }));
 
@@ -180,9 +180,9 @@ class RecoveryTest : public testing::Test {
       ON_CALL(*query_audi, get(audi_id))
           .WillByDefault(Return(PeerInfo{.id = peer_id, .addresses = {}}));
       ON_CALL(*query_audi, get(peer_id)).WillByDefault(Return(audi_id));
-      ON_CALL(*peer_manager, getPeerState(peer_id)).WillByDefault(Invoke([&] {
-        return std::ref(peer_state);
-      }));
+      ON_CALL(*peer_manager, getReqChunkVersion(peer_id)).WillByDefault([] {
+        return kagome::network::ReqChunkVersion::V2;
+      });
     }
 
     callback = std::make_shared<testing::MockFunction<void(
@@ -205,7 +205,6 @@ class RecoveryTest : public testing::Test {
   BlockInfo best_block{};
   SessionIndex session_index;
   SessionInfo session{};
-  PeerState peer_state;
 
   std::queue<std::tuple<
       PeerId,
@@ -291,7 +290,6 @@ TEST_F(RecoveryTest, FullFromBakers_Success) {
 TEST_F(RecoveryTest, SystematicChunks_NoCore) {
   prepareAvailableData(2048);
 
-  peer_state.req_chunk_version = kagome::network::ReqChunkVersion::V2;
   std::optional<GroupIndex> backing_group{};  // nullopt to skip full recovery
   std::optional<CoreIndex> core = std::nullopt;
 
@@ -332,7 +330,6 @@ TEST_F(RecoveryTest, SystematicChunks_NoCore) {
 TEST_F(RecoveryTest, SystematicChunks_Success) {
   prepareAvailableData(2048);
 
-  peer_state.req_chunk_version = kagome::network::ReqChunkVersion::V2;
   std::optional<GroupIndex> backing_group{};  // nullopt to skip full recovery
   std::optional<CoreIndex> core = 0;
 
@@ -373,7 +370,6 @@ TEST_F(RecoveryTest, SystematicChunks_Success) {
 TEST_F(RecoveryTest, RegularChunks_Success) {
   prepareAvailableData(2048);
 
-  peer_state.req_chunk_version = kagome::network::ReqChunkVersion::V2;
   std::optional<GroupIndex> backing_group{};  // nullopt to skip full recovery
   std::optional<CoreIndex> core = 0;
 
@@ -418,7 +414,6 @@ TEST_F(RecoveryTest, RegularChunks_Success) {
 TEST_F(RecoveryTest, CorruptedChunk) {
   prepareAvailableData(2048);
 
-  peer_state.req_chunk_version = kagome::network::ReqChunkVersion::V2;
   std::optional<GroupIndex> backing_group = 0;
   std::optional<CoreIndex> core = 0;
 
@@ -465,7 +460,6 @@ TEST_F(RecoveryTest, CorruptedChunk) {
 TEST_F(RecoveryTest, InsufficientChunks) {
   prepareAvailableData(2048);
 
-  peer_state.req_chunk_version = kagome::network::ReqChunkVersion::V2;
   std::optional<GroupIndex> backing_group = 0;
   std::optional<CoreIndex> core = 0;
 
@@ -513,7 +507,6 @@ TEST_F(RecoveryTest, InsufficientChunks) {
 TEST_F(RecoveryTest, DelayedChunks) {
   prepareAvailableData(2048);
 
-  peer_state.req_chunk_version = kagome::network::ReqChunkVersion::V2;
   std::optional<GroupIndex> backing_group = 0;
   std::optional<CoreIndex> core = 0;
 
@@ -590,7 +583,6 @@ TEST_F(RecoveryTest, DelayedChunks) {
 TEST_F(RecoveryTest, DuplicateChunk) {
   prepareAvailableData(2048);
 
-  peer_state.req_chunk_version = kagome::network::ReqChunkVersion::V2;
   std::optional<GroupIndex> backing_group = 0;
   std::optional<CoreIndex> core = 0;
 
@@ -637,7 +629,6 @@ TEST_F(RecoveryTest, DuplicateChunk) {
 TEST_F(RecoveryTest, FailureHandling) {
   prepareAvailableData(2048);
 
-  peer_state.req_chunk_version = kagome::network::ReqChunkVersion::V2;
   std::optional<GroupIndex> backing_group = 0;
   std::optional<CoreIndex> core = 0;
 

@@ -8,12 +8,13 @@
 
 #include <memory>
 
+#include <qtils/test/outcome.hpp>
+
 #include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/write_batch_mock.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using kagome::common::Buffer;
 using kagome::common::BufferView;
@@ -51,7 +52,7 @@ TEST_F(TrieDbBackendTest, Put) {
       .InternalExpectedAt(
           "_file_name_", 40, "*storage", "put(prefixed, \"123\"_buf)")
       .WillOnce(Return(outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(backend->put("abc"_buf, "123"_buf));
+  EXPECT_OUTCOME_SUCCESS(backend->put("abc"_buf, "123"_buf));
 }
 
 /**
@@ -62,7 +63,7 @@ TEST_F(TrieDbBackendTest, Put) {
 TEST_F(TrieDbBackendTest, Get) {
   auto key = "abc"_buf;
   EXPECT_CALL(*storage, getMock(BufferView{key})).WillOnce(Return("123"_buf));
-  EXPECT_OUTCOME_TRUE_1(backend->get("abc"_buf));
+  EXPECT_OUTCOME_SUCCESS(backend->get("abc"_buf));
 }
 
 /**
@@ -86,8 +87,8 @@ TEST_F(TrieDbBackendTest, Batch) {
       .WillOnce(Return(testing::ByMove(std::move(batch_mock))));
 
   auto batch = backend->batch();
-  EXPECT_OUTCOME_TRUE_1(batch->put("abc"_buf, "123"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch->put("def"_buf, "123"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch->remove("abc"_buf));
-  EXPECT_OUTCOME_TRUE_1(batch->commit());
+  EXPECT_OUTCOME_SUCCESS(batch->put("abc"_buf, "123"_buf));
+  EXPECT_OUTCOME_SUCCESS(batch->put("def"_buf, "123"_buf));
+  EXPECT_OUTCOME_SUCCESS(batch->remove("abc"_buf));
+  EXPECT_OUTCOME_SUCCESS(batch->commit());
 }

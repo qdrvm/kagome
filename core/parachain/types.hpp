@@ -7,20 +7,19 @@
 #pragma once
 
 #include <boost/variant.hpp>
-#include <scale/bitvec.hpp>
 #include <tuple>
 #include <type_traits>
 #include <vector>
 
 #include "common/blob.hpp"
+#include "common/custom_equality.hpp"
 #include "common/visitor.hpp"
 #include "consensus/grandpa/common.hpp"
 #include "crypto/sr25519_types.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
-#include "primitives/compact_integer.hpp"
 #include "primitives/digest.hpp"
-#include "scale/tie.hpp"
+#include "scale/kagome_scale.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::parachain {
@@ -61,10 +60,9 @@ namespace kagome::parachain {
   template <typename D>
   struct Indexed {
     using Type = std::decay_t<D>;
-    SCALE_TIE(2)
-
     Type payload;
     ValidatorIndex ix;
+    bool operator==(const Indexed &) const = default;
   };
 
   /**
@@ -84,8 +82,6 @@ namespace kagome::parachain {
   }
 
   struct PvfCheckStatement {
-    SCALE_TIE(4);
-
     bool accept;
     ValidationCodeHash subject;
     SessionIndex session_index;
@@ -101,37 +97,33 @@ namespace kagome::parachain {
 namespace kagome::network {
 
   struct OutboundHorizontal {
-    SCALE_TIE(2);
-
     /// The para that will get this message in its downward message queue.
     parachain::ParachainId recipient;
-
     /// The message payload.
     common::Buffer data;
+    bool operator==(const OutboundHorizontal &other) const = default;
   };
 
   struct InboundDownwardMessage {
-    SCALE_TIE(2);
     /// The block number at which these messages were put into the downward
     /// message queue.
     parachain::BlockNumber sent_at;
     /// The actual downward message to processes.
     parachain::DownwardMessage msg;
+    bool operator==(const InboundDownwardMessage &other) const = default;
   };
 
   struct InboundHrmpMessage {
-    SCALE_TIE(2);
     /// The block number at which this message was sent.
     /// Specifically, it is the block number at which the candidate that sends
     /// this message was enacted.
     parachain::BlockNumber sent_at;
     /// The message payload.
     common::Buffer data;
+    bool operator==(const InboundHrmpMessage &other) const = default;
   };
 
   struct CandidateCommitments {
-    SCALE_TIE(6);
-
     std::vector<parachain::UpwardMessage> upward_msgs;  /// upward messages
     std::vector<OutboundHorizontal>
         outbound_hor_msgs;  /// outbound horizontal messages
@@ -144,14 +136,13 @@ namespace kagome::network {
         watermark;  /// watermark which specifies the relay chain block
     /// number up to which all inbound horizontal messages
     /// have been processed
+    bool operator==(const CandidateCommitments &other) const = default;
   };
 
   /**
    * Unique descriptor of a candidate receipt.
    */
   struct CandidateDescriptor {
-    SCALE_TIE(9);
-
     parachain::ParachainId para_id;  /// Parachain Id
     primitives::BlockHash
         relay_parent;  /// Hash of the relay chain block the candidate is
@@ -169,13 +160,15 @@ namespace kagome::network {
     primitives::BlockHash
         validation_code_hash;  /// Hash of the parachain Runtime.
 
+    bool operator==(const CandidateDescriptor &) const = default;
+
     common::Buffer signable() const {
       return common::Buffer{
-          scale::encode(relay_parent,
-                        para_id,
-                        persisted_data_hash,
-                        pov_hash,
-                        validation_code_hash)
+          scale::encode(std::tie(relay_parent,
+                                 para_id,
+                                 persisted_data_hash,
+                                 pov_hash,
+                                 validation_code_hash))
               .value(),
       };
     }
@@ -188,8 +181,6 @@ namespace kagome::network {
   struct CandidateReceipt {
     CandidateDescriptor descriptor;    /// Candidate descriptor
     parachain::Hash commitments_hash;  /// Hash of candidate commitments
-    mutable std::optional<parachain::Hash> hash_{};
-
     const parachain::Hash &hash(const crypto::Hasher &hasher) const {
       if (not hash_.has_value()) {
         hash_.emplace(hasher.blake2b_256(
@@ -198,12 +189,14 @@ namespace kagome::network {
       return hash_.value();
     }
 
-    SCALE_TIE_ONLY(descriptor, commitments_hash);
+    CUSTOM_EQUALITY(CandidateReceipt, descriptor, commitments_hash);
+    SCALE_CUSTOM_DECOMPOSITION(CandidateReceipt, descriptor, commitments_hash)
+
+   private:
+    mutable std::optional<parachain::Hash> hash_{};
   };
 
   struct CommittedCandidateReceipt {
-    SCALE_TIE(2);
-
     CandidateDescriptor descriptor;    /// Candidate descriptor
     CandidateCommitments commitments;  /// commitments retrieved from validation
     /// result and produced by the execution
@@ -216,6 +209,8 @@ namespace kagome::network {
           hasher.blake2b_256(scale::encode(commitments).value());
       return receipt;
     }
+
+    bool operator==(const CommittedCandidateReceipt &r) const = default;
   };
 
 }  // namespace kagome::network
@@ -229,7 +224,6 @@ namespace kagome::parachain::fragment {
   };
 
   struct CandidatePendingAvailability {
-    SCALE_TIE(5);
     /// The hash of the candidate.
     CandidateHash candidate_hash;
     /// The candidate's descriptor.
@@ -244,14 +238,12 @@ namespace kagome::parachain::fragment {
 
   /// Constraints on inbound HRMP channels.
   struct InboundHrmpLimitations {
-    SCALE_TIE(1);
     /// An exhaustive set of all valid watermarks, sorted ascending
     std::vector<BlockNumber> valid_watermarks;
   };
 
   /// Constraints on outbound HRMP channels.
   struct OutboundHrmpChannelLimitations {
-    SCALE_TIE(2);
     /// The maximum bytes that can be written to the channel.
     uint32_t bytes_remaining;
     /// The maximum messages that can be written to the channel.
@@ -259,11 +251,9 @@ namespace kagome::parachain::fragment {
   };
 
   struct HrmpWatermarkUpdateHead {
-    SCALE_TIE(1);
     BlockNumber v;
   };
   struct HrmpWatermarkUpdateTrunk {
-    SCALE_TIE(1);
     BlockNumber v;
   };
   using HrmpWatermarkUpdate =
@@ -273,7 +263,6 @@ namespace kagome::parachain::fragment {
   }
 
   struct OutboundHrmpChannelModification {
-    SCALE_TIE(2);
     /// The number of bytes submitted to the channel.
     uint32_t bytes_submitted;
     /// The number of messages submitted to the channel.
@@ -319,7 +308,6 @@ namespace kagome::parachain::fragment {
   };
 
   struct Constraints {
-    SCALE_TIE(14);
     enum class Error {
       DISALLOWED_HRMP_WATERMARK,
       NO_SUCH_HRMP_CHANNEL,
@@ -371,7 +359,6 @@ namespace kagome::parachain::fragment {
   };
 
   struct BackingState {
-    SCALE_TIE(2);
     /// The state-machine constraints of the parachain.
     Constraints constraints;
     /// The candidates pending availability. These should be ordered, i.e. they
@@ -379,21 +366,6 @@ namespace kagome::parachain::fragment {
     /// required parent of the constraints and each subsequent builds on top of
     /// the previous head-data.
     std::vector<CandidatePendingAvailability> pending_availability;
-  };
-
-  struct AsyncBackingParams {
-    SCALE_TIE(2);
-    /// The maximum number of para blocks between the para head in a relay
-    /// parent and a new candidate. Restricts nodes from building arbitrary long
-    /// chains and spamming other validators.
-    ///
-    /// When async backing is disabled, the only valid value is 0.
-    uint32_t max_candidate_depth;
-    /// How many ancestors of a relay parent are allowed to build candidates on
-    /// top of.
-    ///
-    /// When async backing is disabled, the only valid value is 0.
-    uint32_t allowed_ancestry_len;
   };
 
 }  // namespace kagome::parachain::fragment

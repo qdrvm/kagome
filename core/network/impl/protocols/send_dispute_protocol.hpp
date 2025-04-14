@@ -41,24 +41,24 @@ namespace kagome::network {
                                            ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
+    static constexpr std::chrono::seconds kRequestTimeout{12};
+
    public:
-    SendDisputeProtocolImpl(libp2p::Host &host,
+    SendDisputeProtocolImpl(RequestResponseInject inject,
                             const blockchain::GenesisBlockHash &genesis_hash,
                             std::shared_ptr<network::DisputeRequestObserver>
-                                dispute_request_observer,
-                            common::MainThreadPool &main_thread_pool)
+                                dispute_request_observer)
         : RequestResponseProtocolImpl<
-              DisputeRequest,
-              DisputeResponse,
-              ScaleMessageReadWriter>{kSendDisputeProtocolName,
-                                      host,
-                                      make_protocols(kSendDisputeProtocol,
-                                                     genesis_hash,
-                                                     kProtocolPrefixPolkadot),
-                                      log::createLogger(
-                                          kSendDisputeProtocolName,
-                                          "dispute_protocol"),
-                                      main_thread_pool},
+            DisputeRequest,
+            DisputeResponse,
+            ScaleMessageReadWriter>{kSendDisputeProtocolName,
+                                    std::move(inject),
+                                    make_protocols(kSendDisputeProtocol,
+                                                   genesis_hash,
+                                                   kProtocolPrefixPolkadot),
+                                    log::createLogger(kSendDisputeProtocolName,
+                                                      "dispute_protocol"),
+                                    kRequestTimeout},
           dispute_request_observer_{std::move(dispute_request_observer)} {
       BOOST_ASSERT(dispute_request_observer_);
     }

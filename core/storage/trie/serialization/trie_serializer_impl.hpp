@@ -6,10 +6,11 @@
 
 #pragma once
 
+#include "storage/trie/polkadot_trie/trie_node.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 
+#include "log/logger.hpp"
 #include "storage/buffer_map_types.hpp"
-
 namespace kagome::storage::trie {
   class Codec;
   class PolkadotTrieFactory;
@@ -29,8 +30,8 @@ namespace kagome::storage::trie {
 
     RootHash getEmptyRootHash() const override;
 
-    outcome::result<RootHash> storeTrie(PolkadotTrie &trie,
-                                        StateVersion version) override;
+    outcome::result<std::pair<RootHash, std::unique_ptr<BufferBatch>>>
+    storeTrie(PolkadotTrie &trie, StateVersion version) override;
 
     outcome::result<std::shared_ptr<PolkadotTrie>> retrieveTrie(
         RootHash db_key, OnNodeLoaded on_node_loaded) const override;
@@ -48,7 +49,7 @@ namespace kagome::storage::trie {
      * needed
      */
     outcome::result<PolkadotTrie::NodePtr> retrieveNode(
-        const std::shared_ptr<OpaqueTrieNode> &node,
+        const DummyNode &node,
         const OnNodeLoaded &on_node_loaded) const override;
 
     outcome::result<std::optional<common::Buffer>> retrieveValue(
@@ -61,11 +62,12 @@ namespace kagome::storage::trie {
      * descendants as well. Then replaces the node children to dummy nodes to
      * avoid memory waste
      */
-    outcome::result<RootHash> storeRootNode(TrieNode &node,
-                                            StateVersion version);
+    outcome::result<std::pair<RootHash, std::unique_ptr<BufferBatch>>>
+    storeRootNode(TrieNode &node, StateVersion version);
 
     std::shared_ptr<PolkadotTrieFactory> trie_factory_;
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieStorageBackend> node_backend_;
+    log::Logger logger_;
   };
 }  // namespace kagome::storage::trie

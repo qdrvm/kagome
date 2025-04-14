@@ -96,15 +96,18 @@ namespace kagome::parachain {
         while (true) {
           runtime::CoreState core;
           {
-            std::scoped_lock l{cores_queue_mutex};
+            std::scoped_lock lock{cores_queue_mutex};
             if (cores.empty()) {
               break;
             }
             core = cores.back();
             cores.pop_back();
           }
-          auto res = self->precompileModulesForCore(
-              stats, last_finalized, executor_params.context_params, ParachainCore{core});
+          auto res =
+              self->precompileModulesForCore(stats,
+                                             last_finalized,
+                                             executor_params.context_params,
+                                             ParachainCore{core});
           if (!res) {
             using namespace std::string_literals;
             auto id = get_para_id(core);
@@ -120,8 +123,8 @@ namespace kagome::parachain {
       threads.emplace_back(compilation_worker);
     }
 
-    for (auto &t : threads) {
-      t.join();
+    for (auto &thread : threads) {
+      thread.join();
     }
 
     auto end = std::chrono::steady_clock::now();

@@ -8,7 +8,7 @@
 
 #include <boost/variant.hpp>
 #include <libp2p/peer/peer_info.hpp>
-#include <scale/bitvec.hpp>
+#include <scale/bit_vector.hpp>
 #include <tuple>
 #include <type_traits>
 #include <vector>
@@ -21,9 +21,7 @@
 #include "parachain/types.hpp"
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
-#include "primitives/compact_integer.hpp"
 #include "primitives/digest.hpp"
-#include "scale/tie.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::runtime {
@@ -44,8 +42,6 @@ namespace kagome::network {
    * Advertisement of a collation.
    */
   struct CollatorAdvertisement {
-    SCALE_TIE(1);
-
     primitives::BlockHash relay_parent;  /// Hash of the parachain block.
   };
 
@@ -54,7 +50,6 @@ namespace kagome::network {
    * Declaration of the intent to advertise a collation.
    */
   struct CollatorDeclaration {
-    SCALE_TIE(3);
     CollatorPublicKey collator_id;  /// Public key of the collator.
     ParachainId para_id;            /// Parachain Id.
     Signature signature;  /// Signature of the collator using the PeerId of the
@@ -63,8 +58,6 @@ namespace kagome::network {
 
   /// A chunk of erasure-encoded block data.
   struct ErasureChunk {
-    SCALE_TIE(3);
-
     /// The erasure-encoded chunk of data belonging to the candidate block.
     common::Buffer chunk;
     /// The index of this erasure-encoded chunk of data.
@@ -77,11 +70,10 @@ namespace kagome::network {
    * PoV
    */
   struct ParachainBlock {
-    SCALE_TIE(1);
-
     /// Contains the necessary data to for parachain specific state transition
     /// logic
     common::Buffer payload;
+    bool operator==(const ParachainBlock &other) const = default;
   };
 
   using PoV = ParachainBlock;
@@ -89,8 +81,6 @@ namespace kagome::network {
   using ResponsePov = boost::variant<ParachainBlock, Empty>;
 
   struct CollationResponse {
-    SCALE_TIE(2);
-
     /// Candidate receipt
     CandidateReceipt receipt;
 
@@ -99,7 +89,6 @@ namespace kagome::network {
   };
 
   struct CollationWithParentHeadData {
-    SCALE_TIE(3);
     /// The receipt of the candidate.
     CandidateReceipt receipt;
 
@@ -119,8 +108,6 @@ namespace kagome::network {
    * specified relay chain block.
    */
   struct CollationFetchingRequest {
-    SCALE_TIE(2);
-
     Hash relay_parent;    /// Hash of the relay chain block
     ParachainId para_id;  /// Parachain Id.
   };
@@ -129,8 +116,6 @@ namespace kagome::network {
    * Sent by nodes to the clients who issued a collation fetching request.
    */
   struct CollationFetchingResponse {
-    SCALE_TIE(1);
-
     ReqCollationResponseData response_data;  /// Response data
   };
 
@@ -138,8 +123,6 @@ namespace kagome::network {
    * Sent by clients who want to retrieve chunks of a parachain candidate.
    */
   struct FetchChunkRequest {
-    SCALE_TIE(2);
-
     CandidateHash candidate;  /// parachain candidate hash
     ChunkIndex chunk_index;   /// index of the chunk
   };
@@ -149,8 +132,6 @@ namespace kagome::network {
    * Version 1 (obsolete)
    */
   struct ChunkObsolete {
-    SCALE_TIE(2);
-
     /// chunk data
     common::Buffer data;
     /// chunk proof
@@ -162,8 +143,6 @@ namespace kagome::network {
    * Sent by nodes to the clients who issued a chunk fetching request. Version 2
    */
   struct Chunk {
-    SCALE_TIE(3);
-
     /// chunk data
     common::Buffer data;
     /// chunk index
@@ -178,15 +157,12 @@ namespace kagome::network {
       boost::variant<runtime::AvailableData, Empty>;
 
   struct FetchStatementRequest {
-    SCALE_TIE(2);
     RelayHash relay_parent;
     CandidateHash candidate_hash;
   };
   using FetchStatementResponse = boost::variant<CommittedCandidateReceipt>;
 
   struct ValidityAttestation {
-    SCALE_TIE(2);
-
     struct Implicit : Empty {};
     struct Explicit : Empty {};
 
@@ -195,17 +171,15 @@ namespace kagome::network {
   };
 
   struct BackedCandidate {
-    SCALE_TIE(3);
-
     CommittedCandidateReceipt candidate;
     std::vector<ValidityAttestation> validity_votes;
-    scale::BitVec validator_indices;
+    scale::BitVector validator_indices;
 
     /// Creates `BackedCandidate` from args.
     static BackedCandidate from(
         CommittedCandidateReceipt candidate_,
         std::vector<ValidityAttestation> validity_votes_,
-        scale::BitVec validator_indices_,
+        scale::BitVector validator_indices_,
         std::optional<CoreIndex> core_index_) {
       BackedCandidate backed{
           .candidate = std::move(candidate_),
@@ -221,16 +195,16 @@ namespace kagome::network {
     }
 
     void inject_core_index(CoreIndex core_index) {
-      scale::BitVec core_index_to_inject;
-      core_index_to_inject.bits.assign(8, false);
+      scale::BitVector core_index_to_inject;
+      core_index_to_inject.assign(8, false);
 
       auto val = uint8_t(core_index);
       for (size_t i = 0; i < 8; ++i) {
-        core_index_to_inject.bits[i] = (val >> i) & 1;
+        core_index_to_inject[i] = (val >> i) & 1;
       }
-      validator_indices.bits.insert(validator_indices.bits.end(),
-                                    core_index_to_inject.bits.begin(),
-                                    core_index_to_inject.bits.end());
+      validator_indices.insert(validator_indices.end(),
+                               core_index_to_inject.begin(),
+                               core_index_to_inject.end());
     }
   };
 
@@ -244,10 +218,8 @@ namespace kagome::network {
                      >;
 
   struct Statement {
-    SCALE_TIE(1);
-    Statement() = default;
-    Statement(CandidateState &&c) : candidate_state{std::move(c)} {}
     CandidateState candidate_state{Unused<0>{}};
+    bool operator==(const Statement &) const = default;
   };
   using SignedStatement = IndexedAndSigned<Statement>;
 
@@ -256,26 +228,20 @@ namespace kagome::network {
   }
 
   struct Seconded {
-    SCALE_TIE(2);
-
     primitives::BlockHash relay_parent;  /// relay parent hash
     SignedStatement statement{};         /// statement of seconded candidate
   };
 
   /// Signed availability bitfield.
-  using SignedBitfield = parachain::IndexedAndSigned<scale::BitVec>;
+  using SignedBitfield = parachain::IndexedAndSigned<scale::BitVector>;
 
   struct BitfieldDistribution {
-    SCALE_TIE(2);
-
     primitives::BlockHash relay_parent;  /// Hash of the relay chain block
     SignedBitfield data;
   };
 
   /// Data that makes a statement unique.
   struct StatementMetadata {
-    SCALE_TIE(2);
-
     /// Relay parent this statement is relevant under.
     primitives::BlockHash relay_parent;
     /// Hash of candidate that was used create the `CommitedCandidateRecept`.
@@ -289,8 +255,6 @@ namespace kagome::network {
   /// The rust representation:
   /// https://github.com/paritytech/polkadot/blob/master/node/network/protocol/src/lib.rs#L160
   struct View {
-    SCALE_TIE(2);
-
     /// A bounded amount of chain heads.
     /// Invariant: Sorted.
     std::vector<primitives::BlockHash> heads_;
@@ -302,6 +266,7 @@ namespace kagome::network {
       const auto it = std::lower_bound(heads_.begin(), heads_.end(), hash);
       return it != heads_.end() && *it == hash;
     }
+    bool operator==(const View &other) const = default;
   };
 
   using LargeStatement = parachain::IndexedAndSigned<StatementMetadata>;
@@ -329,23 +294,17 @@ namespace kagome::network {
       parachain::approval::IndirectSignedApprovalVote;
 
   struct Assignment {
-    SCALE_TIE(2);
-
     kagome::parachain::approval::IndirectAssignmentCert
         indirect_assignment_cert;
     CandidateIndex candidate_ix;
   };
 
   struct Assignments {
-    SCALE_TIE(1);
-
     std::vector<Assignment> assignments;  /// Assignments for candidates in
                                           /// recent, unfinalized blocks.
   };
 
   struct Approvals {
-    SCALE_TIE(1);
-
     std::vector<IndirectSignedApprovalVote>
         approvals;  /// Approvals for candidates in some recent, unfinalized
                     /// block.
@@ -370,8 +329,6 @@ namespace kagome::network {
                                      Tagged<Signature, struct Explicit>>;  // 2
 
   struct CommittedCandidate {
-    SCALE_TIE(3);
-
     CommittedCandidateReceipt
         candidate_receipt;  /// Committed candidate receipt
     std::vector<Attestation>
@@ -380,22 +337,6 @@ namespace kagome::network {
     std::vector<bool> indices;  /// A bitfield of indices of the validators
                                 /// within the validator group
   };
-
-  //  using DisputeStatement =
-  //      boost::variant<Tagged<Empty, struct ExplicitStatement>,
-  //                     Tagged<common::Hash256, struct SecondedStatement>,
-  //                     Tagged<common::Hash256, struct ValidStatement>,
-  //                     Tagged<Empty, struct AprovalVote>>;
-  //
-  //  struct Vote {
-  //    SCALE_TIE(3);
-  //
-  //    uint32_t validator_index;  /// An unsigned 32-bit integer indicating the
-  //                               /// validator index in the authority set
-  //    Signature signature;       /// The signature of the validator
-  //    DisputeStatement
-  //        statement;  /// A varying datatype and implies the dispute statement
-  //  };
 
   /**
    * Validator -> Validator.
@@ -431,18 +372,17 @@ namespace kagome::network {
 
   /// ViewUpdate message. Maybe will be implemented later.
   struct ViewUpdate {
-    SCALE_TIE(1)
     View view;
   };
 
   /// Information about a core which is currently occupied.
   struct ScheduledCore {
-    SCALE_TIE(2)
-
     /// The ID of a para scheduled.
     ParachainId para_id;
     /// The collator required to author the block, if any.
     std::optional<CollatorId> collator;
+
+    auto operator<=>(const ScheduledCore &) const = default;
   };
 
   inline const CandidateHash &candidateHash(const CompactStatement &val) {
@@ -484,7 +424,7 @@ struct fmt::formatter<kagome::network::SignedBitfield> {
   auto format(const kagome::network::SignedBitfield &val,
               FormatContext &ctx) const -> decltype(ctx.out()) {
     char buf[8] = {0};
-    const auto &bits = val.payload.payload.bits;
+    const auto &bits = val.payload.payload;
 
     static_assert(sizeof(buf) > 1, "Because of last zero-terminate symbol");
     size_t ix = 0;

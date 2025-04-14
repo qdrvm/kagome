@@ -9,6 +9,7 @@
 #include "api/service/base_request.hpp"
 
 #include "account_next_index.hpp"
+#include "api/jrpc/value_converter.hpp"
 #include "api/service/system/system_api.hpp"
 #include "chain.hpp"
 #include "chain_type.hpp"
@@ -32,24 +33,21 @@ namespace kagome::api::system::request {
       jsonrpc::Value::Array result;
       result.reserve(peer_manager.activePeersNumber());
 
-      peer_manager.forEachPeer([&](auto &peer_id) {
-        auto status_opt = peer_manager.getPeerState(peer_id);
-        if (status_opt.has_value()) {
-          auto &status = status_opt.value();
+      peer_manager.enumeratePeerState(
+          [&](const libp2p::PeerId &peer_id, const network::PeerState &state) {
+            jsonrpc::Value::Struct peer;
+            peer.emplace("PeerId", peer_id.toBase58());
+            peer.emplace("roles",
+                         state.roles.isAuthority() ? "AUTHORITY"
+                         : state.roles.isFull()    ? "FULL"
+                         : state.roles.isLight()   ? "LIGHT"
+                                                   : "NONE");
+            peer.emplace("bestHash", makeValue(state.best_block.hash));
+            peer.emplace("bestNumber", makeValue(state.best_block.number));
 
-          jsonrpc::Value::Struct peer;
-          peer.emplace("PeerId", peer_id.toBase58());
-          peer.emplace("roles",
-                       status.get().roles.flags.authority ? "AUTHORITY"
-                       : status.get().roles.flags.full    ? "FULL"
-                       : status.get().roles.flags.light   ? "LIGHT"
-                                                          : "NONE");
-          peer.emplace("bestHash", makeValue(status.get().best_block.hash));
-          peer.emplace("bestNumber", makeValue(status.get().best_block.number));
-
-          result.emplace_back(std::move(peer));
-        }
-      });
+            result.emplace_back(std::move(peer));
+            return true;
+          });
 
       return result;
     }

@@ -18,36 +18,44 @@
 # )
 
 hunter_config(
+    qtils
+    VERSION 0.1.0
+    CMAKE_ARGS
+      FORMAT_ERROR_WITH_FULLTYPE=ON
+)
+
+hunter_config(
     backward-cpp
     URL https://github.com/bombela/backward-cpp/archive/refs/tags/v1.6.zip
     SHA1 93c4c843fc9308e62ac462459077d87dc6dd9885
-    CMAKE_ARGS BACKWARD_TESTS=OFF
+    CMAKE_ARGS
+      BACKWARD_TESTS=OFF
     KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
     rocksdb
     VERSION 9.6.1
-    CMAKE_ARGS WITH_GFLAGS=OFF USE_RTTI=ON
+    CMAKE_ARGS
+      WITH_GFLAGS=OFF
+      USE_RTTI=ON
 )
 
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       fmt
-      URL
-          https://github.com/fmtlib/fmt/archive/refs/tags/10.2.1.tar.gz
-      SHA1
-          d223964b782d2562d6722ffe67027204c6035453
+      URL  https://github.com/fmtlib/fmt/archive/refs/tags/10.2.1.tar.gz
+      SHA1 d223964b782d2562d6722ffe67027204c6035453
       CMAKE_ARGS
-          CMAKE_POSITION_INDEPENDENT_CODE=TRUE
+        CMAKE_POSITION_INDEPENDENT_CODE=TRUE
   )
 
   hunter_config(
       spdlog
       VERSION 1.12.0-p0
       CMAKE_ARGS
-          SPDLOG_BUILD_PIC=ON
-          SPDLOG_FMT_EXTERNAL=ON
+        SPDLOG_BUILD_PIC=ON
+        SPDLOG_FMT_EXTERNAL=ON
   )
 
   hunter_config(
@@ -88,8 +96,8 @@ endif ()
 
 hunter_config(
     kagome-crates
-    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/v1.0.3.tar.gz
-    SHA1 4207446a0e45764b814805821aa6860924b03cb7
+    URL  https://github.com/qdrvm/kagome-crates/archive/refs/tags/v1.0.5.tar.gz
+    SHA1 81248ac44aef8c6249f11de1b0e9b5be6b7c810d
 )
 
 hunter_config(
@@ -100,14 +108,35 @@ hunter_config(
 )
 
 hunter_config(
-    erasure_coding_crust
-    VERSION 0.0.9
-    KEEP_PACKAGE_SOURCES
+    libp2p
+    URL https://github.com/libp2p/cpp-libp2p/archive/refs/tags/v0.1.34.zip
+    SHA1 ad725b991c6845d0e5d9f42c639ea62fa05593ff
 )
 
 hunter_config(
-    soralog
-    VERSION 0.2.4
+    wabt
+    URL https://github.com/qdrvm/wabt/archive/2e9d30c4a67c1b884a8162bf3f3a5a8585cfdb94.tar.gz
+    SHA1 b5759660eb8ad3f074274341641e918f688868bd
     KEEP_PACKAGE_SOURCES
 )
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(BORINGSSL_C_FLAGS -Wno-stringop-overflow)
+  set(BORINGSSL_CXX_FLAGS -Wno-stringop-overflow)
+else()
+  set(BORINGSSL_C_FLAGS -Wno-error)
+  set(BORINGSSL_CXX_FLAGS -Wno-error)
+endif()
+
+hunter_config(
+    BoringSSL
+    VERSION qdrvm1
+    CMAKE_ARGS
+      CMAKE_C_FLAGS=${BORINGSSL_C_FLAGS}
+      CMAKE_CXX_FLAGS=${BORINGSSL_CXX_FLAGS}
+      CMAKE_THREAD_LIBS_INIT=-lpthread
+      CMAKE_HAVE_THREADS_LIBRARY=1
+      CMAKE_USE_WIN32_THREADS_INIT=0
+      CMAKE_USE_PTHREADS_INIT=1
+      THREADS_PREFER_PTHREAD_FLAG=ON
+)

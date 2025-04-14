@@ -83,12 +83,7 @@ namespace {
   const uint32_t def_ws_max_connections = 500;
   const uint16_t def_p2p_port = 30363;
   const bool def_dev_mode = false;
-  const kagome::network::Roles def_roles = [] {
-    kagome::network::Roles roles;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-    roles.flags.full = 1;
-    return roles;
-  }();
+  const kagome::network::Roles def_roles{kagome::network::Roles::Full};
   const auto def_sync_method = kagome::application::SyncMethod::Full;
   const auto def_runtime_exec_method =
       kagome::application::AppConfiguration::RuntimeExecutionMethod::Compile;
@@ -116,6 +111,7 @@ namespace {
 #endif
   const uint32_t def_db_cache_size = 1024;
   const uint32_t def_parachain_runtime_instance_cache_size = 100;
+  const uint32_t def_max_parallel_downloads = 5;
 
   /**
    * Generate once at run random node name if form of UUID
@@ -149,6 +145,9 @@ namespace {
     if (str == "Warp") {
       return SM::Warp;
     }
+    if (str == "Unsafe") {
+      return SM::Unsafe;
+    }
     if (str == "Auto") {
       return SM::Auto;
     }
@@ -177,11 +176,12 @@ namespace {
 
   static constexpr std::array<std::string_view,
                               1 + KAGOME_WASM_COMPILER_WASM_EDGE>
-      interpreters{
+      interpreters {
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-          "WasmEdge",
+    "WasmEdge",
 #endif
-          "Binaryen"};
+        "Binaryen"
+  };
 
   static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));
@@ -443,10 +443,7 @@ namespace kagome::application {
     bool validator_mode = false;
     load_bool(val, "validator", validator_mode);
     if (validator_mode) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      roles_.flags.full = 0;
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      roles_.flags.authority = 1;
+      roles_ = kagome::network::Roles::Authority;
     }
 
     load_ms(val, "log", logger_tuning_config_);
@@ -786,6 +783,7 @@ namespace kagome::application {
           "The global log level can be set with -l<level>.")
         ("validator", "Enable validator node")
         ("config-file,c", po::value<std::string>(), "Filepath to load configuration from.")
+        ("validator-address", po::value<std::string>(), "SS58 address, if provided, erapoints of current era for it will be sent as metric")
         ;
 
     po::options_description blockhain_desc("Blockchain options");
@@ -844,6 +842,9 @@ namespace kagome::application {
         ("rpc-methods", po::value<std::string>(), R"("auto" (default), "unsafe", "safe")")
         ("no-mdns", po::bool_switch(), "(unused, zombienet stub)")
         ("prometheus-external", po::bool_switch(), "alias for \"--prometheus-host 0.0.0.0\"")
+        ("max-parallel-downloads", po::value<uint32_t>()->default_value(def_max_parallel_downloads),
+          "Maximum number of peers from which to ask for the same blocks in parallel."
+          "This allows downloading announced blocks from multiple peers. Decrease to save traffic and risk increased latency.")
         ;
 
     po::options_description development_desc("Additional options");
@@ -871,6 +872,7 @@ namespace kagome::application {
         ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
         ("precompile-relay", po::bool_switch(), "precompile relay")
         ("precompile-para", po::value<decltype(PrecompileWasmConfig::parachains)>()->multitoken(), "paths to wasm or chainspec files")
+        ("unsafe-sync-to", po::value<BlockNumber>(), "unsafe sync to specified or earlier block")
         ;
     po::options_description benchmark_desc("Benchmark options");
     benchmark_desc.add_options()
@@ -996,10 +998,7 @@ namespace kagome::application {
           }
         }
 
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        roles_.flags.full = 0;
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        roles_.flags.authority = 1;
+        roles_ = network::Roles::Authority;
         p2p_port_ = def_p2p_port;
         rpc_host_ = def_rpc_host;
         openmetrics_http_host_ = def_openmetrics_http_host;
@@ -1020,10 +1019,7 @@ namespace kagome::application {
         node_name_ = name;
         dev_mnemonic_phrase_ = dev;
         // if dev account is passed node is considered as validator
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        roles_.flags.full = 0;
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-        roles_.flags.authority = 1;
+        roles_ = network::Roles::Authority;
       }
     }
 
@@ -1051,10 +1047,7 @@ namespace kagome::application {
     });
 
     if (vm.end() != vm.find("validator")) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      roles_.flags.full = 0;
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
-      roles_.flags.authority = 1;
+      roles_ = network::Roles::Authority;
     }
 
     find_argument<std::string>(
@@ -1605,6 +1598,19 @@ namespace kagome::application {
       runtime_exec_method_ = RuntimeExecutionMethod::Compile;
     }
 
+    if (auto validator_address =
+            find_argument<std::string>(vm, "validator-address")) {
+      validator_address_ss58_ = *validator_address;
+    }
+
+    max_parallel_downloads_ =
+        find_argument<uint32_t>(vm, "max-parallel-downloads")
+            .value_or(def_max_parallel_downloads);
+
+    unsafe_sync_to_ = find_argument<BlockNumber>(vm, "unsafe-sync-to");
+    if (unsafe_sync_to_) {
+      sync_method_ = SyncMethod::Unsafe;
+    }
     // if something wrong with config print help message
     if (not validate_config()) {
       std::cout << desc << '\n';

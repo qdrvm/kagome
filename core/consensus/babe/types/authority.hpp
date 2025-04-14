@@ -16,10 +16,9 @@ namespace kagome::consensus::babe {
   using AuthorityWeight = uint64_t;
 
   struct Authority {
-    SCALE_TIE(2);
-
     AuthorityId id;
     AuthorityWeight weight{};
+    bool operator==(const Authority &other) const = default;
   };
 
   using Authorities = common::SLVector<Authority, kMaxValidatorsNumber>;

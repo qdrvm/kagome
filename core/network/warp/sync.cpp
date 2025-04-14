@@ -21,6 +21,9 @@
 #include "utils/safe_object.hpp"
 
 namespace kagome::network {
+  using consensus::grandpa::HasAuthoritySetChange;
+  using consensus::grandpa::IsBlockFinalized;
+
   WarpSync::WarpSync(
       application::AppStateManager &app_state_manager,
       std::shared_ptr<crypto::Hasher> hasher,
@@ -88,9 +91,10 @@ namespace kagome::network {
       if (not change.scheduled and i != res.proofs.size() - 1) {
         return;
       }
-      auto authorities =
-          authority_manager_->authorities(block_tree_->getLastFinalized(), true)
-              .value();
+      auto authorities = authority_manager_
+                             ->authorities(block_tree_->getLastFinalized(),
+                                           IsBlockFinalized(true))
+                             .value();
 
       auto result =
           grandpa_->verifyJustification(fragment.justification, *authorities);
@@ -113,6 +117,22 @@ namespace kagome::network {
     if (not res.is_finished) {
       done_ = false;
     }
+  }
+
+  void WarpSync::unsafe(const BlockHeader &header,
+                        const GrandpaJustification &j,
+                        consensus::grandpa::AuthoritySetId set) {
+    HasAuthoritySetChange{header}.scheduled.value();
+    SL_INFO(
+        log_, "unsafe sync completed, block {}, set {}", header.number, set);
+    Op op{
+        .block_info = header.blockInfo(),
+        .header = header,
+        .justification = j,
+        .authorities = {.id = set, .authorities = {}},
+    };
+    db_->put(storage::kWarpSyncOp, scale::encode(op).value()).value();
+    applyInner(op);
   }
 
   void WarpSync::applyInner(const Op &op) {

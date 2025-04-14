@@ -171,9 +171,9 @@ namespace kagome::network {
       chain_sub_.onFinalize(
           [weak{weak_from_this()}](const primitives::BlockHeader &block) {
             if (auto self = weak.lock()) {
-              auto r = self->cacheMore(block.number);
-              if (not r) {
-                SL_WARN(self->log_, "cacheMore error {}", r.error());
+              auto res = self->cacheMore(block.number);
+              if (not res) {
+                SL_WARN(self->log_, "cacheMore error {}", res.error());
               }
             }
           });

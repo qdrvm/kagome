@@ -60,10 +60,10 @@ def get_version(repo_url, version=None):
         write_file(repo_short_name, version)
     else:
         all_tags = list_all_tags_for_remote_git_repo(repo_url)
-        print(f"All tags received: {all_tags}")
+        #print(f"All tags received: {all_tags}")
 
         release_tags_stable = select_release_tags_stable(all_tags)
-        print(f"Filtered stable release tags: {release_tags_stable}")
+        #print(f"Filtered stable release tags: {release_tags_stable}")
         last_tag_stable = get_last_tag_stable(release_tags_stable)
         print(f"Latest stable release: {last_tag_stable}")
 

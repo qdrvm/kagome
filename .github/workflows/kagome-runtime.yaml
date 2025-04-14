@@ -1,0 +1,149 @@
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
+name: Kagome Runtime
+
+on:
+  workflow_dispatch:
+    inputs:
+      zombie_tester_latest_tag:
+        description: '(In) Zombie Tester tag'
+        default: '20250323' # Or 'latest'
+      kagome_for_runtime_gen_deb_package_version:
+        description: '(In) Custom Kagome for runtime gen deb package version'
+        default: '20250323-9b65150-Release'
+        required: false
+        type: 'string'
+  
+  workflow_call:
+    inputs:
+      zombie_tester_latest_tag:
+        description: 'Zombie Tester tag'
+        type: 'string'
+        default: '20250323'
+        required: true
+      kagome_for_runtime_gen_deb_package_version:
+        description: 'Custom Kagome for runtime gen deb package version'
+        type: string
+        default: '20250323-9b65150-Release'
+        required: false
+    secrets:
+      GCP_SERVICE_ACCOUNT_KEY:
+        required: true
+      GCP_REGISTRY:
+        required: true
+      GCP_PROJECT:
+        required: true
+
+env:
+  DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+  TESTER_LATEST_TAG: ${{ inputs.zombie_tester_latest_tag || github.event.inputs.zombie_tester_latest_tag || '20250323' }} # Or 'latest'
+  KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH: ${{ inputs.kagome_for_runtime_gen_deb_package_version || github.event.inputs.kagome_for_runtime_gen_deb_package_version || '20250323-9b65150-Release' }}
+  
+  GIT_REF_NAME: ${{ github.ref_name }}
+  IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
+  GIT_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+
+jobs:
+  build_kagome_runtime:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            os: ubuntu-24.04
+          - platform: linux/arm64
+            os: ubuntu-24.04-arm
+    timeout-minutes: 60
+    env:
+      PLATFORM: ${{ matrix.platform }}
+      ARCHITECTURE: ${{ endsWith(matrix.platform, 'arm64') && 'arm64' || 'amd64' }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Print Git ref info"
+        run: |
+          echo "GitHub ref: ${{ github.ref }}"
+          echo "GitHub ref_name: ${{ github.ref_name }}"
+          echo "IS_MAIN_OR_TAG: ${{ env.IS_MAIN_OR_TAG }}"
+          echo "GIT_REF_NAME: ${{ env.GIT_REF_NAME }}"
+          echo "GIT_TAG: ${{ env.GIT_TAG }}"
+          echo "KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH: ${{ env.KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH }}"
+          echo "TESTER_LATEST_TAG: ${{ env.TESTER_LATEST_TAG }}"
+
+      - name : "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+      - name: "Build Runtime Cache"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          make configure
+          make runtime_cache
+
+      - name: "Push Runtime Cache"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          make upload_apt_package_runtime
+
+      - name: "Versions Info"
+        if: always()
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          echo "Package name and version: kagome-dev-runtime ${KAGOME_FOR_RUNTIME_GEN_DEB_PACKAGE_VERSION_NO_ARCH}"
+
+  runtime_manifest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    needs: [build_kagome_runtime]
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Print Git ref info"
+        run: |
+          echo "GitHub ref: ${{ github.ref }}"
+          echo "GitHub ref_name: ${{ github.ref_name }}"
+          echo "IS_MAIN_OR_TAG: ${{ env.IS_MAIN_OR_TAG }}"
+          echo "GIT_REF_NAME: ${{ env.GIT_REF_NAME }}"
+          echo "GIT_TAG: ${{ env.GIT_TAG }}"
+
+      - name : "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Get commit version"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make configure
+
+      - name: "Show runtime packages information"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          echo "Checking available runtime packages in repository..."
+          gcloud artifacts packages list --repository=kagome-apt --location=europe-north1 | grep "runtime" || echo "No runtime packages found"
+          
+          echo "Latest runtime package version:"
+          gcloud artifacts versions list --package=kagome-dev-runtime --repository=kagome-apt --location=europe-north1 --sort-by=~create_time --limit=1 || echo "No versions found"

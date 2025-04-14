@@ -6,15 +6,15 @@
 
 #include <gtest/gtest.h>
 
-#include "gmock/gmock.h"
-#include "mock/core/runtime/memory_provider_mock.hpp"
-#include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "parachain/pvf/pvf_impl.hpp"
+#include <gmock/gmock.h>
+
+#include <qtils/test/outcome.hpp>
 
 #include "crypto/hasher/hasher_impl.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/consensus/timeline/timeline_mock.hpp"
 #include "mock/core/crypto/sr25519_provider_mock.hpp"
 #include "mock/core/host_api/host_api_mock.hpp"
 #include "mock/core/runtime/instrument_wasm.hpp"
@@ -26,13 +26,15 @@
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/span.hpp"
 #include "parachain/pvf/pool.hpp"
+#include "parachain/pvf/pvf_impl.hpp"
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/types.hpp"
+#include "primitives/event_types.hpp"
 #include "runtime/executor.hpp"
-#include "runtime/instance_environment.hpp"
+#include "scale/kagome_scale.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/prepare_loggers.hpp"
 
 using kagome::TestThreadPool;
@@ -49,17 +51,20 @@ using kagome::parachain::PvfImpl;
 using kagome::parachain::PvfPool;
 using kagome::parachain::PvfThreadPool;
 using kagome::parachain::ValidationResult;
+using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::runtime::MemoryLimits;
 using kagome::runtime::ModuleFactoryMock;
 using kagome::runtime::ModuleInstanceMock;
 using kagome::runtime::ModuleMock;
 using kagome::runtime::NoopWasmInstrumenter;
+using kagome::scale::encode;
 namespace application = kagome::application;
 namespace crypto = kagome::crypto;
 namespace runtime = kagome::runtime;
 namespace blockchain = kagome::blockchain;
 namespace primitives = kagome::primitives;
 namespace parachain = kagome::parachain;
+namespace consensus = kagome::consensus;
 
 using namespace kagome::common::literals;
 
@@ -70,8 +75,11 @@ using testing::ReturnRef;
 
 class PvfTest : public testing::Test {
  public:
-  void SetUp() {
+  static void SetUpTestCase() {
     testutil::prepareLoggers();
+  }
+
+  void SetUp() {
     EXPECT_CALL(*app_config_, usePvfSubprocess()).WillRepeatedly(Return(false));
     EXPECT_CALL(*app_config_, parachainRuntimeInstanceCacheSize())
         .WillRepeatedly(Return(2));
@@ -98,6 +106,9 @@ class PvfTest : public testing::Test {
 
     auto app_state_manager = std::make_shared<StartApp>();
 
+    auto timeline = std::make_shared<consensus::TimelineMock>();
+    auto state_sub_engine = std::make_shared<SyncStateSubscriptionEngine>();
+
     PvfThreadPool pvf_thread{TestThreadPool{io_}};
     pvf_ = std::make_shared<PvfImpl>(
         PvfImpl::Config{
@@ -116,7 +127,9 @@ class PvfTest : public testing::Test {
         ctx_factory,
         pvf_thread,
         app_state_manager,
-        app_config_);
+        app_config_,
+        state_sub_engine,
+        testutil::sptr_to_lazy<const consensus::Timeline>(timeline));
     app_state_manager->start();
   }
 
@@ -132,8 +145,7 @@ class PvfTest : public testing::Test {
       ON_CALL(*module, instantiate()).WillByDefault([=] {
         auto instance = std::make_shared<ModuleInstanceMock>();
         ON_CALL(*instance, callExportFunction(_, "validate_block", _))
-            .WillByDefault(
-                Return(Buffer{scale::encode(ValidationResult{}).value()}));
+            .WillByDefault(Return(Buffer{encode(ValidationResult{}).value()}));
         ON_CALL(*instance, getCodeHash()).WillByDefault(Return(code_hash));
         EXPECT_CALL(*instance, stateless())
             .WillRepeatedly(Return(outcome::success()));
@@ -148,14 +160,13 @@ class PvfTest : public testing::Test {
       Pvf::CandidateReceipt receipt;
       receipt.descriptor.validation_code_hash = code_hash;
       receipt.descriptor.para_id = para;
-      receipt.descriptor.pov_hash =
-          hasher_->blake2b_256(scale::encode(pov).value());
+      receipt.descriptor.pov_hash = hasher_->blake2b_256(encode(pov).value());
       receipt.descriptor.para_head_hash = hasher_->blake2b_256(pvd.parent_head);
-      receipt.commitments_hash = hasher_->blake2b_256(
-          scale::encode(Pvf::CandidateCommitments{}).value());
+      receipt.commitments_hash =
+          hasher_->blake2b_256(encode(Pvf::CandidateCommitments{}).value());
       testing::MockFunction<void(outcome::result<Pvf::Result>)> cb;
       EXPECT_CALL(cb, Call(_)).WillOnce([](outcome::result<Pvf::Result> r) {
-        EXPECT_OUTCOME_TRUE_1(r);
+        EXPECT_OUTCOME_SUCCESS(r);
       });
       pvf_->pvfValidate(pvd,
                         pov,

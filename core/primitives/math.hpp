@@ -24,14 +24,14 @@ namespace kagome::math {
    * @return closest multiple
    */
   template <size_t X, typename T>
-  inline constexpr T roundUp(T t) {
+  constexpr T roundUp(T t) {
     static_assert((X & (X - 1)) == 0, "Must be POW 2!");
     static_assert(X != 0, "Must not be 0!");
     return (t + (X - 1)) & ~(X - 1);
   }
 
   template <typename T>
-  inline constexpr T sat_sub_unsigned(T x, T y) {
+  constexpr T sat_sub_unsigned(T x, T y) {
     static_assert(std::numeric_limits<T>::is_integer
                       && !std::numeric_limits<T>::is_signed,
                   "Value must be integer and unsigned!");

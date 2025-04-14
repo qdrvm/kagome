@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "application/app_state_manager.hpp"
 #include "injector/inject.hpp"
 #include "utils/thread_pool.hpp"
 #include "utils/watchdog.hpp"

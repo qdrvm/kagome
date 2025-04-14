@@ -19,7 +19,8 @@
 
 // TODO(turuslan): https://github.com/qdrvm/kagome/issues/1989
 #define PROTOCOL_V1(protocol) \
-  {}
+  {                           \
+  }
 
 namespace kagome::network {
   // https://github.com/paritytech/polkadot-sdk/blob/edf79aa972bcf2e043e18065a9bb860ecdbd1a6e/polkadot/node/network/protocol/src/peer_set.rs#L118-L119
@@ -82,9 +83,8 @@ namespace kagome::network {
                                       bool out,
                                       Buffer &&handshake) {
     TRY_FALSE(scale::decode<Roles>(handshake));
-    auto state = peer_manager_->createDefaultPeerState(peer_id);
-    state.value().get().collation_version =
-        collation_versions_.at(protocol_group);
+    peer_manager_->setCollationVersion(peer_id,
+                                       collation_versions_.at(protocol_group));
     if (out) {
       notifications_->write(
           peer_id, protocol_group, encodeView(peer_view_->getMyViewStripped()));
@@ -124,10 +124,10 @@ namespace kagome::network {
   }
 
   template <typename Types, typename Observer>
-  bool ParachainProtocol::onMessage(const PeerId &peer_id,
-                                    size_t protocol_group,
-                                    Buffer &&message_raw,
-                                    Observer &observer) {
+  bool ParachainProtocol::onMessageImpl(const PeerId &peer_id,
+                                        size_t protocol_group,
+                                        Buffer &&message_raw,
+                                        Observer &observer) {
     return Types::with(protocol_group, [&]<typename M>() {
       auto message = TRY_FALSE(scale::decode<WireMessage<M>>(message_raw));
       if (auto *view = boost::get<ViewUpdate>(&message)) {
@@ -156,7 +156,7 @@ namespace kagome::network {
   bool CollationProtocol::onMessage(const PeerId &peer_id,
                                     size_t protocol_group,
                                     Buffer &&message_raw) {
-    return ParachainProtocol::onMessage<CollationTypes>(
+    return ParachainProtocol::onMessageImpl<CollationTypes>(
         peer_id, protocol_group, std::move(message_raw), *observer_);
   }
 
@@ -189,7 +189,7 @@ namespace kagome::network {
   bool ValidationProtocol::onMessage(const PeerId &peer_id,
                                      size_t protocol_group,
                                      Buffer &&message_raw) {
-    return ParachainProtocol::onMessage<ValidationTypes>(
+    return ParachainProtocol::onMessageImpl<ValidationTypes>(
         peer_id, protocol_group, std::move(message_raw), *observer_);
   }
 

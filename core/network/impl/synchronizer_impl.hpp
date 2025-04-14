@@ -11,7 +11,8 @@
 #include <atomic>
 #include <mutex>
 #include <queue>
-#include <unordered_set>
+#include <random>
+#include <set>
 
 #include <libp2p/basic/scheduler.hpp>
 
@@ -29,6 +30,7 @@
 #include "primitives/event_types.hpp"
 #include "storage/spaced_storage.hpp"
 #include "telemetry/service.hpp"
+#include "utils/safe_object.hpp"
 
 namespace kagome {
   class PoolHandlerReady;
@@ -72,6 +74,8 @@ namespace kagome::storage::trie_pruner {
 }
 
 namespace kagome::network {
+  using primitives::BlockInfo;
+
   class SynchronizerImpl
       : public Synchronizer,
         public std::enable_shared_from_this<SynchronizerImpl> {
@@ -93,7 +97,7 @@ namespace kagome::network {
         kMinPreloadedBlockAmount * 2;
 
     static constexpr std::chrono::milliseconds kRecentnessDuration =
-        std::chrono::seconds(60);
+        std::chrono::minutes{2};
 
     enum class Error {
       SHUTTING_DOWN = 1,
@@ -168,6 +172,8 @@ namespace kagome::network {
     void syncState(const libp2p::peer::PeerId &peer_id,
                    const primitives::BlockInfo &block,
                    SyncResultHandler &&handler) override;
+
+    void unsafe(PeerId peer_id, BlockNumber max, UnsafeCb cb) override;
 
     /// Finds best common block with peer {@param peer_id} in provided interval.
     /// It is using tail-recursive algorithm, till {@param hint} is
@@ -246,6 +252,9 @@ namespace kagome::network {
 
     void randomWarp();
 
+    void setHangTimer();
+    void onHangTimer();
+
     log::Logger log_;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
@@ -264,6 +273,8 @@ namespace kagome::network {
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
     std::shared_ptr<PoolHandlerReady> main_pool_handler_;
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
+    uint32_t max_parallel_downloads_;
+    std::mt19937 random_gen_;
 
     application::SyncMethod sync_method_;
 
@@ -312,13 +323,17 @@ namespace kagome::network {
 
     std::atomic_bool asking_blocks_portion_in_progress_ = false;
     std::set<libp2p::peer::PeerId> busy_peers_;
-    std::unordered_set<primitives::BlockInfo> load_blocks_;
+    std::unordered_map<primitives::BlockInfo, uint32_t> load_blocks_;
+    std::shared_mutex load_blocks_mutex_;
     std::pair<primitives::BlockNumber, std::chrono::milliseconds>
         load_blocks_max_{};
 
     std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,
              const char *>
         recent_requests_;
+    SafeObject<std::set<BlockInfo>> executing_blocks_;
+
+    libp2p::Cancel hang_timer_;
   };
 
 }  // namespace kagome::network

@@ -27,15 +27,9 @@ namespace kagome::storage::trie_pruner {
       return outcome::success();
     }
 
-    outcome::result<void> pruneFinalized(
-        const primitives::BlockHeader &state) override {
-      return outcome::success();
-    }
-
-    outcome::result<void> pruneDiscarded(
-        const primitives::BlockHeader &state) override {
-      return outcome::success();
-    }
+    void schedulePrune(const trie::RootHash &,
+                       const primitives::BlockInfo &,
+                       PruneReason) override {}
 
     outcome::result<void> recoverState(
         const blockchain::BlockTree &block_tree) override {

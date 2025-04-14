@@ -30,6 +30,8 @@ namespace kagome::network {
   class SendDisputeProtocol;
   class BeefyProtocol;
   class FetchAttestedCandidateProtocol;
+  class BeefyJustificationProtocol;
+  class LightProtocol;
   using Ping = libp2p::protocol::Ping;
 }  // namespace kagome::network
 

@@ -151,7 +151,8 @@ namespace kagome::dispute {
       std::shared_ptr<network::Router> router,
       std::shared_ptr<network::PeerView> peer_view,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      LazySPtr<consensus::Timeline> timeline)
+      LazySPtr<consensus::Timeline> timeline,
+      std::shared_ptr<network::ReputationRepository> reputation_repository)
       : log_(log::createLogger("DisputeCoordinator", "dispute")),
         system_clock_(system_clock),
         steady_clock_(steady_clock),
@@ -170,6 +171,7 @@ namespace kagome::dispute {
         peer_view_(std::move(peer_view)),
         chain_sub_{std::move(chain_sub_engine)},
         timeline_(timeline),
+        reputation_repository_(std::move(reputation_repository)),
         main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
         dispute_thread_handler_{poolHandlerReadyMake(
             this, app_state_manager, dispute_thread_pool, log_)},
@@ -194,6 +196,7 @@ namespace kagome::dispute {
     BOOST_ASSERT(dispute_thread_handler_ != nullptr);
     BOOST_ASSERT(router_ != nullptr);
     BOOST_ASSERT(peer_view_ != nullptr);
+    BOOST_ASSERT(reputation_repository_ != nullptr);
 
     // Register metrics
     metrics_registry_->registerCounterFamily(disputesTotalMetricName,
@@ -932,8 +935,8 @@ namespace kagome::dispute {
     });
 
     // Cleanup obsolete senders
-    sending_disputes_.remove_if([&](const auto &x) {
-      const auto &candidate_hash = std::get<0>(x);
+    sending_disputes_.remove_if([&](const auto &item) {
+      const auto &candidate_hash = std::get<0>(item);
       return candidates.find(candidate_hash) == candidates.end();
     });
 
@@ -2037,7 +2040,7 @@ namespace kagome::dispute {
 
     auto res = handle_import_statements(candidate_receipt, session, statements);
     if (res.has_error()) {
-      return cb(res.as_failure());
+      return cb(DisputeProcessingError::InvalidImport);
     }
 
     [[maybe_unused]] auto &valid_import = res.value();
@@ -2065,9 +2068,10 @@ namespace kagome::dispute {
     std::ranges::transform(
         recent_disputes,
         std::back_inserter(output),
-        [](const auto &p)
+        [](const auto &item)
             -> std::tuple<SessionIndex, CandidateHash, DisputeStatus> {
-          return {std::get<0>(p.first), std::get<1>(p.first), p.second};
+          return {
+              std::get<0>(item.first), std::get<1>(item.first), item.second};
         });
 
     cb(std::move(output));
@@ -2288,19 +2292,22 @@ namespace kagome::dispute {
     auto authority_id_opt = authority_discovery_->get(peer_id);
     if (not authority_id_opt.has_value()) {
       SL_DEBUG(log_, "Peer {} is not validator - dropping message", peer_id);
-      // TODO(xDimon): reputation_changes: vec![COST_NOT_A_VALIDATOR],
+      // Apply reputation penalty for not being a validator
+      reputation_repository_->change(
+          peer_id, network::reputation::cost::NOT_A_VALIDATOR_DISPUTE);
       return sendDisputeResponse(DisputeProcessingError::NotAValidator,
                                  std::move(cb));
     }
     auto &authority_id = authority_id_opt.value();
 
     /// Push an incoming request for a given authority.
-
     auto &queue = queues_[authority_id];
 
     if (queue.size() >= kPeerQueueCapacity) {
       SL_DEBUG(log_, "Peer {} hit the rate limit - dropping message", peer_id);
-      // TODO(xDimon): reputation_changes: vec![COST_APPARENT_FLOOD],
+      // Apply reputation penalty for exceeding rate limit
+      reputation_repository_->change(
+          peer_id, network::reputation::cost::APPARENT_FLOOD_DISPUTE);
       return sendDisputeResponse(DisputeProcessingError::AuthorityFlooding,
                                  std::move(cb));
     }
@@ -2327,13 +2334,14 @@ namespace kagome::dispute {
 
   void DisputeCoordinatorImpl::make_task_for_next_portion() {
     if (not rate_limit_timer_.has_value()) {
-      rate_limit_timer_ =
-          scheduler_->scheduleWithHandle([wp{weak_from_this()}]() {
+      rate_limit_timer_ = scheduler_->scheduleWithHandle(
+          [wp{weak_from_this()}]() {
             if (auto self = wp.lock()) {
               BOOST_ASSERT(self->dispute_thread_handler_->isInCurrentThread());
               self->process_portion_incoming_disputes();
             }
-          });
+          },
+          std::chrono::milliseconds(kReceiveRateLimitMs));
     }
   }
 
@@ -2380,6 +2388,13 @@ namespace kagome::dispute {
       auto res = start_import_or_batch(peer, request, std::move(cb));
       if (res.has_error()) {
         SL_ERROR(log_, "Can't start import or batch: {}", res.error());
+
+        // Apply INVALID_IMPORT_DISPUTE reputation penalty if appropriate
+        if (res.error().value()
+            == static_cast<int>(DisputeProcessingError::InvalidImport)) {
+          reputation_repository_->change(
+              peer, network::reputation::cost::INVALID_IMPORT_DISPUTE);
+        }
       }
     }
   }
@@ -2408,8 +2423,10 @@ namespace kagome::dispute {
     {
       const auto &[validator_index, signature, kind] = unchecked_valid_vote;
       if (validator_index >= session_info.validators.size()) {
-        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return DisputeMessageCreationError::InvalidValidatorIndex;
+        // Apply reputation penalty for invalid validator index
+        reputation_repository_->change(
+            peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
+        return DisputeProcessingError::InvalidSignature;
       }
       auto validator_public = session_info.validators[validator_index];
 
@@ -2426,12 +2443,16 @@ namespace kagome::dispute {
           signature, payload, validator_public);
 
       if (validation_res.has_error()) {
-        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return SignatureValidationError::InvalidSignature;
+        // Apply reputation penalty for invalid signature
+        reputation_repository_->change(
+            peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
+        return DisputeProcessingError::InvalidSignature;
       }
       if (not validation_res.value()) {
-        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return SignatureValidationError::InvalidSignature;
+        // Apply reputation penalty for invalid signature
+        reputation_repository_->change(
+            peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
+        return DisputeProcessingError::InvalidSignature;
       }
 
       checked_valid_vote.payload = {
@@ -2448,8 +2469,10 @@ namespace kagome::dispute {
     {
       const auto &[validator_index, signature, kind] = unchecked_invalid_vote;
       if (validator_index >= session_info.validators.size()) {
-        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return DisputeMessageCreationError::InvalidValidatorIndex;
+        // Apply reputation penalty for invalid validator index
+        reputation_repository_->change(
+            peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
+        return DisputeProcessingError::InvalidSignature;
       }
       auto validator_public = session_info.validators[validator_index];
 
@@ -2466,12 +2489,16 @@ namespace kagome::dispute {
           signature, payload, validator_public);
 
       if (validation_res.has_error()) {
-        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return SignatureValidationError::InvalidSignature;
+        // Apply reputation penalty for invalid signature
+        reputation_repository_->change(
+            peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
+        return DisputeProcessingError::InvalidSignature;
       }
       if (not validation_res.value()) {
-        // TODO(xDimon): reputation_changes: vec![COST_INVALID_SIGNATURE],
-        return SignatureValidationError::InvalidSignature;
+        // Apply reputation penalty for invalid signature
+        reputation_repository_->change(
+            peer, network::reputation::cost::INVALID_SIGNATURE_DISPUTE);
+        return DisputeProcessingError::InvalidSignature;
       }
 
       checked_invalid_vote.payload = {

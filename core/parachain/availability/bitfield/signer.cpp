@@ -35,9 +35,9 @@ namespace kagome::parachain {
     chain_sub_.onHead(
         [weak{weak_from_this()}](const primitives::BlockHeader &header) {
           if (auto self = weak.lock()) {
-            auto r = self->onBlock(header.hash());
-            if (r.has_error()) {
-              SL_DEBUG(self->logger_, "onBlock error {}", r.error());
+            auto res = self->onBlock(header.hash());
+            if (res.has_error()) {
+              SL_DEBUG(self->logger_, "onBlock error {}", res.error());
             }
           }
         });
@@ -49,13 +49,13 @@ namespace kagome::parachain {
     broadcast_ = std::move(callback);
   }
 
-  outcome::result<void> BitfieldSigner::sign(const ValidatorSigner &signer,
+  outcome::result<void> BitfieldSigner::sign(const IValidatorSigner &signer,
                                              const Candidates &candidates) {
     const BlockHash &relay_parent = signer.relayParent();
-    scale::BitVec bitfield;
-    bitfield.bits.reserve(candidates.size());
+    scale::BitVector bitfield;
+    bitfield.reserve(candidates.size());
     for (auto &candidate : candidates) {
-      bitfield.bits.push_back(
+      bitfield.push_back(
           candidate && store_->hasChunk(*candidate, signer.validatorIndex()));
     }
 
@@ -70,10 +70,12 @@ namespace kagome::parachain {
   }
 
   outcome::result<void> BitfieldSigner::onBlock(const BlockHash &relay_parent) {
-    OUTCOME_TRY(signer, signer_factory_->at(relay_parent));
-    if (not signer.has_value()) {
+    OUTCOME_TRY(opt_signer, signer_factory_->at(relay_parent));
+    if (!opt_signer) {
       return outcome::success();
     }
+    auto &signer = *opt_signer;
+
     Candidates candidates;
     OUTCOME_TRY(cores, parachain_api_->availability_cores(relay_parent));
     OUTCOME_TRY(
@@ -108,12 +110,12 @@ namespace kagome::parachain {
 
     scheduler_->schedule(
         [weak{weak_from_this()},
-         signer{std::move(*signer)},
+         signer{std::move(signer)},
          candidates{std::move(candidates)}]() mutable {
           if (auto self = weak.lock()) {
-            auto r = self->sign(signer, candidates);
-            if (r.has_error()) {
-              SL_WARN(self->logger_, "sign error {}", r.error());
+            auto res = self->sign(*signer, candidates);
+            if (res.has_error()) {
+              SL_WARN(self->logger_, "sign error {}", res.error());
             }
           }
         },

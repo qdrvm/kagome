@@ -107,7 +107,7 @@ namespace kagome::parachain::statement_distribution {
       std::shared_ptr<parachain::ValidatorSignerFactory> sf,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       StatementDistributionThreadPool &statements_distribution_thread_pool,
-      std::shared_ptr<ProspectiveParachains> _prospective_parachains,
+      std::shared_ptr<IProspectiveParachains> _prospective_parachains,
       std::shared_ptr<runtime::ParachainHost> _parachain_host,
       std::shared_ptr<blockchain::BlockTree> _block_tree,
       std::shared_ptr<authority_discovery::Query> _query_audi,
@@ -119,6 +119,7 @@ namespace kagome::parachain::statement_distribution {
       std::shared_ptr<network::PeerView> _peer_view,
       LazySPtr<consensus::SlotsUtil> _slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> _babe_config_repo,
+      std::shared_ptr<network::ReputationRepository> _reputation_repository,
       primitives::events::PeerSubscriptionEnginePtr _peer_events_engine)
       : implicit_view(_prospective_parachains,
                       _parachain_host,
@@ -143,6 +144,7 @@ namespace kagome::parachain::statement_distribution {
         crypto_provider(std::move(_crypto_provider)),
         peer_view(_peer_view),
         block_tree(_block_tree),
+        reputation_repository(std::move(_reputation_repository)),
         slots_util(_slots_util),
         babe_config_repo(std::move(_babe_config_repo)),
         peer_state_sub(
@@ -167,6 +169,7 @@ namespace kagome::parachain::statement_distribution {
     BOOST_ASSERT(peer_view);
     BOOST_ASSERT(block_tree);
     BOOST_ASSERT(babe_config_repo);
+    BOOST_ASSERT(reputation_repository);
     BOOST_ASSERT(peer_state_sub);
     BOOST_ASSERT(my_view_sub);
     BOOST_ASSERT(remote_view_sub);
@@ -233,7 +236,7 @@ namespace kagome::parachain::statement_distribution {
     peers.erase(peer);
   }
 
-  outcome::result<std::optional<ValidatorSigner>>
+  outcome::result<std::optional<std::shared_ptr<IValidatorSigner>>>
   StatementDistribution::is_parachain_validator(
       const primitives::BlockHash &relay_parent) const {
     BOOST_ASSERT(main_pool_handler->isInCurrentThread());
@@ -270,7 +273,7 @@ namespace kagome::parachain::statement_distribution {
       if (auto res = is_parachain_validator(new_relay_parent);
           res.has_value()) {
         validator_index = utils::map(res.value(), [](const auto &signer) {
-          return signer.validatorIndex();
+          return signer->validatorIndex();
         });
       }
 
@@ -432,7 +435,15 @@ namespace kagome::parachain::statement_distribution {
       OUTCOME_TRY(maybe_claim_queue, parachain_host->claim_queue(relay_parent));
       TransposedClaimQueue transposed_claim_queue;
       if (maybe_claim_queue) {
-        transposed_claim_queue = transposeClaimQueue(*maybe_claim_queue);
+        auto scheduling_lookahead_result =
+            parachain_host->scheduling_lookahead(relay_parent);
+        uint32_t scheduling_lookahead =
+            scheduling_lookahead_result.has_value()
+                ? scheduling_lookahead_result.value()
+                : parachain::DEFAULT_SCHEDULING_LOOKAHEAD;
+
+        transposed_claim_queue =
+            transposeClaimQueue(*maybe_claim_queue, scheduling_lookahead);
       }
       OUTCOME_TRY(node_features, parachain_host->node_features(relay_parent));
 
@@ -647,11 +658,9 @@ namespace kagome::parachain::statement_distribution {
     auto relay_parent_state =
         tryGetStateByRelayParent(confirmed->get().relay_parent());
     if (!relay_parent_state) {
-      SL_ERROR(logger,
-               "Fetch attested candidate failed. Out of view. (candidate "
-               "hash={}, relay parent={})",
-               request.candidate_hash,
-               confirmed->get().relay_parent());
+      // Apply reputation penalty for unavailable relay parent state
+      reputation_repository->change(
+          peer_id, network::reputation::cost::OUT_OF_SCOPE_MESSAGE);
       return;
     }
 
@@ -681,13 +690,17 @@ namespace kagome::parachain::statement_distribution {
 
     const auto group_size = group->size();
     auto &mask = request.mask;
-    if (mask.seconded_in_group.bits.size() != group_size
-        || mask.validated_in_group.bits.size() != group_size) {
+    if (mask.seconded_in_group.size() != group_size
+        || mask.validated_in_group.size() != group_size) {
       SL_ERROR(logger,
                "Fetch attested candidate failed. Incorrect bitfield size. "
                "(candidate hash={}, relay parent={})",
                request.candidate_hash,
                confirmed->get().relay_parent());
+
+      // Apply reputation penalty for incorrect bitfield size
+      reputation_repository->change(
+          peer_id, network::reputation::cost::INVALID_REQUEST_BITFIELD_SIZE);
       return;
     }
 
@@ -733,13 +746,18 @@ namespace kagome::parachain::statement_distribution {
                "hash={}, relay parent={})",
                request.candidate_hash,
                confirmed->get().relay_parent());
+
+      // Apply reputation penalty for unauthorized request
+      reputation_repository->change(
+          peer_id, network::reputation::cost::UNEXPECTED_REQUEST);
       return;
     }
 
-    auto init_with_not = [](scale::BitVec &dst, const scale::BitVec &src) {
-      dst.bits.reserve(src.bits.size());
-      for (const auto i : src.bits) {
-        dst.bits.emplace_back(!i);
+    auto init_with_not = [](scale::BitVector &dst,
+                            const scale::BitVector &src) {
+      dst.reserve(src.size());
+      for (const auto i : src) {
+        dst.push_back(!i);
       }
     };
 
@@ -761,10 +779,10 @@ namespace kagome::parachain::statement_distribution {
               visit_in_place(
                   getPayload(statement).inner_value,
                   [&](const network::vstaging::SecondedCandidateHash &) {
-                    sent_filter.seconded_in_group.bits[ix] = true;
+                    sent_filter.seconded_in_group[ix] = true;
                   },
                   [&](const network::vstaging::ValidCandidateHash &) {
-                    sent_filter.validated_in_group.bits[ix] = true;
+                    sent_filter.validated_in_group[ix] = true;
                   },
                   [&](const auto &) {});
             }
@@ -894,24 +912,22 @@ namespace kagome::parachain::statement_distribution {
       const auto v = (*group)[i];
       if (relay_parent_state.statement_store.seconded_count(v)
           >= seconding_limit) {
-        unwanted_mask.seconded_in_group.bits[i] = true;
+        unwanted_mask.seconded_in_group[i] = true;
       }
     }
 
     auto disabled_mask = relay_parent_state.disabled_bitmask(*group);
-    if (disabled_mask.bits.size()
-        > unwanted_mask.seconded_in_group.bits.size()) {
-      unwanted_mask.seconded_in_group.bits.resize(disabled_mask.bits.size());
+    if (disabled_mask.size() > unwanted_mask.seconded_in_group.size()) {
+      unwanted_mask.seconded_in_group.resize(disabled_mask.size());
     }
-    if (disabled_mask.bits.size()
-        > unwanted_mask.validated_in_group.bits.size()) {
-      unwanted_mask.validated_in_group.bits.resize(disabled_mask.bits.size());
+    if (disabled_mask.size() > unwanted_mask.validated_in_group.size()) {
+      unwanted_mask.validated_in_group.resize(disabled_mask.size());
     }
-    for (size_t i = 0; i < disabled_mask.bits.size(); ++i) {
-      unwanted_mask.seconded_in_group.bits[i] =
-          unwanted_mask.seconded_in_group.bits[i] || disabled_mask.bits[i];
-      unwanted_mask.validated_in_group.bits[i] =
-          unwanted_mask.validated_in_group.bits[i] || disabled_mask.bits[i];
+    for (size_t i = 0; i < disabled_mask.size(); ++i) {
+      unwanted_mask.seconded_in_group[i] =
+          unwanted_mask.seconded_in_group[i] || disabled_mask[i];
+      unwanted_mask.validated_in_group[i] =
+          unwanted_mask.validated_in_group[i] || disabled_mask[i];
     }
 
     SL_TRACE(logger,
@@ -1525,32 +1541,51 @@ namespace kagome::parachain::statement_distribution {
 
     auto relay_parent_state = tryGetStateByRelayParent(relay_parent);
     if (!relay_parent_state) {
+      // Apply reputation penalty for unavailable relay parent state
+      reputation_repository->change(
+          peer_id,
+          network::reputation::cost::UNEXPECTED_MANIFEST_MISSING_KNOWLEDGE);
       return {};
     }
 
     if (!relay_parent_state->get().local_validator) {
+      // Apply reputation penalty - we're not a validator
+      reputation_repository->change(
+          peer_id, network::reputation::cost::NOT_A_VALIDATOR_DISPUTE);
       return {};
     }
 
     auto expected_groups =
         utils::get(relay_parent_state->get().groups_per_para, para_id);
     if (!expected_groups) {
+      // Apply reputation penalty for wrong parachain
+      reputation_repository->change(
+          peer_id, network::reputation::cost::INVALID_IMPORT_DISPUTE);
       return {};
     }
 
     if (std::ranges::find(expected_groups->get(),
                           manifest_summary.claimed_group_index)
         == expected_groups->get().end()) {
+      // Apply reputation penalty for wrong group index
+      reputation_repository->change(
+          peer_id, network::reputation::cost::INVALID_IMPORT_DISPUTE);
       return {};
     }
 
     if (!relay_parent_state->get().per_session_state->value().grid_view) {
+      // Apply reputation penalty for missing grid view
+      reputation_repository->change(
+          peer_id, network::reputation::cost::INVALID_IMPORT_DISPUTE);
       return {};
     }
 
     const auto &grid_topology =
         *relay_parent_state->get().per_session_state->value().grid_view;
     if (manifest_summary.claimed_group_index >= grid_topology.size()) {
+      // Apply reputation penalty for invalid group index in topology
+      reputation_repository->change(
+          peer_id, network::reputation::cost::INVALID_IMPORT_DISPUTE);
       return {};
     }
 
@@ -2430,7 +2465,7 @@ namespace kagome::parachain::statement_distribution {
              relay_parent,
              statement);
 
-    auto per_relay_parent = tryGetStateByRelayParent(relay_parent);
+    TRY_GET_OR_RET(per_relay_parent, tryGetStateByRelayParent(relay_parent));
     const CandidateHash candidate_hash =
         candidateHashFrom(getPayload(statement), hasher);
 

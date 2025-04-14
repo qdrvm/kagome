@@ -17,6 +17,7 @@
 #include "application/chain_spec.hpp"
 #include "common/main_thread_pool.hpp"
 #include "log/logger.hpp"
+#include "network/impl/protocols/request_response_protocol.hpp"
 #include "network/peer_manager.hpp"
 #include "network/protocols/req_pov_protocol.hpp"
 #include "utils/non_copyable.hpp"
@@ -27,18 +28,18 @@ namespace kagome::blockchain {
 
 namespace kagome::network {
 
-  struct ReqPovProtocolImpl;
-
-  class ReqPovProtocol final : public IReqPovProtocol, NonCopyable, NonMovable {
+  struct ReqPovProtocolInner;
+  class ReqPovProtocolImpl final : public ReqPovProtocol,
+                                   NonCopyable,
+                                   NonMovable {
    public:
-    ReqPovProtocol() = delete;
-    ~ReqPovProtocol() override = default;
+    ReqPovProtocolImpl() = delete;
+    ~ReqPovProtocolImpl() override = default;
 
-    ReqPovProtocol(libp2p::Host &host,
-                   const application::ChainSpec &chain_spec,
-                   const blockchain::GenesisBlockHash &genesis_hash,
-                   std::shared_ptr<ReqPovObserver> observer,
-                   common::MainThreadPool &main_thread_pool);
+    ReqPovProtocolImpl(RequestResponseInject inject,
+                       const application::ChainSpec &chain_spec,
+                       const blockchain::GenesisBlockHash &genesis_hash,
+                       std::shared_ptr<ReqPovObserver> observer);
 
     const Protocol &protocolName() const override;
 
@@ -56,7 +57,7 @@ namespace kagome::network {
                      &&response_handler) override;
 
    private:
-    std::shared_ptr<ReqPovProtocolImpl> impl_;
+    std::shared_ptr<ReqPovProtocolInner> impl_;
   };
 
 }  // namespace kagome::network

@@ -27,6 +27,9 @@ namespace kagome::application {
     /// Download blocks with significant justifications
     Warp,
 
+    /// Download only one recent block with justification
+    Unsafe,
+
     /// Select fastest mode by time estimation
     Auto
   };

@@ -20,12 +20,14 @@ namespace kagome::parachain {
   ParachainObserverImpl::ParachainObserverImpl(
       std::shared_ptr<network::PeerManager> pm,
       std::shared_ptr<crypto::Sr25519Provider> crypto_provider,
-      std::shared_ptr<parachain::ParachainProcessorImpl> processor,
+      std::shared_ptr<parachain::ParachainProcessor> processor,
+      std::shared_ptr<parachain::ParachainStorage> parachain_storage,
       std::shared_ptr<network::PeerView> peer_view,
       std::shared_ptr<parachain::ApprovalDistribution> approval_distribution)
       : pm_{std::move(pm)},
         crypto_provider_{std::move(crypto_provider)},
         processor_{std::move(processor)},
+        parachain_storage_(std::move(parachain_storage)),
         peer_view_(std::move(peer_view)),
         approval_distribution_(std::move(approval_distribution)),
         logger_(log::createLogger("ParachainObserver", "parachain")) {
@@ -34,6 +36,7 @@ namespace kagome::parachain {
     BOOST_ASSERT_MSG(processor_, "Parachain processor must be initialized!");
     BOOST_ASSERT(peer_view_);
     BOOST_ASSERT(approval_distribution_);
+    BOOST_ASSERT(parachain_storage_);
   }
 
   void ParachainObserverImpl::onIncomingMessage(
@@ -106,7 +109,7 @@ namespace kagome::parachain {
   outcome::result<network::ResponsePov> ParachainObserverImpl::OnPovRequest(
       network::RequestPov request) {
     // NOLINTNEXTLINE(hicpp-move-const-arg,performance-move-const-arg)
-    return processor_->getPov(std::move(request));
+    return parachain_storage_->getPov(std::move(request));
   }
 
   outcome::result<network::CollationFetchingResponse>
@@ -136,15 +139,15 @@ namespace kagome::parachain {
                                         network::CollatorPublicKey pubkey,
                                         network::ParachainId para_id,
                                         network::Signature signature) {
-    const auto peer_state = pm_->getPeerState(peer_id);
-    if (!peer_state) {
+    const auto is_collating_opt = pm_->isCollating(peer_id);
+    if (not is_collating_opt.has_value()) {
       logger_->warn("Received collation declaration from unknown peer {}:{}",
                     peer_id,
                     para_id);
       return;
     }
 
-    if (peer_state->get().collator_state) {
+    if (is_collating_opt.value()) {
       logger_->warn("Peer is in collating state {}:{}", peer_id, para_id);
       // TODO(iceseer): https://github.com/soramitsu/kagome/issues/1513 check
       // that peer is not in collating state, or is in collating state with

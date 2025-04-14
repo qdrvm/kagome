@@ -14,9 +14,8 @@
 
 namespace kagome::runtime::wavm {
 
-  log::Logger logger;
-
   static thread_local std::stack<std::shared_ptr<ModuleInstance>>
+      // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
       global_instances;
 
   void pushBorrowedRuntimeInstance(
@@ -82,9 +81,6 @@ namespace kagome::runtime::wavm {
   }
 
   void registerHostApiMethods(IntrinsicModule &module) {
-    if (logger == nullptr) {
-      logger = log::createLogger("Host API wrappers", "wavm");
-    }
 #define REGISTER_HOST_METHOD(Ret, name, ...)                                \
   registerMethod<&host_api::HostApi::name, Ret __VA_OPT__(, ) __VA_ARGS__>( \
       module, #name);

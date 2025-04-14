@@ -14,28 +14,29 @@
 
 namespace kagome::network {
 
-  struct ReqPovProtocolImpl
+  struct ReqPovProtocolInner
       : RequestResponseProtocolImpl<RequestPov,
                                     ResponsePov,
                                     ScaleMessageReadWriter>,
         NonCopyable,
         NonMovable {
-    ReqPovProtocolImpl(libp2p::Host &host,
-                       const application::ChainSpec &chain_spec,
-                       const blockchain::GenesisBlockHash &genesis_hash,
-                       std::shared_ptr<ReqPovObserver> observer,
-                       common::MainThreadPool &main_thread_pool)
+    static constexpr std::chrono::seconds kRequestTimeout{2};
+
+    ReqPovProtocolInner(RequestResponseInject &&inject,
+                        const application::ChainSpec &chain_spec,
+                        const blockchain::GenesisBlockHash &genesis_hash,
+                        std::shared_ptr<ReqPovObserver> observer)
         : RequestResponseProtocolImpl<
               RequestPov,
               ResponsePov,
               ScaleMessageReadWriter>{kReqPovProtocolName,
-                                      host,
+                                      std::move(inject),
                                       make_protocols(kReqPovProtocol,
                                                      genesis_hash,
                                                      kProtocolPrefixPolkadot),
                                       log::createLogger(kReqPovProtocolName,
                                                         "req_pov_protocol"),
-                                      main_thread_pool},
+                                      kRequestTimeout},
           observer_{std::move(observer)} {}
 
    protected:
@@ -69,39 +70,36 @@ namespace kagome::network {
     std::shared_ptr<ReqPovObserver> observer_;
   };
 
-  ReqPovProtocol::ReqPovProtocol(
-      libp2p::Host &host,
+  ReqPovProtocolImpl::ReqPovProtocolImpl(
+      RequestResponseInject inject,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
-      std::shared_ptr<ReqPovObserver> observer,
-      common::MainThreadPool &main_thread_pool)
-      : impl_{std::make_shared<ReqPovProtocolImpl>(host,
-                                                   chain_spec,
-                                                   genesis_hash,
-                                                   std::move(observer),
-                                                   main_thread_pool)} {}
+      std::shared_ptr<ReqPovObserver> observer)
+      : impl_{std::make_shared<ReqPovProtocolInner>(
+            std::move(inject), chain_spec, genesis_hash, std::move(observer))} {
+  }
 
-  const Protocol &ReqPovProtocol::protocolName() const {
+  const Protocol &ReqPovProtocolImpl::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");
     return impl_->protocolName();
   }
 
-  bool ReqPovProtocol::start() {
+  bool ReqPovProtocolImpl::start() {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");
     return impl_->start();
   }
 
-  void ReqPovProtocol::onIncomingStream(std::shared_ptr<Stream>) {
+  void ReqPovProtocolImpl::onIncomingStream(std::shared_ptr<Stream>) {
     BOOST_ASSERT(!"Must not be called!");
   }
 
-  void ReqPovProtocol::newOutgoingStream(
+  void ReqPovProtocolImpl::newOutgoingStream(
       const PeerId &,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&) {
     BOOST_ASSERT(!"Must not be called!");
   }
 
-  void ReqPovProtocol::request(
+  void ReqPovProtocolImpl::request(
       const PeerId &peer_id,
       RequestPov request,
       std::function<void(outcome::result<ResponsePov>)> &&response_handler) {

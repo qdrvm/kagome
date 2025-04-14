@@ -12,6 +12,7 @@ extern "C" {
 
 #include "crypto/common.hpp"
 #include "crypto/hasher.hpp"
+#include "scale/kagome_scale.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(kagome::crypto, Ed25519ProviderImpl::Error, e) {
   using E = kagome::crypto::Ed25519ProviderImpl::Error;
@@ -40,7 +41,8 @@ namespace kagome::crypto {
         return Error::SOFT_JUNCTION_NOT_SUPPORTED;
       }
       auto hash = hasher_->blake2b_256(
-          scale::encode("Ed25519HDKD"_bytes, seed.unsafeBytes(), junction.cc)
+          scale::encode(
+              std::tuple("Ed25519HDKD"_bytes, seed.unsafeBytes(), junction.cc))
               .value());
       seed = Ed25519Seed::from(SecureCleanGuard(hash));
     }

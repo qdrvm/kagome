@@ -11,39 +11,41 @@ on:
   #    - cron: '0 2 * * 0' # Every Sunday at 2:00 AM
   workflow_dispatch:
     inputs:
-      kagome_image_rebuild:
-        description: 'Rebuild Kagome Builder image'
-        required: false
-        default: 'false'
-        type: 'boolean'
-      runtime_cache_rebuild:
-        description: 'Rebuild Kagome Runtime cache'
-        required: false
-        default: 'false'
-        type: 'boolean'
       builder_latest_tag:
-        description: 'Custom Kagome Builder tag'
-        default: 'latest'
-        required: false
-        type: 'string'
-      zombie_tester_latest_tag:
-        description: 'Custom Zombie Tester tag'
+        description: '(Out) Kagome Builder tag (latest or date "20251201")'
         default: 'latest'
         required: false
         type: 'string'
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
   BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || 'latest' }}
-  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
 
 jobs:
   build_kagome_builder:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            os: ubuntu-24.04
+          - platform: linux/arm64
+            os: ubuntu-24.04-arm
     timeout-minutes: 60
+    env:
+      PLATFORM: ${{ matrix.platform }}
     steps:
-      - name: Checkout repository
+      - name: "Checkout repository"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Fetch master branch"
+        if: github.ref != 'refs/heads/master' && env.skip != 'true'
+        run: |
+          git fetch origin master:master || true
 
       - name : "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -58,53 +60,44 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Check if image tag exists"
-        id: check-tag
+      - name: "Versions Info"
+        if: always()
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
-          IMAGE_TAG=$(make builder_image_tag)
-          KAGOME_BUILDER_IMAGE=${DOCKER_REGISTRY_PATH}kagome_builder_deb:${IMAGE_TAG}
-          TAG_EXISTS=$(docker manifest inspect ${KAGOME_BUILDER_IMAGE} > /dev/null 2>&1 && echo "true" || echo "false")
-          echo "exists=$TAG_EXISTS" >> $GITHUB_ENV
-          echo "kagome_builder=$KAGOME_BUILDER_IMAGE" >> $GITHUB_OUTPUT
+          make configure
+          make kagome_builder_image_info
 
       - name: "Build Kagome Builder"
         working-directory: ./housekeeping/docker/kagome-dev
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
-        run: make kagome_builder \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
-          BUILDER_LATEST_TAG=${BUILDER_LATEST_TAG}
-
-      - name: "Push Kagome Builder"
-        working-directory: ./housekeeping/docker/kagome-dev
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
-        run: make kagome_builder_push \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
-
+        run: |
+          make kagome_builder && \
+          make kagome_builder_push
+          
       - name: "Login to Docker Hub"
         uses: docker/login-action@v3
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
         
       - name: "Push Kagome Builder (DockerHub)"
         working-directory: ./housekeeping/docker/kagome-dev
-        if: env.exists == 'false' || github.event.inputs.kagome_image_rebuild == 'true'
-        run: make kagome_builder_push_dockerhub \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
-        
-      - name: "Versions Info"
-        if: always()
         run: |
-          echo "Docker Image Name: ${{ steps.check-tag.outputs.kagome_builder }}"
-
-  build_kagome_runtime:
-    runs-on: [ actions-runner-controller ]
+          make kagome_builder_push_dockerhub
+        
+  docker_manifest:
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
+    needs: [build_kagome_builder]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Fetch master branch"
+        if: github.ref != 'refs/heads/master'
+        run: |
+          git fetch origin master:master || true
 
       - name : "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -119,21 +112,25 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
 
-      - name: "Build Runtime Cache"
-        working-directory: ./housekeeping/docker/kagome-dev
-        if: github.event.inputs.runtime_cache_rebuild == 'true'
-        run: make runtime_cache \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
-          TESTER_LATEST_TAG=${{ env.TESTER_LATEST_TAG }}
-
-      - name: "Push Runtime Cache"
-        working-directory: ./housekeeping/docker/kagome-dev
-        if: github.event.inputs.runtime_cache_rebuild == 'true'
-        run: make upload_apt_package_runtime \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH}
-  
       - name: "Versions Info"
         if: always()
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
-          echo "Package name and version: kagome-dev-runtime $(python3 get_wasmedge_version.py)-$(date +'%y.%m.%d')"
+          make configure
+          make kagome_builder_image_info
+
+      - name: "Push Kagome Builder Manifest (GCR)"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          make kagome_builder_push_manifest
+          
+      - name: "Login to Docker Hub"
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: "Push Kagome Builder Manifest (DockerHub)"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          make kagome_builder_push_dockerhub_manifest

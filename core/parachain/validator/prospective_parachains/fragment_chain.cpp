@@ -38,16 +38,17 @@ namespace kagome::parachain::fragment {
     if (it == unconnected.by_candidate_hash.end()) {
       return;
     }
+
     const auto parent_head_hash = it->second.parent_head_data_hash;
 
     unconnected.mark_backed(newly_backed_candidate);
+
     if (!revert_to(parent_head_hash)) {
       return;
     }
 
     auto prev_storage{std::move(unconnected)};
     populate_chain(prev_storage);
-
     trim_uneligible_forks(prev_storage, parent_head_hash);
     populate_unconnected_potential_candidates(std::move(prev_storage));
   }
@@ -184,11 +185,14 @@ namespace kagome::parachain::fragment {
       return;
     }
 
-    for (;;) {
-      if (best_chain.chain.size() > scope.max_depth) {
-        break;
-      }
+    bool found_candidate = true;
+    while (found_candidate) {
+      found_candidate = false;
 
+      const auto max_best_chain_size =
+          scope.max_depth > 0 ? scope.max_depth : 0;
+      bool only_consider_pending =
+          best_chain.chain.size() >= max_best_chain_size;
       Constraints child_constraints;
       if (auto c = scope.base_constraints.apply_modifications(
               cumulative_modifications);
@@ -215,6 +219,11 @@ namespace kagome::parachain::fragment {
           required_head_hash, [&](const auto &candidate) {
             auto pending =
                 scope.get_pending_availability(candidate.candidate_hash);
+
+            if (only_consider_pending && !pending) {
+              return;
+            }
+
             Option<RelayChainBlockInfo> relay_parent = utils::map(
                 pending, [](const auto &v) { return v.get().relay_parent; });
             if (!relay_parent) {
@@ -298,6 +307,8 @@ namespace kagome::parachain::fragment {
       if (!best_candidate) {
         break;
       }
+
+      found_candidate = true;
 
       storage.remove_candidate(best_candidate->candidate_hash, hasher_);
       cumulative_modifications.stack(
@@ -444,13 +455,14 @@ namespace kagome::parachain::fragment {
     return best_chain.chain.size();
   }
 
-  Vec<std::pair<CandidateHash, Hash>> FragmentChain::find_backable_chain(
-      Ancestors ancestors, uint32_t count) const {
-    if (count == 0) {
+  std::vector<std::pair<CandidateHash, Hash>>
+  FragmentChain::find_backable_chain(const Ancestors &ancestors,
+                                     size_t count) const {
+    if (best_chain.chain.empty()) {
       return {};
     }
 
-    const auto base_pos = find_ancestor_path(std::move(ancestors));
+    const auto base_pos = find_ancestor_path(ancestors);
     const auto actual_end_index =
         std::min(base_pos + size_t(count), best_chain.chain.size());
 
@@ -465,6 +477,7 @@ namespace kagome::parachain::fragment {
         break;
       }
     }
+
     return res;
   }
 
