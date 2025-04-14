@@ -80,25 +80,8 @@ struct Channel {
         data_;
   };
 
-  // struct Sender {
-  //     void register_receiver(Receiver &receiver) {
-  //         receiver_ = &receiver;
-  //     }
-
-  //     void unregister_receiver(Receiver &receiver) {
-  //         assert(receiver_ == &receiver);
-  //         receiver_ = nullptr;
-  //     }
-
-  //     ~Sender() {
-  //         if (receiver_) {
-  //             receiver_->unregister_sender(*this);
-  //             receiver_ = nullptr;
-  //         }
-  //     }
-  // private:
-  //     Receiver *receiver_ = nullptr;
-  // };
+  using Receiver = Endpoint<_Receiver>;
+  using Sender = Endpoint<_Sender>;
 };
 
 using namespace kagome::pvm;
@@ -106,8 +89,8 @@ using namespace kagome::pvm;
 class PvmTest : public testing::Test {};
 
 TEST(PvmTest, t) {
-  Channel<int>::Endpoint<Channel<int>::_Receiver> r;
-  Channel<int>::Endpoint<Channel<int>::_Sender> s;
+  Channel<int>::Receiver r;
+  Channel<int>::Sender s;
 
   r.register_opp(s);
   s.register_opp(r);
