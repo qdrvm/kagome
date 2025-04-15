@@ -8,7 +8,9 @@
 
 #include "host_api/host_api_factory.hpp"
 
+#include "api/service/state/state_api.hpp"
 #include "host_api/impl/offchain_extension.hpp"
+#include "injector/lazy.hpp"
 
 namespace kagome::crypto {
   class EllipticCurves;
@@ -44,7 +46,8 @@ namespace kagome::host_api {
         std::shared_ptr<crypto::KeyStore> key_store,
         std::shared_ptr<offchain::OffchainPersistentStorage>
             offchain_persistent_storage,
-        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
+        LazySPtr<api::StateApi> state_api);
 
     std::unique_ptr<HostApi> make(
         std::shared_ptr<const runtime::CoreApiFactory> core_factory,
@@ -65,6 +68,7 @@ namespace kagome::host_api {
     std::shared_ptr<offchain::OffchainPersistentStorage>
         offchain_persistent_storage_;
     std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool_;
+    LazySPtr<api::StateApi> state_api_;
   };
 
 }  // namespace kagome::host_api
