@@ -105,8 +105,24 @@ namespace kagome::network {
 
       auto cb_shared =
           std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
-      static auto request_id = 0;
-      request_id++;
+      static auto request_id_atomic = std::atomic<int>(0);
+      const auto request_id = request_id_atomic.fetch_add(1);
+      {
+        auto weak_self = std::weak_ptr{self};
+        IF_WEAK_LOCK(self) {
+          if (peer_id) {
+            SL_DEBUG(self->base_.logger(),
+                     "New request to peer {} request_id: {}",
+                     peer_id.value(),
+                     request_id);
+          } else {
+            SL_DEBUG(self->base_.logger(),
+                     "New request to unknown peer request_id: {}",
+                     request_id);
+          }
+        }
+      }
+
       auto timer = self->scheduler_->scheduleWithHandle(
           [weak_self{std::weak_ptr{self}},
            weak_stream{std::move(weak_stream)},
