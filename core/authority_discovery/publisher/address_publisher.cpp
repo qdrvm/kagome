@@ -30,7 +30,7 @@ namespace kagome::authority_discovery {
   constexpr std::chrono::hours kIntervalMax{1};
 
   // TODO(kamilsa): #2351, remove this variable when resolved
-  constexpr bool kAudiDisableTimestamp = true;
+  constexpr bool kAudiDisableTimestamp = false;
 
   static const metrics::GaugeHelper metric_amount_addresses_last_published{
       "kagome_authority_discovery_amount_external_addresses_last_published",
