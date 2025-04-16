@@ -144,8 +144,8 @@ struct BeefyTest : testing::Test {
       auto &peer = peers_.emplace_back();
 
       SecureBuffer<> seed_buf(EcdsaSeed::size());
-      seed_buf[0] = i;
-      seed_buf[1] = 1;
+      seed_buf.at(0) = i;
+      seed_buf.at(1) = 1;
       auto seed = EcdsaSeed::from(std::move(seed_buf)).value();
       peer.keys_ = std::make_shared<EcdsaKeypair>(
           std::move(ecdsa_->generateKeypair(seed, {}).value()));
@@ -170,7 +170,7 @@ struct BeefyTest : testing::Test {
         return blocks_[peer.finalized_].blockInfo();
       });
       EXPECT_CALL(*peer.block_tree_, getBlockHash(_))
-          .WillRepeatedly([&](BlockNumber i) { return blocks_[i].hash(); });
+          .WillRepeatedly([&](BlockNumber i) { return blocks_.at(i).hash(); });
       EXPECT_CALL(*peer.block_tree_, getBlockHeader(_))
           .WillRepeatedly([&](BlockHash h) {
             for (auto &block : blocks_) {
@@ -266,9 +266,9 @@ struct BeefyTest : testing::Test {
 
   void finalize(std::set<size_t> peers, BlockNumber finalized) {
     for (auto &i : peers) {
-      peers_[i].finalized_ = finalized;
-      peers_[i].chain_sub_->notify(ChainEventType::kFinalizedHeads,
-                                   blocks_.at(finalized));
+      peers_.at(i).finalized_ = finalized;
+      peers_.at(i).chain_sub_->notify(ChainEventType::kFinalizedHeads,
+                                      blocks_.at(finalized));
     }
   }
 
@@ -279,8 +279,8 @@ struct BeefyTest : testing::Test {
 
   void expect(std::set<size_t> peers, std::vector<BlockNumber> expected) {
     for (auto &i : peers) {
-      EXPECT_EQ(peers_[i].justifications_, expected);
-      peers_[i].justifications_.clear();
+      EXPECT_EQ(peers_.at(i).justifications_, expected);
+      peers_.at(i).justifications_.clear();
     }
   }
 
@@ -399,7 +399,7 @@ TEST_F(BeefyTest, correct_beefy_payload) {
 
   // Alice, Bob, Charlie will vote on good payloads
   // Dave will vote on bad mmr roots
-  peers_[3].vote_ = false;
+  peers_.at(3).vote_ = false;
 
   // with 3 good voters and 1 bad one, consensus should happen and best blocks
   // produced.
@@ -412,7 +412,7 @@ TEST_F(BeefyTest, correct_beefy_payload) {
   VoteMessage vote{
       commitment,
       peers_[3].keys_->public_key,
-      ecdsa_->signPrehashed(prehash(commitment), peers_[3].keys_->secret_key)
+      ecdsa_->signPrehashed(prehash(commitment), peers_.at(3).keys_->secret_key)
           .value(),
   };
   for (auto &peer : peers_) {
@@ -432,18 +432,18 @@ TEST_F(BeefyTest, correct_beefy_payload) {
 
 TEST_F(BeefyTest, beefy_importing_justifications) {
   makePeers(1);
-  auto &peer = peers_[0];
+  auto &peer = peers_.at(0);
   peer.vote_ = false;
   generate_blocks_and_sync(3, 10);
   finalize_block_and_wait_for_beefy(3, {});
   auto justify = [&](BlockNumber block_number, AuthoritySetId set) {
-    auto mmr = beefyMmrDigest(blocks_[block_number]);
+    auto mmr = beefyMmrDigest(blocks_.at(block_number));
     Commitment commitment{{{kMmr, Buffer{*mmr}}}, block_number, set};
     auto sig =
         ecdsa_->signPrehashed(prehash(commitment), peer.keys_->secret_key)
             .value();
     peer.beefy_->onJustification(
-        blocks_[block_number].hash(),
+        blocks_.at(block_number).hash(),
         {Buffer{encode(BeefyJustification{SignedCommitment{commitment, {sig}}})
                     .value()}});
   };
@@ -468,7 +468,7 @@ TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
   // requests (since in this test there is no block import queue to
   // automatically import justifications). Instantiate but don't run Dave, yet.
   size_t dave{3};
-  peers_[dave].listen_ = false;
+  peers_.at(dave).listen_ = false;
 
   // push 30 blocks
   generate_blocks_and_sync(30, 5);
@@ -484,7 +484,7 @@ TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
   auto expect_dave = [&](BlockNumber finalized, BlockNumber expected) {
     finalize({dave}, finalized);
     loop();
-    EXPECT_EQ(peers_[dave].beefy_->finalized(), expected);
+    EXPECT_EQ(peers_.at(dave).beefy_->finalized(), expected);
   };
   expect_dave(1, 1);
   expect_dave(6, 5);
@@ -492,7 +492,7 @@ TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
   expect_dave(17, 15);
   expect_dave(24, 20);
 
-  peers_[dave].listen_ = true;
+  peers_.at(dave).listen_ = true;
 
   // Have the other peers do some gossip so Dave finds out about their progress.
   finalize_block_and_wait_for_beefy(25, {25});
