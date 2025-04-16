@@ -133,8 +133,9 @@ namespace kagome::network {
               stream->reset();
               IF_WEAK_LOCK(self) {
                 SL_DEBUG(self->base_.logger(),
-                         "Handle timeout stream->reset() request_id: {}",
-                         request_id);
+                         "Handle timeout stream->reset() request_id: {}, peer: {}",
+                         request_id,
+                         peer_id.value());
                 self->metrics_.timeout_->inc();
                 if (peer_id) {
                   SL_WARN(self->base_.logger(),
@@ -154,22 +155,25 @@ namespace kagome::network {
                 }
                 if (auto cb = qtils::optionTake(*cb_shared)) {
                   SL_DEBUG(self->base_.logger(),
-                           "optionTake success request_id: {}",
-                           request_id);
+                           "optionTake success request_id: {}, peer: {}",
+                           request_id,
+                           peer_id.value());
                   (*cb)(outcome::failure(ProtocolError::TIMEOUT));
                 } else {
                   SL_DEBUG(
                       self->base_.logger(),
-                      "Handle timeout optionTake is nullptr request_id: {}",
-                      request_id);
+                      "Handle timeout optionTake is nullptr request_id: {}, peer: {}",
+                      request_id,
+                      peer_id.value());
                 }
               }
             }
             else {
               IF_WEAK_LOCK(self) {
                 SL_DEBUG(self->base_.logger(),
-                         "Handle timeout self is nullptr request_id: {}",
-                         request_id);
+                         "Handle timeout self is nullptr request_id: {}, peer: {}",
+                         request_id,
+                         peer_id.value());
                 self->metrics_.timeout_->inc();
                 if (peer_id) {
                   SL_WARN(self->base_.logger(),
@@ -189,14 +193,16 @@ namespace kagome::network {
                 }
                 if (auto cb = qtils::optionTake(*cb_shared)) {
                   SL_DEBUG(self->base_.logger(),
-                           "Handle timeout optionTake success request_id: {}",
-                           request_id);
+                           "Handle timeout optionTake success request_id: {}, peer: {}",
+                           request_id,
+                           peer_id.value());
                   (*cb)(outcome::failure(ProtocolError::TIMEOUT));
                 } else {
                   SL_DEBUG(
                       self->base_.logger(),
-                      "Handle timeout optionTake is nullptr request_id: {}",
-                      request_id);
+                      "Handle timeout optionTake is nullptr request_id: {}, peer: {}",
+                      request_id,
+                      peer_id.value());
                 }
               }
             }
@@ -207,33 +213,39 @@ namespace kagome::network {
                              cb_shared,
                              lost{RequestResponseMetrics::Lost{self->metrics_}},
                              timer{std::move(timer)},
-                             request_id](auto &&r) mutable {
+                             request_id,
+                             peer_id{std::move(peer_id)}](auto &&r) mutable {
         lost.notLost();
         timer.reset();
         IF_WEAK_LOCK(self) {
           SL_DEBUG(self->base_.logger(),
-                   "Success callback request_id: {}",
-                   request_id);
+                   "Success callback request_id: {}, peer: {}",
+                   request_id,
+                   peer_id.value());
           if (r) {
             SL_DEBUG(self->base_.logger(),
-                     "Success callback request_id: {}",
-                     request_id);
+                     "Success callback request_id: {}, peer: {}",
+                     request_id,
+                     peer_id.value());
             self->metrics_.success_->inc();
           } else {
             SL_DEBUG(self->base_.logger(),
-                     "Failure callback request_id: {}",
-                     request_id);
+                     "Failure callback request_id: {}, peer: {}",
+                     request_id,
+                     peer_id.value());
             self->metrics_.failure_->inc();
           }
           if (auto cb = qtils::optionTake(*cb_shared)) {
             SL_DEBUG(self->base_.logger(),
-                     "Success optionTake request_id: {}",
-                     request_id);
+                     "Success optionTake request_id: {}, peer: {}",
+                     request_id,
+                     peer_id.value());
             (*cb)(std::move(r));
           } else {
             SL_DEBUG(self->base_.logger(),
-                     "Failure optionTake request_id: {}",
-                     request_id);
+                     "Failure optionTake request_id: {}, peer: {}",
+                     request_id,
+                     peer_id.value());
           }
         }
       }};
