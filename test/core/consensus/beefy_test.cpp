@@ -430,11 +430,13 @@ TEST_F(BeefyTest, correct_beefy_payload) {
 }
 
 TEST_F(BeefyTest, beefy_importing_justifications) {
+  genesis_ = 3;
+  AuthoritySetId set = 0;
   makePeers(1);
   auto &peer = peers_.at(0);
   peer.vote_ = false;
-  generate_blocks_and_sync(3, 10);
-  finalize_block_and_wait_for_beefy(3, {});
+  generate_blocks_and_sync(genesis_ + 1, 10);
+  finalize_block_and_wait_for_beefy(genesis_ + 1, {});
   auto justify = [&](BlockNumber block_number, AuthoritySetId set) {
     auto mmr = beefyMmrDigest(blocks_.at(block_number));
     Commitment commitment{{{kMmr, Buffer{*mmr}}}, block_number, set};
@@ -446,17 +448,21 @@ TEST_F(BeefyTest, beefy_importing_justifications) {
         {Buffer{encode(BeefyJustification{SignedCommitment{commitment, {sig}}})
                     .value()}});
   };
+
+  // Import block 2 with "valid" justification (beefy pallet genesis block not
+  // yet reached).
+  justify(genesis_ - 1, set);
   EXPECT_EQ(peer.beefy_->finalized(), 0);
 
-  // Import block 2 with valid justification.
-  justify(2, 0);
+  // Import block 3 with valid justification.
+  justify(genesis_, set);
   loop();
-  EXPECT_EQ(peer.beefy_->finalized(), 2);
+  EXPECT_EQ(peer.beefy_->finalized(), genesis_);
 
-  // Import block 3 with invalid justification (incorrect validator set).
-  justify(3, 10);
+  // Import block 4 with invalid justification (incorrect validator set).
+  justify(genesis_ + 1, set + 1);
   loop();
-  EXPECT_EQ(peer.beefy_->finalized(), 2);
+  EXPECT_EQ(peer.beefy_->finalized(), genesis_);
 }
 
 TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
