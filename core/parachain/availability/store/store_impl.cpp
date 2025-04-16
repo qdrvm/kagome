@@ -160,7 +160,7 @@ namespace kagome::parachain {
         scale::decode<ErasureChunk>(chunk_from_db.value());
     if (not decoded_chunk) {
       SL_ERROR(logger,
-               "Failed to decode chunk candidate {} index {} error {}",
+               "Failed to decode chunk for candidate {} index {} error {}",
                candidate_hash,
                index,
                decoded_chunk.error());
@@ -238,10 +238,14 @@ namespace kagome::parachain {
     }
     auto cursor = space->cursor();
     if (not cursor) {
-      SL_ERROR(logger, "Failed to get cursor for AvaliabilityStorage");
+      SL_ERROR(logger,
+               "Failed to get cursor for AvaliabilityStorage for candidate {}",
+               candidate_hash);
       return chunks;
     }
-    SL_TRACE(logger, "getChunks got cursor for AvaliabilityStorage");
+    SL_TRACE(logger,
+             "getChunks got cursor for AvaliabilityStorage for candidate {}",
+             candidate_hash);
     const auto seek_key = CandidateChunkKey::encode_hash(candidate_hash);
     auto seek_res = cursor->seek(seek_key);
     if (not seek_res) {
@@ -257,15 +261,50 @@ namespace kagome::parachain {
       return chunks;
     }
     SL_TRACE(logger, "Seek found for candidate {}", candidate_hash);
-    const auto check_key = [&seek_key](const auto &key) {
+    const auto check_key = [&seek_key, &candidate_hash, this](const auto &key) {
       if (not key) {
+        SL_ERROR(logger, "Key is null for candidate {}", candidate_hash);
         return false;
       }
       const auto &key_value = key.value();
-      return key_value.size() >= seek_key.size()
-         and std::equal(seek_key.begin(), seek_key.end(), key_value.begin());
+      SL_DEBUG(logger,
+               "Checking key for candidate {}: size={}, seek_key size={}",
+               candidate_hash,
+               key_value.size(),
+               seek_key.size());
+
+      bool size_check = key_value.size() >= seek_key.size();
+      if (!size_check) {
+        SL_DEBUG(logger,
+                 "Key size check failed for candidate {}: key size {} < "
+                 "seek_key size {}",
+                 candidate_hash,
+                 key_value.size(),
+                 seek_key.size());
+        return false;
+      }
+
+      bool prefix_check =
+          std::equal(seek_key.begin(), seek_key.end(), key_value.begin());
+      SL_DEBUG(logger,
+               "Key prefix check for candidate {}: result={}",
+               candidate_hash,
+               prefix_check);
+
+      return size_check && prefix_check;
     };
-    while (cursor->isValid() and check_key(cursor->key())) {
+    while (cursor->isValid()) {
+      SL_DEBUG(
+          logger, "getChunks cursor is valid for candidate {}", candidate_hash);
+      if (not check_key(cursor->key())) {
+        SL_DEBUG(logger,
+                 "getChunks key check failed for candidate {}, breaking",
+                 candidate_hash);
+        break;
+      }
+      SL_DEBUG(logger,
+               "getChunks key check passed for candidate {}, getting value",
+               candidate_hash);
       const auto cursor_opt_value = cursor->value();
       if (cursor_opt_value) {
         auto decoded_res =
@@ -284,12 +323,13 @@ namespace kagome::parachain {
         }
       } else {
         SL_ERROR(logger,
-                 "Failed to get value candidate {} for key {}",
+                 "Failed to get value for candidate {} for key {}",
                  candidate_hash,
                  cursor->key()->toHex());
       }
       if (not cursor->next()) {
-        SL_TRACE(logger, "getChunks next is false");
+        SL_TRACE(
+            logger, "getChunks next is false for candidate {}", candidate_hash);
         break;
       }
     }
@@ -332,17 +372,26 @@ namespace kagome::parachain {
              chunks.size());
 
     state_.exclusiveAccess([&](auto &state) {
-      SL_TRACE(logger, "storeData acquired exclusive access");
+      SL_TRACE(logger,
+               "storeData acquired exclusive access for candidate {}",
+               candidate_hash);
       prune_candidates_no_lock(state);
       state.candidates_[relay_parent].insert(candidate_hash);
-      SL_TRACE(
-          logger, "storeData added candidate to relay_parent={}", relay_parent);
+      SL_TRACE(logger,
+               "storeData added candidate {} to relay_parent={}",
+               candidate_hash,
+               relay_parent);
 
       auto &candidate_data = state.per_candidate_[candidate_hash];
-      SL_TRACE(logger, "storeData processing chunks");
+      SL_TRACE(logger,
+               "storeData processing chunks for candidate {}",
+               candidate_hash);
 
       for (auto &&chunk : std::move(chunks)) {
-        SL_TRACE(logger, "storeData processing chunk index={}", chunk.index);
+        SL_TRACE(logger,
+                 "storeData processing chunk index={} for candidate {}",
+                 chunk.index,
+                 candidate_hash);
 
         auto encoded_chunk = scale::encode(chunk);
         const auto chunk_index = chunk.index;
@@ -353,9 +402,11 @@ namespace kagome::parachain {
                  chunk_index);
 
         if (not encoded_chunk) {
-          SL_ERROR(logger,
-                   "storeData Failed to encode chunk, error: {}",
-                   encoded_chunk.error());
+          SL_ERROR(
+              logger,
+              "storeData Failed to encode chunk for candidate {}, error: {}",
+              candidate_hash,
+              encoded_chunk.error());
           continue;
         }
         SL_TRACE(logger,
@@ -365,10 +416,15 @@ namespace kagome::parachain {
 
         auto space = storage_->getSpace(storage::Space::kAvaliabilityStorage);
         if (not space) {
-          SL_ERROR(logger, "storeData Failed to get AvaliabilityStorage space");
+          SL_ERROR(logger,
+                   "storeData Failed to get AvaliabilityStorage space for "
+                   "candidate {}",
+                   candidate_hash);
           continue;
         }
-        SL_TRACE(logger, "storeData got storage space");
+        SL_TRACE(logger,
+                 "storeData got storage space for candidate {}",
+                 candidate_hash);
 
         if (auto res = space->put(
                 CandidateChunkKey::encode(candidate_hash, chunk_index),
@@ -429,7 +485,8 @@ namespace kagome::parachain {
     });
     if (not encoded_chunk) {
       SL_ERROR(logger,
-               "putChunk Failed to encode chunk, error: {}",
+               "putChunk Failed to encode chunk for candidate {}, error: {}",
+               candidate_hash,
                encoded_chunk.error());
       return;
     }
@@ -439,7 +496,10 @@ namespace kagome::parachain {
              chunk.index);
     auto space = storage_->getSpace(storage::Space::kAvaliabilityStorage);
     if (not space) {
-      SL_ERROR(logger, "putChunk Failed to get AvaliabilityStorage space");
+      SL_ERROR(
+          logger,
+          "putChunk Failed to get AvaliabilityStorage space for candidate {}",
+          candidate_hash);
       return;
     }
 
@@ -448,7 +508,7 @@ namespace kagome::parachain {
                        std::move(encoded_chunk.value()));
         not res) {
       SL_ERROR(logger,
-               "Failed to put chunk candidate {} index {} error {}",
+               "Failed to put chunk for candidate {} index {} error {}",
                candidate_hash,
                chunk_index,
                res.error());
