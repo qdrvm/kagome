@@ -155,6 +155,8 @@ struct BeefyTest : testing::Test {
       });
 
       auto app_state_manager = std::make_shared<StartApp>();
+      EXPECT_CALL(*app_state_manager, atShutdown(_))
+          .Times(testing::AnyNumber());
       std::shared_ptr<MainThreadPool> main_thread_pool_ =
           std::make_shared<MainThreadPool>(TestThreadPool{io_});
       std::shared_ptr<BeefyThreadPool> beefy_thread_pool_ =
