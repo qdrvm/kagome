@@ -556,6 +556,38 @@ TEST_F(BeefyTest, beefy_finalizing_after_pallet_genesis) {
   finalize_block_and_wait_for_beefy(21, {20, 21});
 }
 
+TEST_F(BeefyTest, should_catch_up_when_loading_saved_voter_state) {
+  min_delta_ = 10;
+  makePeers(1);
+  auto &peer = peers_.at(0);
+
+  // push 30 blocks with `AuthorityChange` digests every 10 blocks
+  generate_blocks_and_sync(30, 10);
+  // finalize 13 without justifications
+  // load persistent state - nothing in DB, should init at genesis
+  // Test initialization at session boundary.
+  // verify voter initialized with two sessions starting at blocks 1 and 10
+  // verify next vote target is mandatory block 1
+  finalize_block_and_wait_for_beefy(13, {1, 10});
+
+  // verify state also saved to db
+  // now let's consider that the node goes offline, and then it restarts after a
+  // while finalize 25 without justifications load persistent state - state
+  // preset in DB
+  // Verify voter initialized with old sessions plus a new one starting at
+  // block 20. There shouldn't be any duplicates.
+  reloadPeer(peer);
+  loop();
+  EXPECT_EQ(peer.beefy_->finalized(), 10);
+  finalize_block_and_wait_for_beefy(25, {20});
+
+  // will duplicate justification without persisted state
+  peer.db_ = std::make_shared<InMemorySpacedStorage>();
+  reloadPeer(peer);
+  loop();
+  expect(all(), {1, 10, 20});
+}
+
 // TODO(turuslan): #1651, report equivocation
 // TEST_F(BeefyTest, beefy_reports_equivocations) {}
 
