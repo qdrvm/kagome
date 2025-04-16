@@ -244,8 +244,7 @@ struct BeefyTest : testing::Test {
         block.digest.emplace_back(
             Consensus{kBeefyEngineId, ConsensusDigest{mmr}});
       }
-      BlockNumber genesis = 0;
-      if (i > genesis and i % session == 0) {
+      if (i > genesis_ and i % session == 0) {
         ++voters.id;
         block.digest.emplace_back(
             Consensus{kBeefyEngineId, ConsensusDigest{voters}});
