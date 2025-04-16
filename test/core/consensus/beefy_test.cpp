@@ -481,7 +481,15 @@ TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
   // With 3 active voters and one inactive, consensus should happen and blocks
   // BEEFY-finalized. Need to finalize at least one block in each session,
   // choose randomly.
-  finalize_block_and_wait_for_beefy({0, 1, 2}, 20, {1, 5, 10, 15, 20});
+  std::set<size_t> fast_peers{0, 1, 2};
+  // finalize_block_and_wait_for_beefy({0, 1, 2}, 20, {1, 5, 10, 15, 20});
+  finalize_block_and_wait_for_beefy(fast_peers, 1, {1});
+  finalize_block_and_wait_for_beefy(fast_peers, 6, {5});
+  finalize_block_and_wait_for_beefy(fast_peers, 10, {10});
+  finalize_block_and_wait_for_beefy(fast_peers, 17, {15});
+  // 24 is not checked in polkadot-sdk test,
+  // but is justified because 24 - 20 >= min delta
+  finalize_block_and_wait_for_beefy(fast_peers, 24, {20, 24});
 
   // Spawn Dave, they are now way behind voting and can only catch up through
   // on-demand justif sync.
