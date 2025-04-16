@@ -541,6 +541,30 @@ TEST_F(BeefyTest, should_initialize_voter_at_custom_genesis) {
   finalize_block_and_wait_for_beefy(genesis_, {genesis_});
 }
 
+TEST_F(BeefyTest, should_initialize_voter_at_latest_finalized) {
+  genesis_ = 12;
+  min_delta_ = 2;
+  makePeers(1);
+  auto &peer = peers_.at(0);
+
+  // push 15 blocks with `AuthorityChange` digests every 10 blocks
+  generate_blocks_and_sync(15, 10);
+
+  // finalize 13 without justifications
+  // import/append BEEFY justification for block 12
+  finalize_block_and_wait_for_beefy(13, {12});
+
+  // Test initialization at last BEEFY finalized.
+  // load persistent state - nothing in DB, should init at last BEEFY finalized
+  // verify voter initialized with single session starting at block 12
+  // verify next vote target is 14
+  // verify state also saved to db
+  reloadPeer(peer);
+  loop();
+  EXPECT_EQ(peer.beefy_->finalized(), 12);
+  finalize_block_and_wait_for_beefy(14, {14});
+}
+
 TEST_F(BeefyTest, beefy_finalizing_after_pallet_genesis) {
   genesis_ = 15;
   makePeers(2);
