@@ -513,16 +513,18 @@ TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
 }
 
 TEST_F(BeefyTest, should_initialize_voter_at_genesis) {
+  // polkadot-sdk finalizes blocks 11..13 but doesn't expect them to be
+  // justified. Exclude 11..13 justifications using min delta.
+  min_delta_ = 4;
   makePeers(1);
   // push 15 blocks with `AuthorityChange` digests every 10 blocks
   generate_blocks_and_sync(15, 10);
-  // finalize 10 without justifications
-  finalize(all(), 10);
-  loop();
+  expect(all(), {});
   // Test initialization at session boundary.
   // verify voter initialized with two sessions starting at blocks 1 and 10
   // verify next vote target is mandatory block 1
-  expect(all(), {1, 10});
+  finalize_block_and_wait_for_beefy(1, {1});
+  finalize_block_and_wait_for_beefy(13, {10});
 }
 
 TEST_F(BeefyTest, should_initialize_voter_at_custom_genesis) {
