@@ -541,6 +541,31 @@ TEST_F(BeefyTest, should_initialize_voter_at_custom_genesis) {
   finalize_block_and_wait_for_beefy(genesis_, {genesis_});
 }
 
+TEST_F(BeefyTest, should_initialize_voter_when_last_final_is_session_boundary) {
+  min_delta_ = 4;
+  makePeers(1);
+  auto &peer = peers_.at(0);
+
+  // push 15 blocks with `AuthorityChange` digests every 10 blocks
+  generate_blocks_and_sync(15, 10);
+
+  // finalize 13 without justifications
+  // import/append BEEFY justification for session boundary block 10
+  finalize_block_and_wait_for_beefy(13, {1, 10});
+
+  // Test corner-case where session boundary == last beefy finalized,
+  // expect rounds initialized at last beefy finalized 10.
+  // load persistent state - nothing in DB, should init at session boundary
+  // verify voter initialized with single session starting at block 10
+  // verify block 10 is correctly marked as finalized
+  // verify next vote target is diff-power-of-two block 14
+  // verify state also saved to db
+  reloadPeer(peer);
+  loop();
+  EXPECT_EQ(peer.beefy_->finalized(), 10);
+  finalize_block_and_wait_for_beefy(14, {14});
+}
+
 TEST_F(BeefyTest, should_initialize_voter_at_latest_finalized) {
   genesis_ = 12;
   min_delta_ = 2;
