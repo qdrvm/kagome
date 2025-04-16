@@ -104,6 +104,8 @@ struct BeefyPeer {
   BlockNumber finalized_ = 0;
   std::vector<BlockNumber> justifications_;
 
+  std::shared_ptr<InMemorySpacedStorage> db_ =
+      std::make_shared<InMemorySpacedStorage>();
   std::shared_ptr<BlockTreeMock> block_tree_ =
       std::make_shared<BlockTreeMock>();
   std::shared_ptr<Timer> timer_ = std::make_shared<Timer>();
@@ -138,6 +140,34 @@ struct BeefyTest : testing::Test {
         .WillRepeatedly(Return(true));
   }
 
+  void reloadPeer(BeefyPeer &peer) {
+    auto app_state_manager = std::make_shared<StartApp>();
+    EXPECT_CALL(*app_state_manager, atShutdown(_)).Times(testing::AnyNumber());
+    std::shared_ptr<MainThreadPool> main_thread_pool_ =
+        std::make_shared<MainThreadPool>(TestThreadPool{io_});
+    std::shared_ptr<BeefyThreadPool> beefy_thread_pool_ =
+        std::make_shared<BeefyThreadPool>(TestThreadPool{io_});
+    peer.beefy_ = std::make_shared<BeefyImpl>(
+        app_state_manager,
+        chain_spec_,
+        peer.block_tree_,
+        beefy_api_,
+        ecdsa_,
+        peer.db_,
+        *main_thread_pool_,
+        *beefy_thread_pool_,
+        peer.timer_,
+        testutil::sptr_to_lazy<Timeline>(timeline_),
+        peer.keystore_,
+        testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
+        testutil::sptr_to_lazy<FetchJustification>(peer.fetch_),
+        nullptr,
+        nullptr,
+        peer.chain_sub_,
+        testutil::sptr_to_lazy<kagome::network::Synchronizer>(synchronizer));
+    app_state_manager->start();
+  }
+
   void makePeers(uint32_t n) {
     peers_.reserve(n);
     for (uint32_t i = 0; i < n; ++i) {
@@ -153,14 +183,6 @@ struct BeefyTest : testing::Test {
         return peer.vote_ ? std::make_optional(std::make_pair(peer.keys_, i))
                           : std::nullopt;
       });
-
-      auto app_state_manager = std::make_shared<StartApp>();
-      EXPECT_CALL(*app_state_manager, atShutdown(_))
-          .Times(testing::AnyNumber());
-      std::shared_ptr<MainThreadPool> main_thread_pool_ =
-          std::make_shared<MainThreadPool>(TestThreadPool{io_});
-      std::shared_ptr<BeefyThreadPool> beefy_thread_pool_ =
-          std::make_shared<BeefyThreadPool>(TestThreadPool{io_});
 
       EXPECT_CALL(*peer.block_tree_, bestBlock()).WillRepeatedly([&] {
         return blocks_.back().blockInfo();
@@ -203,25 +225,7 @@ struct BeefyTest : testing::Test {
             }
             peer.beefy_->onMessage(it->second);
           }));
-      peer.beefy_ = std::make_shared<BeefyImpl>(
-          app_state_manager,
-          chain_spec_,
-          peer.block_tree_,
-          beefy_api_,
-          ecdsa_,
-          std::make_shared<InMemorySpacedStorage>(),
-          *main_thread_pool_,
-          *beefy_thread_pool_,
-          peer.timer_,
-          testutil::sptr_to_lazy<Timeline>(timeline_),
-          peer.keystore_,
-          testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
-          testutil::sptr_to_lazy<FetchJustification>(peer.fetch_),
-          nullptr,
-          nullptr,
-          peer.chain_sub_,
-          testutil::sptr_to_lazy<kagome::network::Synchronizer>(synchronizer));
-      app_state_manager->start();
+      reloadPeer(peer);
     }
   }
 
