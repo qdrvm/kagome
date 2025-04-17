@@ -24,6 +24,8 @@
 #include "mock/core/crypto/session_keys_mock.hpp"
 #include "mock/core/network/protocols/beefy_protocol_mock.hpp"
 #include "mock/core/network/synchronizer_mock.hpp"
+#include "mock/core/offchain/offchain_worker_factory_mock.hpp"
+#include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/runtime/beefy_api.hpp"
 #include "network/impl/protocols/beefy_protocol_impl.hpp"
 #include "primitives/event_types.hpp"
@@ -63,11 +65,14 @@ using kagome::network::BeefyProtocol;
 using kagome::network::BeefyProtocolMock;
 using kagome::network::BeefyThreadPool;
 using kagome::network::SynchronizerMock;
+using kagome::offchain::OffchainWorkerFactoryMock;
+using kagome::offchain::OffchainWorkerPoolMock;
 using kagome::primitives::BlockHash;
 using kagome::primitives::BlockHeader;
 using kagome::primitives::BlockNumber;
 using kagome::primitives::Consensus;
 using kagome::primitives::kBeefyEngineId;
+using kagome::primitives::OpaqueKeyOwnershipProof;
 using kagome::primitives::events::ChainEventType;
 using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::events::ChainSubscriptionEnginePtr;
@@ -136,7 +141,7 @@ struct BeefyTest : testing::Test {
       return genesisVoters();
     });
     EXPECT_CALL(*timeline_, wasSynchronized()).WillRepeatedly(Return(true));
-    EXPECT_CALL(*synchronizer, fetchHeadersBack(_, _, _, _))
+    EXPECT_CALL(*synchronizer_, fetchHeadersBack(_, _, _, _))
         .WillRepeatedly(Return(true));
   }
 
@@ -161,10 +166,10 @@ struct BeefyTest : testing::Test {
         peer.keystore_,
         testutil::sptr_to_lazy<BeefyProtocol>(peer.broadcast_),
         testutil::sptr_to_lazy<FetchJustification>(peer.fetch_),
-        nullptr,
-        nullptr,
+        offchain_worker_factory_,
+        offchain_worker_pool_,
         peer.chain_sub_,
-        testutil::sptr_to_lazy<kagome::network::Synchronizer>(synchronizer));
+        testutil::sptr_to_lazy<kagome::network::Synchronizer>(synchronizer_));
     app_state_manager->start();
   }
 
@@ -306,6 +311,16 @@ struct BeefyTest : testing::Test {
     finalize_block_and_wait_for_beefy(all(), finalized, expected);
   }
 
+  VoteMessage signVote(const BeefyPeer &peer, Commitment commitment) const {
+    return VoteMessage{
+        .commitment = commitment,
+        .id = peer.keys_->public_key,
+        .signature =
+            ecdsa_->signPrehashed(prehash(commitment), peer.keys_->secret_key)
+                .value(),
+    };
+  }
+
   ChainSpecMock chain_spec_;
   std::shared_ptr<BeefyApiMock> beefy_api_ = std::make_shared<BeefyApiMock>();
   std::shared_ptr<HasherImpl> hasher_ = std::make_shared<HasherImpl>();
@@ -314,7 +329,11 @@ struct BeefyTest : testing::Test {
   std::shared_ptr<boost::asio::io_context> io_ =
       std::make_shared<boost::asio::io_context>();
   std::shared_ptr<TimelineMock> timeline_ = std::make_shared<TimelineMock>();
-  std::shared_ptr<SynchronizerMock> synchronizer =
+  std::shared_ptr<OffchainWorkerFactoryMock> offchain_worker_factory_ =
+      std::make_shared<OffchainWorkerFactoryMock>();
+  std::shared_ptr<OffchainWorkerPoolMock> offchain_worker_pool_ =
+      std::make_shared<OffchainWorkerPoolMock>();
+  std::shared_ptr<SynchronizerMock> synchronizer_ =
       std::make_shared<SynchronizerMock>();
 
   std::vector<BlockHeader> blocks_;
@@ -412,12 +431,7 @@ TEST_F(BeefyTest, correct_beefy_payload) {
   // now 2 good validators and 1 bad one are voting
   finalize({0, 1, 3}, 11);
   Commitment commitment{{}, 11, 0};
-  VoteMessage vote{
-      commitment,
-      peers_[3].keys_->public_key,
-      ecdsa_->signPrehashed(prehash(commitment), peers_.at(3).keys_->secret_key)
-          .value(),
-  };
+  auto vote = signVote(peers_.at(3), commitment);
   for (auto &peer : peers_) {
     peer.beefy_->onMessage(vote);
   }
@@ -444,12 +458,11 @@ TEST_F(BeefyTest, beefy_importing_justifications) {
   auto justify = [&](BlockNumber block_number, AuthoritySetId set) {
     auto mmr = beefyMmrDigest(blocks_.at(block_number));
     Commitment commitment{{{kMmr, Buffer{*mmr}}}, block_number, set};
-    auto sig =
-        ecdsa_->signPrehashed(prehash(commitment), peer.keys_->secret_key)
-            .value();
+    auto vote = signVote(peer, commitment);
     peer.beefy_->onJustification(
         blocks_.at(block_number).hash(),
-        {Buffer{encode(BeefyJustification{SignedCommitment{commitment, {sig}}})
+        {Buffer{encode(BeefyJustification{
+                           SignedCommitment{commitment, {vote.signature}}})
                     .value()}});
   };
 
@@ -637,8 +650,30 @@ TEST_F(BeefyTest, should_catch_up_when_loading_saved_voter_state) {
   expect(all(), {1, 10, 20});
 }
 
-// TODO(turuslan): #1651, report equivocation
-// TEST_F(BeefyTest, beefy_reports_equivocations) {}
+TEST_F(BeefyTest, beefy_reports_equivocations) {
+  makePeers(2);
+  generate_blocks_and_sync(1, 10);
+  size_t alice = 0, bob = 1;
+
+  // bob signs vote
+  peers_.at(alice).vote_ = false;
+  finalize_block_and_wait_for_beefy(1, {});
+
+  // generate duplicate bob vote with different payload
+  auto vote = signVote(peers_.at(bob), {{}, 1, 0});
+  peers_.at(alice).beefy_->onMessage(vote);
+
+  // expect equivocation report
+  EXPECT_CALL(*beefy_api_, generate_key_ownership_proof(_, _, _))
+      .WillOnce(Return(OpaqueKeyOwnershipProof{}));
+  EXPECT_CALL(*offchain_worker_factory_, make()).WillOnce(Return(nullptr));
+  EXPECT_CALL(*offchain_worker_pool_, addWorker(_)).WillOnce(Return());
+  EXPECT_CALL(*offchain_worker_pool_, removeWorker()).WillOnce(Return(true));
+  EXPECT_CALL(*beefy_api_,
+              submit_report_double_voting_unsigned_extrinsic(_, _, _))
+      .WillOnce(Return(outcome::success()));
+  loop();
+}
 
 TEST_F(BeefyTest, gossipped_finality_proofs) {
   makePeers(2);
