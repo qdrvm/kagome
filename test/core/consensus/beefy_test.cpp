@@ -131,13 +131,13 @@ struct BeefyTest : testing::Test {
   }
 
   void SetUp() override {
-    EXPECT_CALL(chain_spec_, beefyMinDelta()).WillRepeatedly([&] {
+    EXPECT_CALL(chain_spec_, beefyMinDelta()).WillRepeatedly([this] {
       return min_delta_;
     });
-    EXPECT_CALL(*beefy_api_, genesis(_)).WillRepeatedly([&] {
+    EXPECT_CALL(*beefy_api_, genesis(_)).WillRepeatedly([this] {
       return genesis_;
     });
-    EXPECT_CALL(*beefy_api_, validatorSet(_)).WillRepeatedly([&] {
+    EXPECT_CALL(*beefy_api_, validatorSet(_)).WillRepeatedly([this] {
       return genesisVoters();
     });
     EXPECT_CALL(*timeline_, wasSynchronized()).WillRepeatedly(Return(true));
@@ -174,9 +174,8 @@ struct BeefyTest : testing::Test {
   }
 
   void makePeers(uint32_t n) {
-    peers_.reserve(n);
     for (uint32_t i = 0; i < n; ++i) {
-      auto &peer = peers_.emplace_back();
+      auto &peer = *peers_.emplace_back(std::make_shared<BeefyPeer>());
 
       SecureBuffer<> seed_buf(EcdsaSeed::size());
       seed_buf.at(0) = i;
@@ -184,22 +183,26 @@ struct BeefyTest : testing::Test {
       auto seed = EcdsaSeed::from(std::move(seed_buf)).value();
       peer.keys_ = std::make_shared<EcdsaKeypair>(
           std::move(ecdsa_->generateKeypair(seed, {}).value()));
-      EXPECT_CALL(*peer.keystore_, getBeefKeyPair(_)).WillRepeatedly([&, i]() {
-        return peer.vote_ ? std::make_optional(std::make_pair(peer.keys_, i))
-                          : std::nullopt;
-      });
+      EXPECT_CALL(*peer.keystore_, getBeefKeyPair(_))
+          .WillRepeatedly([this, i]() {
+            return peers_.at(i)->vote_ ? std::make_optional(std::make_pair(
+                                             peers_.at(i)->keys_, i))
+                                       : std::nullopt;
+          });
 
-      EXPECT_CALL(*peer.block_tree_, bestBlock()).WillRepeatedly([&] {
+      EXPECT_CALL(*peer.block_tree_, bestBlock()).WillRepeatedly([this] {
         return blocks_.back().blockInfo();
       });
 
-      EXPECT_CALL(*peer.block_tree_, getLastFinalized()).WillRepeatedly([&] {
-        return blocks_[peer.finalized_].blockInfo();
-      });
+      EXPECT_CALL(*peer.block_tree_, getLastFinalized())
+          .WillRepeatedly([this, i] {
+            return blocks_[peers_.at(i)->finalized_].blockInfo();
+          });
       EXPECT_CALL(*peer.block_tree_, getBlockHash(_))
-          .WillRepeatedly([&](BlockNumber i) { return blocks_.at(i).hash(); });
+          .WillRepeatedly(
+              [this](BlockNumber i) { return blocks_.at(i).hash(); });
       EXPECT_CALL(*peer.block_tree_, getBlockHeader(_))
-          .WillRepeatedly([&](BlockHash h) {
+          .WillRepeatedly([this](BlockHash h) {
             for (auto &block : blocks_) {
               if (block.hash() == h) {
                 return block;
@@ -208,27 +211,28 @@ struct BeefyTest : testing::Test {
             throw std::logic_error{"getBlockHeader"};
           });
       EXPECT_CALL(*peer.broadcast_, broadcast(_))
-          .WillRepeatedly([&](std::shared_ptr<BeefyGossipMessage> m) {
+          .WillRepeatedly([this, i](std::shared_ptr<BeefyGossipMessage> m) {
             if (auto jr = boost::get<BeefyJustification>(&*m)) {
               auto &j = boost::get<SignedCommitment>(*jr);
               justifications_.emplace(j.commitment.block_number, *jr);
-              peer.justifications_.emplace_back(j.commitment.block_number);
+              peers_.at(i)->justifications_.emplace_back(
+                  j.commitment.block_number);
             }
-            post(*io_, [&, m] {
+            post(*io_, [this, i, m] {
               for (auto &peer2 : peers_) {
-                if (&peer2 != &peer and peer2.listen_) {
-                  peer2.beefy_->onMessage(*m);
+                if (peer2 != peers_.at(i) and peer2->listen_) {
+                  peer2->beefy_->onMessage(*m);
                 }
               }
             });
           });
       EXPECT_CALL(*peer.fetch_, fetchJustification(_))
-          .WillRepeatedly(bind_executor(*io_, [&](BlockNumber block) {
+          .WillRepeatedly(bind_executor(*io_, [this, i](BlockNumber block) {
             auto it = justifications_.find(block);
             if (it == justifications_.end()) {
               return;
             }
-            peer.beefy_->onMessage(it->second);
+            peers_.at(i)->beefy_->onMessage(it->second);
           }));
       reloadPeer(peer);
     }
@@ -237,7 +241,7 @@ struct BeefyTest : testing::Test {
   ValidatorSet genesisVoters() {
     ValidatorSet voters;
     for (auto &peer : peers_) {
-      voters.validators.emplace_back(peer.keys_->public_key);
+      voters.validators.emplace_back(peer->keys_->public_key);
     }
     return voters;
   }
@@ -274,9 +278,9 @@ struct BeefyTest : testing::Test {
 
   void finalize(std::set<size_t> peers, BlockNumber finalized) {
     for (auto &i : peers) {
-      peers_.at(i).finalized_ = finalized;
-      peers_.at(i).chain_sub_->notify(ChainEventType::kFinalizedHeads,
-                                      blocks_.at(finalized));
+      peers_.at(i)->finalized_ = finalized;
+      peers_.at(i)->chain_sub_->notify(ChainEventType::kFinalizedHeads,
+                                       blocks_.at(finalized));
     }
   }
 
@@ -287,14 +291,14 @@ struct BeefyTest : testing::Test {
 
   void expect(std::set<size_t> peers, std::vector<BlockNumber> expected) {
     for (auto &i : peers) {
-      EXPECT_EQ(peers_.at(i).justifications_, expected);
-      peers_.at(i).justifications_.clear();
+      EXPECT_EQ(peers_.at(i)->justifications_, expected);
+      peers_.at(i)->justifications_.clear();
     }
   }
 
   void rebroadcast() {
     for (auto &peer : peers_) {
-      peer.timer_->call();
+      peer->timer_->call();
     }
   }
 
@@ -339,7 +343,7 @@ struct BeefyTest : testing::Test {
   std::vector<BlockHeader> blocks_;
   BlockNumber min_delta_ = 1;
   BlockNumber genesis_ = 1;
-  std::vector<BeefyPeer> peers_;
+  std::vector<std::shared_ptr<BeefyPeer>> peers_;
   std::map<BlockNumber, BeefyJustification> justifications_;
 };
 
@@ -421,7 +425,7 @@ TEST_F(BeefyTest, correct_beefy_payload) {
 
   // Alice, Bob, Charlie will vote on good payloads
   // Dave will vote on bad mmr roots
-  peers_.at(3).vote_ = false;
+  peers_.at(3)->vote_ = false;
 
   // with 3 good voters and 1 bad one, consensus should happen and best blocks
   // produced.
@@ -431,9 +435,9 @@ TEST_F(BeefyTest, correct_beefy_payload) {
   // now 2 good validators and 1 bad one are voting
   finalize({0, 1, 3}, 11);
   Commitment commitment{{}, 11, 0};
-  auto vote = signVote(peers_.at(3), commitment);
+  auto vote = signVote(*peers_.at(3), commitment);
   for (auto &peer : peers_) {
-    peer.beefy_->onMessage(vote);
+    peer->beefy_->onMessage(vote);
   }
   loop();
   // verify consensus is _not_ reached
@@ -452,14 +456,14 @@ TEST_F(BeefyTest, beefy_importing_justifications) {
   AuthoritySetId set = 0;
   makePeers(1);
   auto &peer = peers_.at(0);
-  peer.vote_ = false;
+  peer->vote_ = false;
   generate_blocks_and_sync(genesis_ + 1, 10);
   finalize_block_and_wait_for_beefy(genesis_ + 1, {});
   auto justify = [&](BlockNumber block_number, AuthoritySetId set) {
     auto mmr = beefyMmrDigest(blocks_.at(block_number));
     Commitment commitment{{{kMmr, Buffer{*mmr}}}, block_number, set};
-    auto vote = signVote(peer, commitment);
-    peer.beefy_->onJustification(
+    auto vote = signVote(*peer, commitment);
+    peer->beefy_->onJustification(
         blocks_.at(block_number).hash(),
         {Buffer{encode(BeefyJustification{
                            SignedCommitment{commitment, {vote.signature}}})
@@ -469,17 +473,17 @@ TEST_F(BeefyTest, beefy_importing_justifications) {
   // Import block 2 with "valid" justification (beefy pallet genesis block not
   // yet reached).
   justify(genesis_ - 1, set);
-  EXPECT_EQ(peer.beefy_->finalized(), 0);
+  EXPECT_EQ(peer->beefy_->finalized(), 0);
 
   // Import block 3 with valid justification.
   justify(genesis_, set);
   loop();
-  EXPECT_EQ(peer.beefy_->finalized(), genesis_);
+  EXPECT_EQ(peer->beefy_->finalized(), genesis_);
 
   // Import block 4 with invalid justification (incorrect validator set).
   justify(genesis_ + 1, set + 1);
   loop();
-  EXPECT_EQ(peer.beefy_->finalized(), genesis_);
+  EXPECT_EQ(peer->beefy_->finalized(), genesis_);
 }
 
 TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
@@ -490,7 +494,7 @@ TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
   // requests (since in this test there is no block import queue to
   // automatically import justifications). Instantiate but don't run Dave, yet.
   size_t dave{3};
-  peers_.at(dave).listen_ = false;
+  peers_.at(dave)->listen_ = false;
 
   // push 30 blocks
   generate_blocks_and_sync(30, 5);
@@ -514,7 +518,7 @@ TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
   auto expect_dave = [&](BlockNumber finalized, BlockNumber expected) {
     finalize({dave}, finalized);
     loop();
-    EXPECT_EQ(peers_.at(dave).beefy_->finalized(), expected);
+    EXPECT_EQ(peers_.at(dave)->beefy_->finalized(), expected);
   };
   expect_dave(1, 1);
   expect_dave(6, 5);
@@ -522,7 +526,7 @@ TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
   expect_dave(17, 15);
   expect_dave(24, 20);
 
-  peers_.at(dave).listen_ = true;
+  peers_.at(dave)->listen_ = true;
 
   // Have the other peers do some gossip so Dave finds out about their progress.
   finalize_block_and_wait_for_beefy(25, {25});
@@ -573,9 +577,9 @@ TEST_F(BeefyTest, should_initialize_voter_when_last_final_is_session_boundary) {
   // verify block 10 is correctly marked as finalized
   // verify next vote target is diff-power-of-two block 14
   // verify state also saved to db
-  reloadPeer(peer);
+  reloadPeer(*peer);
   loop();
-  EXPECT_EQ(peer.beefy_->finalized(), 10);
+  EXPECT_EQ(peer->beefy_->finalized(), 10);
   finalize_block_and_wait_for_beefy(14, {14});
 }
 
@@ -597,9 +601,9 @@ TEST_F(BeefyTest, should_initialize_voter_at_latest_finalized) {
   // verify voter initialized with single session starting at block 12
   // verify next vote target is 14
   // verify state also saved to db
-  reloadPeer(peer);
+  reloadPeer(*peer);
   loop();
-  EXPECT_EQ(peer.beefy_->finalized(), 12);
+  EXPECT_EQ(peer->beefy_->finalized(), 12);
   finalize_block_and_wait_for_beefy(14, {14});
 }
 
@@ -638,14 +642,14 @@ TEST_F(BeefyTest, should_catch_up_when_loading_saved_voter_state) {
   // preset in DB
   // Verify voter initialized with old sessions plus a new one starting at
   // block 20. There shouldn't be any duplicates.
-  reloadPeer(peer);
+  reloadPeer(*peer);
   loop();
-  EXPECT_EQ(peer.beefy_->finalized(), 10);
+  EXPECT_EQ(peer->beefy_->finalized(), 10);
   finalize_block_and_wait_for_beefy(25, {20});
 
   // will duplicate justification without persisted state
-  peer.db_ = std::make_shared<InMemorySpacedStorage>();
-  reloadPeer(peer);
+  peer->db_ = std::make_shared<InMemorySpacedStorage>();
+  reloadPeer(*peer);
   loop();
   expect(all(), {1, 10, 20});
 }
@@ -656,12 +660,12 @@ TEST_F(BeefyTest, beefy_reports_equivocations) {
   size_t alice = 0, bob = 1;
 
   // bob signs vote
-  peers_.at(alice).vote_ = false;
+  peers_.at(alice)->vote_ = false;
   finalize_block_and_wait_for_beefy(1, {});
 
   // generate duplicate bob vote with different payload
-  auto vote = signVote(peers_.at(bob), {{}, 1, 0});
-  peers_.at(alice).beefy_->onMessage(vote);
+  auto vote = signVote(*peers_.at(bob), {{}, 1, 0});
+  peers_.at(alice)->beefy_->onMessage(vote);
 
   // expect equivocation report
   EXPECT_CALL(*beefy_api_, generate_key_ownership_proof(_, _, _))
@@ -683,31 +687,31 @@ TEST_F(BeefyTest, gossipped_finality_proofs) {
   // Only Alice is running the voter -> finality threshold not reached
   // Charlie will run just the gossip engine and not the full voter.
   // Alice runs full voter.
-  peers_.at(charlie).vote_ = false;
+  peers_.at(charlie)->vote_ = false;
 
   // Alice and Charlie finalize #1, Alice votes on it, but not Charlie.
   // verify nothing gets finalized by BEEFY
   finalize_block_and_wait_for_beefy(1, {});
 
   // Charlie gossips finality proof for #1 -> Alice and Bob also finalize.
-  peers_.at(charlie).vote_ = true;
+  peers_.at(charlie)->vote_ = true;
   finalize_block_and_wait_for_beefy({charlie}, 1, {1});
   expect({alice}, {});
   // Expect #1 is finalized.
-  EXPECT_EQ(peers_.at(alice).beefy_->finalized(), 1);
+  EXPECT_EQ(peers_.at(alice)->beefy_->finalized(), 1);
 
   // Code above verifies gossipped finality proofs are correctly imported and
   // consumed by voters. Next, let's verify finality proofs are correctly
   // generated and gossipped by voters.
 
   // Everyone finalizes #2
-  peers_.at(alice).listen_ = false;
-  peers_.at(charlie).listen_ = false;
+  peers_.at(alice)->listen_ = false;
+  peers_.at(charlie)->listen_ = false;
   finalize_block_and_wait_for_beefy(2, {});
 
   // Simulate Charlie vote on #2
-  peers_.at(alice).listen_ = true;
-  peers_.at(charlie).listen_ = true;
+  peers_.at(alice)->listen_ = true;
+  peers_.at(charlie)->listen_ = true;
   rebroadcast();
   loop();
   // Expect #2 is finalized.
