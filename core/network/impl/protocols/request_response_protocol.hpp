@@ -109,62 +109,12 @@ namespace kagome::network {
       {
         auto weak_self = std::weak_ptr{self};
         IF_WEAK_LOCK(self) {
-          if (cb == nullptr) {
-            SL_WARN(self->base_.logger(),
-                    "cb is nullptr for request_id: {}",
-                    request_id);
-            return;
-          } else {
-            SL_DEBUG(self->base_.logger(),
-                     "cb is not nullptr for request_id: {}",
-                     request_id);
-          }
+          SL_DEBUG(self->base_.logger(), "New request_id: {}", request_id);
         }
       }
 
       auto cb_shared =
           std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
-      {
-        auto weak_self = std::weak_ptr{self};
-        IF_WEAK_LOCK(self) {
-          if (cb_shared == nullptr) {
-            SL_WARN(self->base_.logger(),
-                    "cb_shared is nullptr for request_id: {}",
-                    request_id);
-            return;
-          } else {
-            SL_DEBUG(self->base_.logger(),
-                     "cb_shared is not nullptr for request_id: {}",
-                     request_id);
-            if (*cb_shared == std::nullopt) {
-              SL_WARN(self->base_.logger(),
-                      "cb_shared is nullopt for request_id: {}",
-                      request_id);
-              return;
-            } else {
-              SL_DEBUG(self->base_.logger(),
-                       "cb_shared is not nullopt for request_id: {}",
-                       request_id);
-            }
-          }
-        }
-      }
-
-      {
-        auto weak_self = std::weak_ptr{self};
-        IF_WEAK_LOCK(self) {
-          if (peer_id) {
-            SL_DEBUG(self->base_.logger(),
-                     "New request to peer {} request_id: {}",
-                     peer_id.value(),
-                     request_id);
-          } else {
-            SL_DEBUG(self->base_.logger(),
-                     "New request to unknown peer request_id: {}",
-                     request_id);
-          }
-        }
-      }
 
       auto timer = self->scheduler_->scheduleWithHandle(
           [weak_self{std::weak_ptr{self}},
@@ -175,28 +125,11 @@ namespace kagome::network {
             IF_WEAK_LOCK(stream) {
               stream->reset();
               IF_WEAK_LOCK(self) {
+                self->metrics_.timeout_->inc();
                 SL_DEBUG(
                     self->base_.logger(),
-                    "Handle timeout stream->reset() request_id: {}, peer: {}",
-                    request_id,
-                    peer_id.value());
-                self->metrics_.timeout_->inc();
-                if (peer_id) {
-                  SL_WARN(self->base_.logger(),
-                          "Request timeout for {} protocol with peer {} after "
-                          "{}ms (request_id: {})",
-                          self->protocolName(),
-                          peer_id.value(),
-                          self->timeout_.count(),
-                          request_id);
-                } else {
-                  SL_WARN(self->base_.logger(),
-                          "Request timeout for {} protocol with unknown peer "
-                          "after {}ms (request_id: {})",
-                          self->protocolName(),
-                          self->timeout_.count(),
-                          request_id);
-                }
+                    "Stream is valid, calling cb_shared for request_id: {}",
+                    request_id);
                 (**cb_shared)(outcome::failure(ProtocolError::TIMEOUT));
               }
             }
@@ -204,26 +137,9 @@ namespace kagome::network {
               IF_WEAK_LOCK(self) {
                 SL_DEBUG(
                     self->base_.logger(),
-                    "Handle timeout self is nullptr request_id: {}, peer: {}",
-                    request_id,
-                    peer_id.value());
+                    "Stream is not valid, calling cb_shared for request_id: {}",
+                    request_id);
                 self->metrics_.timeout_->inc();
-                if (peer_id) {
-                  SL_WARN(self->base_.logger(),
-                          "Request timeout for {} protocol with peer {} after "
-                          "{}ms (stream already closed, request_id: {})",
-                          self->protocolName(),
-                          peer_id.value(),
-                          self->timeout_.count(),
-                          request_id);
-                } else {
-                  SL_WARN(self->base_.logger(),
-                          "Request timeout for {} protocol with unknown peer "
-                          "after {}ms (stream already closed, request_id: {})",
-                          self->protocolName(),
-                          self->timeout_.count(),
-                          request_id);
-                }
                 (**cb_shared)(outcome::failure(ProtocolError::TIMEOUT));
               }
             }
@@ -234,28 +150,19 @@ namespace kagome::network {
                              cb_shared,
                              lost{RequestResponseMetrics::Lost{self->metrics_}},
                              timer{std::move(timer)},
-                             request_id,
-                             peer_id{std::move(peer_id)}](auto &&r) mutable {
+                             peer_id{std::move(peer_id)},
+                             request_id{request_id}](auto &&r) mutable {
         lost.notLost();
         timer.reset();
         IF_WEAK_LOCK(self) {
-          SL_DEBUG(self->base_.logger(),
-                   "Success callback request_id: {}, peer: {}",
-                   request_id,
-                   peer_id.value());
           if (r) {
-            SL_DEBUG(self->base_.logger(),
-                     "Success callback request_id: {}, peer: {}",
-                     request_id,
-                     peer_id.value());
             self->metrics_.success_->inc();
           } else {
-            SL_DEBUG(self->base_.logger(),
-                     "Failure callback request_id: {}, peer: {}",
-                     request_id,
-                     peer_id.value());
             self->metrics_.failure_->inc();
           }
+          SL_DEBUG(self->base_.logger(),
+                   "From SharedFn, calling cb_shared for request_id: {}",
+                   request_id);
           (**cb_shared)(std::move(r));
         }
       }};
