@@ -103,10 +103,53 @@ namespace kagome::network {
         }
       }
 
-      auto cb_shared =
-          std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
       static auto request_id_atomic = std::atomic<int>(0);
       const auto request_id = request_id_atomic.fetch_add(1);
+
+      {
+        auto weak_self = std::weak_ptr{self};
+        IF_WEAK_LOCK(self) {
+          if (cb == nullptr) {
+            SL_WARN(self->base_.logger(),
+                    "cb is nullptr for request_id: {}",
+                    request_id);
+            return;
+          } else {
+            SL_DEBUG(self->base_.logger(),
+                     "cb is not nullptr for request_id: {}",
+                     request_id);
+          }
+        }
+      }
+
+      auto cb_shared =
+          std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
+      {
+        auto weak_self = std::weak_ptr{self};
+        IF_WEAK_LOCK(self) {
+          if (cb_shared == nullptr) {
+            SL_WARN(self->base_.logger(),
+                    "cb_shared is nullptr for request_id: {}",
+                    request_id);
+            return;
+          } else {
+            SL_DEBUG(self->base_.logger(),
+                     "cb_shared is not nullptr for request_id: {}",
+                     request_id);
+            if (*cb_shared == std::nullopt) {
+              SL_WARN(self->base_.logger(),
+                      "cb_shared is nullopt for request_id: {}",
+                      request_id);
+              return;
+            } else {
+              SL_DEBUG(self->base_.logger(),
+                       "cb_shared is not nullopt for request_id: {}",
+                       request_id);
+            }
+          }
+        }
+      }
+
       {
         auto weak_self = std::weak_ptr{self};
         IF_WEAK_LOCK(self) {
@@ -132,10 +175,11 @@ namespace kagome::network {
             IF_WEAK_LOCK(stream) {
               stream->reset();
               IF_WEAK_LOCK(self) {
-                SL_DEBUG(self->base_.logger(),
-                         "Handle timeout stream->reset() request_id: {}, peer: {}",
-                         request_id,
-                         peer_id.value());
+                SL_DEBUG(
+                    self->base_.logger(),
+                    "Handle timeout stream->reset() request_id: {}, peer: {}",
+                    request_id,
+                    peer_id.value());
                 self->metrics_.timeout_->inc();
                 if (peer_id) {
                   SL_WARN(self->base_.logger(),
@@ -153,27 +197,16 @@ namespace kagome::network {
                           self->timeout_.count(),
                           request_id);
                 }
-                if (auto cb = qtils::optionTake(*cb_shared)) {
-                  SL_DEBUG(self->base_.logger(),
-                           "optionTake success request_id: {}, peer: {}",
-                           request_id,
-                           peer_id.value());
-                  (*cb)(outcome::failure(ProtocolError::TIMEOUT));
-                } else {
-                  SL_DEBUG(
-                      self->base_.logger(),
-                      "Handle timeout optionTake is nullptr request_id: {}, peer: {}",
-                      request_id,
-                      peer_id.value());
-                }
+                (**cb_shared)(outcome::failure(ProtocolError::TIMEOUT));
               }
             }
             else {
               IF_WEAK_LOCK(self) {
-                SL_DEBUG(self->base_.logger(),
-                         "Handle timeout self is nullptr request_id: {}, peer: {}",
-                         request_id,
-                         peer_id.value());
+                SL_DEBUG(
+                    self->base_.logger(),
+                    "Handle timeout self is nullptr request_id: {}, peer: {}",
+                    request_id,
+                    peer_id.value());
                 self->metrics_.timeout_->inc();
                 if (peer_id) {
                   SL_WARN(self->base_.logger(),
@@ -191,19 +224,7 @@ namespace kagome::network {
                           self->timeout_.count(),
                           request_id);
                 }
-                if (auto cb = qtils::optionTake(*cb_shared)) {
-                  SL_DEBUG(self->base_.logger(),
-                           "Handle timeout optionTake success request_id: {}, peer: {}",
-                           request_id,
-                           peer_id.value());
-                  (*cb)(outcome::failure(ProtocolError::TIMEOUT));
-                } else {
-                  SL_DEBUG(
-                      self->base_.logger(),
-                      "Handle timeout optionTake is nullptr request_id: {}, peer: {}",
-                      request_id,
-                      peer_id.value());
-                }
+                (**cb_shared)(outcome::failure(ProtocolError::TIMEOUT));
               }
             }
           },
@@ -235,18 +256,7 @@ namespace kagome::network {
                      peer_id.value());
             self->metrics_.failure_->inc();
           }
-          if (auto cb = qtils::optionTake(*cb_shared)) {
-            SL_DEBUG(self->base_.logger(),
-                     "Success optionTake request_id: {}, peer: {}",
-                     request_id,
-                     peer_id.value());
-            (*cb)(std::move(r));
-          } else {
-            SL_DEBUG(self->base_.logger(),
-                     "Failure optionTake request_id: {}, peer: {}",
-                     request_id,
-                     peer_id.value());
-          }
+          (**cb_shared)(std::move(r));
         }
       }};
     }
