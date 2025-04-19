@@ -9,7 +9,7 @@ test-polkadot-functional-0002-parachains-disputes:
 
 test-polkadot-functional-0003-beefy-and-mmr:
 	$(call run_test, "kagome/zombienet/polkadot/functional/0003-beefy-and-mmr.zndsl")
-test-polkadot-functional-0003-beefy-and-mmr:
+test-polkadot-functional-0003-beefy-and-mmr-kagome-minority:
 	$(call run_test, "kagome/zombienet/polkadot/functional/0003-beefy-and-mmr-kagome-minority.zndsl")
 
 test-polkadot-functional-0004-parachains-garbage-candidate:
