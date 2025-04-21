@@ -28,17 +28,18 @@ namespace kagome::blockchain {
 
 namespace kagome::network {
 
-  struct ReqPovProtocolImpl;
-
-  class ReqPovProtocol final : public IReqPovProtocol, NonCopyable, NonMovable {
+  struct ReqPovProtocolInner;
+  class ReqPovProtocolImpl final : public ReqPovProtocol,
+                                   NonCopyable,
+                                   NonMovable {
    public:
-    ReqPovProtocol() = delete;
-    ~ReqPovProtocol() override = default;
+    ReqPovProtocolImpl() = delete;
+    ~ReqPovProtocolImpl() override = default;
 
-    ReqPovProtocol(RequestResponseInject inject,
-                   const application::ChainSpec &chain_spec,
-                   const blockchain::GenesisBlockHash &genesis_hash,
-                   std::shared_ptr<ReqPovObserver> observer);
+    ReqPovProtocolImpl(RequestResponseInject inject,
+                       const application::ChainSpec &chain_spec,
+                       const blockchain::GenesisBlockHash &genesis_hash,
+                       std::shared_ptr<ReqPovObserver> observer);
 
     const Protocol &protocolName() const override;
 
@@ -56,7 +57,7 @@ namespace kagome::network {
                      &&response_handler) override;
 
    private:
-    std::shared_ptr<ReqPovProtocolImpl> impl_;
+    std::shared_ptr<ReqPovProtocolInner> impl_;
   };
 
 }  // namespace kagome::network

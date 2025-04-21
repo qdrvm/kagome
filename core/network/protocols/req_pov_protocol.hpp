@@ -15,7 +15,7 @@
 
 namespace kagome::network {
 
-  class IReqPovProtocol : public ProtocolBase {
+  class ReqPovProtocol : public ProtocolBase {
    public:
     virtual void request(const PeerId &peer_id,
                          RequestPov,
