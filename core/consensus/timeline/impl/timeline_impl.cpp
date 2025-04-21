@@ -397,7 +397,7 @@ namespace kagome::consensus {
 
     startCatchUp(peer_id, handshake.best_block);
 
-    synchronizer_->onBlockAnnounceHandshake(handshake.best_block, peer_id);
+    synchronizer_->addPeerKnownBlockInfo(handshake.best_block, peer_id);
   }
 
   void TimelineImpl::onBlockAnnounce(const libp2p::peer::PeerId &peer_id,

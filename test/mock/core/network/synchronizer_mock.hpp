@@ -17,7 +17,7 @@ namespace kagome::network {
   class SynchronizerMock : public Synchronizer {
    public:
     MOCK_METHOD(void,
-                onBlockAnnounceHandshake,
+                addPeerKnownBlockInfo,
                 (const BlockInfo &, const PeerId &),
                 (override));
 

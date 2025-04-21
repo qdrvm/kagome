@@ -31,8 +31,8 @@ namespace kagome::network {
     virtual ~Synchronizer() = default;
 
     /// Block announce handshake received from peer.
-    virtual void onBlockAnnounceHandshake(const BlockInfo &block_info,
-                                          const PeerId &peer_id) = 0;
+    virtual void addPeerKnownBlockInfo(const BlockInfo &block_info,
+                                       const PeerId &peer_id) = 0;
 
     /// Block announce received from peer.
     virtual void onBlockAnnounce(const BlockHeader &header,

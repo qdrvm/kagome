@@ -158,8 +158,8 @@ namespace kagome::network {
     node_is_shutting_down_ = true;
   }
 
-  void SynchronizerImpl::onBlockAnnounceHandshake(const BlockInfo &block_info,
-                                                  const PeerId &peer_id) {
+  void SynchronizerImpl::addPeerKnownBlockInfo(const BlockInfo &block_info,
+                                               const PeerId &peer_id) {
     if (state_sync_.has_value()) {
       return;
     }

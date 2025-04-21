@@ -140,8 +140,8 @@ namespace kagome::network {
     /// Enqueues loading (and applying) blocks from peer {@param peer_id}
     /// since best common block up to provided {@param block_info}.
     /// @note Is used for start/continue catching up.
-    void onBlockAnnounceHandshake(const BlockInfo &block_info,
-                                  const PeerId &peer_id) override;
+    void addPeerKnownBlockInfo(const BlockInfo &block_info,
+                               const PeerId &peer_id) override;
 
     /// Enqueues loading and applying block from peer {@param peer_id}
     /// based on the announced {@param header}.
