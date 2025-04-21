@@ -226,7 +226,7 @@ namespace kagome::network {
                  response.blocks.size(),
                  reason,
                  peer_id);
-      for (auto &block : response.blocks | std::views::reverse) {
+      for (auto &block : response.blocks) {
         if (block.header.has_value()) {
           if (not self->addHeader(peer_id, std::move(block))) {
             continue;
@@ -1013,7 +1013,7 @@ namespace kagome::network {
   }
 
   bool SynchronizerImpl::validate(const BlocksRequest &request,
-                                  BlocksResponse &response) const {
+                                  const BlocksResponse &response) const {
     auto &blocks = response.blocks;
     if (blocks.empty()) {
       return false;
@@ -1030,9 +1030,6 @@ namespace kagome::network {
         return false;
       }
     }
-    if (request.direction == Direction::ASCENDING) {
-      std::ranges::reverse(blocks);
-    }
     for (auto &block : blocks) {
       if (block.header.has_value() != need_header) {
         return false;
@@ -1048,16 +1045,28 @@ namespace kagome::network {
       }
     }
     if (need_header) {
-      std::optional<BlockInfo> expected;
-      size_t count = 0;
-      for (auto &block : blocks) {
-        auto &header = block.header.value();
-        ++count;
-        if (expected.has_value() and header.blockInfo() != expected) {
+      auto validate_chain = [&](auto &&blocks) {
+        std::optional<BlockInfo> expected;
+        size_t count = 0;
+        for (auto &block : blocks) {
+          auto &header = block.header.value();
+          ++count;
+          if (expected.has_value() and header.blockInfo() != expected) {
+            return false;
+          }
+          expected = header.parentInfo();
+          if (not expected.has_value() and count != blocks.size()) {
+            return false;
+          }
+        }
+        return true;
+      };
+      if (request.direction == Direction::ASCENDING) {
+        if (not validate_chain(blocks | std::views::reverse)) {
           return false;
         }
-        expected = header.parentInfo();
-        if (not expected.has_value() and count != blocks.size()) {
+      } else {
+        if (not validate_chain(blocks)) {
           return false;
         }
       }
