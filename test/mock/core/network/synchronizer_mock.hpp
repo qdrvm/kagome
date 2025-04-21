@@ -50,7 +50,7 @@ namespace kagome::network {
                 (override));
 
     MOCK_METHOD(void,
-                fetchGrandpaFork,
+                trySyncShortFork,
                 (const PeerId &, const primitives::BlockInfo &),
                 (override));
 

@@ -164,7 +164,7 @@ namespace kagome::network {
     /// If finished, {@param handler} be called
     void syncState(const BlockInfo &block, SyncStateCb handler) override;
 
-    /// Fetches the Grandpa fork information from a specific peer.
+    /// Fetches the fork headers from a specific peer.
     ///
     /// This function sends a request to the specified peer to retrieve
     /// information about a Grandpa fork based on the provided vote.
@@ -173,8 +173,8 @@ namespace kagome::network {
     /// information is to be fetched.
     /// @param vote The block information representing the Grandpa vote
     ///             for which the fork data is being requested.
-    void fetchGrandpaFork(const PeerId &peer_id,
-                          const primitives::BlockInfo &vote) override;
+    void trySyncShortFork(const PeerId &peer_id,
+                          const primitives::BlockInfo &block) override;
 
     /// Used for 'unsafe' sync. Fetches headers back from a peer until a block
     /// with justification for a Grandpa scheduled change is found.

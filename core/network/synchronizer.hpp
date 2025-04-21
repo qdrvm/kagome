@@ -65,8 +65,10 @@ namespace kagome::network {
     /// Start or continue state sync for block.
     virtual void syncState(const BlockInfo &block, SyncStateCb handler) = 0;
 
-    virtual void fetchGrandpaFork(const PeerId &peer_id,
-                                  const primitives::BlockInfo &vote) = 0;
+    /// Try to send one request to peer for block hash.
+    /// Used by grandpa to check votes on forks.
+    virtual void trySyncShortFork(const PeerId &peer_id,
+                                  const primitives::BlockInfo &block) = 0;
 
     using UnsafeOk = std::pair<BlockHeader, GrandpaJustification>;
     using UnsafeRes = std::variant<BlockNumber, UnsafeOk>;

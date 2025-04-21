@@ -678,11 +678,11 @@ namespace kagome::network {
     return true;
   }
 
-  void SynchronizerImpl::fetchGrandpaFork(const PeerId &peer_id,
-                                          const primitives::BlockInfo &vote) {
+  void SynchronizerImpl::trySyncShortFork(const PeerId &peer_id,
+                                          const primitives::BlockInfo &block) {
     BlocksRequest request{
         .fields = BlockAttribute::HEADER,
-        .from = vote.hash,
+        .from = block.hash,
         .direction = Direction::DESCENDING,
     };
     static size_t fetching = 0;
