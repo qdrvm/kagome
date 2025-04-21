@@ -177,11 +177,6 @@ namespace kagome::network {
     if (state_sync_.has_value()) {
       return;
     }
-    // ignore announces above highest of currently executing blocks
-    if (timeline_.get()->wasSynchronized() and not executing_blocks_.empty()
-        and header.number > executing_blocks_.rbegin()->number) {
-      return;
-    }
     addHeader(peer_id, {.header = header});
     fetchTasks();
   }
