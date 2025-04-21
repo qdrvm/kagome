@@ -347,6 +347,7 @@ struct BeefyTest : testing::Test {
   std::map<BlockNumber, BeefyJustification> justifications_;
 };
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L613
 TEST_F(BeefyTest, beefy_finalizing_blocks) {
   min_delta_ = 4;
   makePeers(2);
@@ -371,6 +372,7 @@ TEST_F(BeefyTest, beefy_finalizing_blocks) {
   finalize_block_and_wait_for_beefy(21, {});
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L653
 TEST_F(BeefyTest, lagging_validators) {
   makePeers(3);
   generate_blocks_and_sync(62, 30);
@@ -418,6 +420,7 @@ TEST_F(BeefyTest, lagging_validators) {
   expect(all(), {60});
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L721
 TEST_F(BeefyTest, correct_beefy_payload) {
   min_delta_ = 2;
   makePeers(4);
@@ -451,6 +454,7 @@ TEST_F(BeefyTest, correct_beefy_payload) {
   expect(all(), {11});
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L779
 TEST_F(BeefyTest, beefy_importing_justifications) {
   genesis_ = 3;
   AuthoritySetId set = 0;
@@ -486,6 +490,7 @@ TEST_F(BeefyTest, beefy_importing_justifications) {
   EXPECT_EQ(peer->beefy_->finalized(), genesis_);
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L944
 TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
   min_delta_ = 4;
   // Alice, Bob, Charlie start first and make progress through voting.
@@ -533,6 +538,7 @@ TEST_F(BeefyTest, on_demand_beefy_justification_sync) {
   finalize_block_and_wait_for_beefy(29, {29});
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L1028
 TEST_F(BeefyTest, should_initialize_voter_at_genesis) {
   // polkadot-sdk finalizes blocks 11..13 but doesn't expect them to be
   // justified. Exclude 11..13 justifications using min delta.
@@ -548,6 +554,7 @@ TEST_F(BeefyTest, should_initialize_voter_at_genesis) {
   finalize_block_and_wait_for_beefy(13, {10});
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L1070
 TEST_F(BeefyTest, should_initialize_voter_at_custom_genesis) {
   makePeers(1);
   generate_blocks_and_sync(25, 10);
@@ -558,6 +565,7 @@ TEST_F(BeefyTest, should_initialize_voter_at_custom_genesis) {
   finalize_block_and_wait_for_beefy(genesis_, {genesis_});
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L1145
 TEST_F(BeefyTest, should_initialize_voter_when_last_final_is_session_boundary) {
   min_delta_ = 4;
   makePeers(1);
@@ -583,6 +591,7 @@ TEST_F(BeefyTest, should_initialize_voter_when_last_final_is_session_boundary) {
   finalize_block_and_wait_for_beefy(14, {14});
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L1202
 TEST_F(BeefyTest, should_initialize_voter_at_latest_finalized) {
   genesis_ = 12;
   min_delta_ = 2;
@@ -607,6 +616,7 @@ TEST_F(BeefyTest, should_initialize_voter_at_latest_finalized) {
   finalize_block_and_wait_for_beefy(14, {14});
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L1375
 TEST_F(BeefyTest, beefy_finalizing_after_pallet_genesis) {
   genesis_ = 15;
   makePeers(2);
@@ -622,6 +632,7 @@ TEST_F(BeefyTest, beefy_finalizing_after_pallet_genesis) {
   finalize_block_and_wait_for_beefy(21, {20, 21});
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L1308
 TEST_F(BeefyTest, should_catch_up_when_loading_saved_voter_state) {
   min_delta_ = 10;
   makePeers(1);
@@ -654,6 +665,7 @@ TEST_F(BeefyTest, should_catch_up_when_loading_saved_voter_state) {
   expect(all(), {1, 10, 20});
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L1409
 TEST_F(BeefyTest, beefy_reports_equivocations) {
   makePeers(2);
   generate_blocks_and_sync(1, 10);
@@ -679,6 +691,7 @@ TEST_F(BeefyTest, beefy_reports_equivocations) {
   loop();
 }
 
+// https://github.com/paritytech/polkadot-sdk/blob/1b76f99e12e9751703417fdb58097a1860aa20b7/substrate/client/consensus/beefy/src/tests.rs#L1481
 TEST_F(BeefyTest, gossipped_finality_proofs) {
   makePeers(2);
   generate_blocks_and_sync(42, 10);
