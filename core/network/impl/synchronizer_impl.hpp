@@ -13,6 +13,7 @@
 #include <queue>
 #include <random>
 #include <set>
+#include <unordered_set>
 
 #include <libp2p/basic/scheduler.hpp>
 
@@ -381,7 +382,7 @@ namespace kagome::network {
       /// Data of block
       primitives::BlockData data;
       /// Peers who know this block
-      std::set<libp2p::peer::PeerId> peers;
+      std::unordered_set<PeerId> peers;
       Ancestry::iterator ancestry_it;
     };
 
@@ -395,12 +396,12 @@ namespace kagome::network {
     // Links parent->child
     Ancestry ancestry_;
 
-    std::set<libp2p::peer::PeerId> busy_peers_;
+    std::unordered_set<PeerId> busy_peers_;
 
     std::map<std::tuple<libp2p::peer::PeerId, BlocksRequest::Fingerprint>,
              const char *>
         recent_requests_;
-    std::set<BlockInfo> executing_blocks_;
+    std::unordered_set<BlockInfo> executing_blocks_;
 
     libp2p::Cancel hang_timer_;
 
