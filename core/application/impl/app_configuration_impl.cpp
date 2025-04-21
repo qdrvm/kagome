@@ -1604,9 +1604,14 @@ namespace kagome::application {
     }
 
     max_parallel_downloads_ =
-        std::max<uint32_t>(1,
-                           find_argument<uint32_t>(vm, "max-parallel-downloads")
-                               .value_or(def_max_parallel_downloads));
+        find_argument<uint32_t>(vm, "max-parallel-downloads")
+            .value_or(def_max_parallel_downloads);
+    if (max_parallel_downloads_ <= 0) {
+      SL_ERROR(logger_,
+               "Invalid max parallel downloads {}. Must be greater than 0",
+               max_parallel_downloads_);
+      return false;
+    }
 
     unsafe_sync_to_ = find_argument<BlockNumber>(vm, "unsafe-sync-to");
     if (unsafe_sync_to_) {
