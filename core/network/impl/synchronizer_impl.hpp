@@ -169,8 +169,7 @@ namespace kagome::network {
     /// information about a Grandpa fork based on the provided vote.
     ///
     /// @param peer_id The identifier of the peer from which the fork
-    /// information
-    ///                is to be fetched.
+    /// information is to be fetched.
     /// @param vote The block information representing the Grandpa vote
     ///             for which the fork data is being requested.
     void fetchGrandpaFork(const PeerId &peer_id,

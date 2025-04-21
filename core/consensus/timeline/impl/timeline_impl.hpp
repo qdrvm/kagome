@@ -202,6 +202,9 @@ namespace kagome::consensus {
 
     telemetry::Telemetry telemetry_;
 
+    /**
+     * Node is synchronized when all announced blocks are imported.
+     */
     BlockNumber best_announce_ = 0;
   };
 
