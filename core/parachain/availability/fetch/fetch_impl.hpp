@@ -43,6 +43,7 @@ namespace kagome::parachain {
       RelayHash relay_parent;
       std::vector<primitives::AuthorityDiscoveryId> validators;
       storage::trie::RootHash erasure_encoding_root;
+      uint32_t pending_requests = 0;
     };
 
     void fetch(const CandidateHash &candidate_hash);

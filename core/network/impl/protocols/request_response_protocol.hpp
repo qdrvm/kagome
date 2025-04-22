@@ -109,7 +109,7 @@ namespace kagome::network {
       {
         auto weak_self = std::weak_ptr{self};
         IF_WEAK_LOCK(self) {
-          SL_DEBUG(self->base_.logger(), "New request_id: {}", request_id);
+          SL_INFO(self->base_.logger(), "New request_id: {}", request_id);
         }
       }
 
@@ -126,16 +126,15 @@ namespace kagome::network {
               stream->reset();
               IF_WEAK_LOCK(self) {
                 self->metrics_.timeout_->inc();
-                SL_DEBUG(
-                    self->base_.logger(),
-                    "Stream is valid, calling cb_shared for request_id: {}",
-                    request_id);
+                SL_INFO(self->base_.logger(),
+                        "Stream is valid, calling cb_shared for request_id: {}",
+                        request_id);
                 (**cb_shared)(outcome::failure(ProtocolError::TIMEOUT));
               }
             }
             else {
               IF_WEAK_LOCK(self) {
-                SL_DEBUG(
+                SL_INFO(
                     self->base_.logger(),
                     "Stream is not valid, calling cb_shared for request_id: {}",
                     request_id);
@@ -160,9 +159,9 @@ namespace kagome::network {
           } else {
             self->metrics_.failure_->inc();
           }
-          SL_DEBUG(self->base_.logger(),
-                   "From SharedFn, calling cb_shared for request_id: {}",
-                   request_id);
+          SL_INFO(self->base_.logger(),
+                  "From SharedFn, calling cb_shared for request_id: {}",
+                  request_id);
           (**cb_shared)(std::move(r));
         }
       }};
