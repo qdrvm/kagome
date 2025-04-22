@@ -36,27 +36,27 @@ namespace kagome::parachain {
   void FetchImpl::fetch(ChunkIndex chunk_index,
                         const runtime::OccupiedCore &core,
                         const runtime::SessionInfo &session) {
-    SL_TRACE(log(),
+    SL_INFO(log(),
              "fetch called Candidate {} chunk {}",
              core.candidate_hash,
              chunk_index);
     std::unique_lock lock{mutex_};
     if (active_.find(core.candidate_hash) != active_.end()) {
-      SL_TRACE(log(),
+      SL_INFO(log(),
                "fetch Candidate {}, chunk {} is already being fetched",
                core.candidate_hash,
                chunk_index);
       return;
     }
     if (av_store_->hasChunk(core.candidate_hash, chunk_index)) {
-      SL_TRACE(log(),
+      SL_INFO(log(),
                "fetch Candidate {}, chunk {} is already available",
                core.candidate_hash,
                chunk_index);
       return;
     }
 
-    SL_TRACE(log(),
+    SL_INFO(log(),
              "fetch Candidate {}, starting fetch of chunk {}",
              core.candidate_hash,
              chunk_index);
@@ -67,7 +67,7 @@ namespace kagome::parachain {
     active.erasure_encoding_root =
         core.candidate_descriptor.erasure_encoding_root;
 
-    SL_TRACE(log(),
+    SL_INFO(log(),
              "fetch Candidate {}, setting up active fetch for chunk {}, "
              "erasure_root={}",
              core.candidate_hash,
@@ -77,7 +77,7 @@ namespace kagome::parachain {
     for (auto &validator_index :
          session.validator_groups[core.group_responsible]) {
       active.validators.emplace_back(session.discovery_keys[validator_index]);
-      SL_TRACE(
+      SL_INFO(
           log(),
           "fetch Candidate {}, added validator #{} to fetch list for chunk {}",
           core.candidate_hash,
@@ -85,7 +85,7 @@ namespace kagome::parachain {
           chunk_index);
     }
 
-    SL_TRACE(log(),
+    SL_INFO(log(),
              "fetch Candidate {}, prepared {} validators for fetching chunk {}",
              core.candidate_hash,
              active.validators.size(),
@@ -116,7 +116,7 @@ namespace kagome::parachain {
 
       switch (req_chunk_version) {
         case network::ReqChunkVersion::V2:
-          SL_DEBUG(log(),
+          SL_INFO(log(),
                    "Sent request of chunk {} of candidate {} to peer {}",
                    active.chunk_index,
                    candidate_hash,
@@ -128,14 +128,14 @@ namespace kagome::parachain {
                   outcome::result<network::FetchChunkResponse> r) {
                 if (auto self = weak.lock()) {
                   if (r.has_value()) {
-                    SL_DEBUG(log(),
+                    SL_INFO(log(),
                              "Result of request chunk {} of candidate {} to "
                              "peer {}: success",
                              chunk_index,
                              candidate_hash,
                              peer_id);
                   } else {
-                    SL_DEBUG(log(),
+                    SL_INFO(log(),
                              "Result of request chunk {} of candidate {} to "
                              "peer {}: {}",
                              chunk_index,
@@ -180,7 +180,7 @@ namespace kagome::parachain {
       }
       return;
     }
-    SL_DEBUG(log(),
+    SL_INFO(log(),
              "candidate={} chunk={} not found",
              candidate_hash,
              active.chunk_index);
@@ -189,19 +189,19 @@ namespace kagome::parachain {
 
   void FetchImpl::fetch(const CandidateHash &candidate_hash,
                         outcome::result<network::FetchChunkResponse> _chunk) {
-    SL_TRACE(log(), "fetch chunk for {}", candidate_hash);
+    SL_INFO(log(), "fetch chunk for {}", candidate_hash);
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
     if (it == active_.end()) {
-      SL_TRACE(log(), "fetch candidate not found in active {}", candidate_hash);
+      SL_INFO(log(), "fetch candidate not found in active {}", candidate_hash);
       return;
     }
-    SL_TRACE(log(), "fetch candidate found in active {}", candidate_hash);
+    SL_INFO(log(), "fetch candidate found in active {}", candidate_hash);
     auto &active = it->second;
     if (_chunk) {
-      SL_TRACE(log(), "fetch chunk is okay for candidate {}", candidate_hash);
+      SL_INFO(log(), "fetch chunk is okay for candidate {}", candidate_hash);
       if (auto chunk2 = boost::get<network::Chunk>(&_chunk.value())) {
-        SL_TRACE(log(),
+        SL_INFO(log(),
                  "fetch got chunk for candidate={} index={}",
                  candidate_hash,
                  active.chunk_index);
@@ -212,7 +212,7 @@ namespace kagome::parachain {
             .proof = std::move(chunk2->proof),
         };
         if (checkTrieProof(chunk, active.erasure_encoding_root)) {
-          SL_TRACE(log(),
+          SL_INFO(log(),
                    "fetch trie proof check passed for candidate={} index={}",
                    candidate_hash,
                    active.chunk_index);
@@ -225,24 +225,24 @@ namespace kagome::parachain {
           active_.erase(it);
           return;
         } else {
-          SL_TRACE(log(),
+          SL_INFO(log(),
                    "fetch trie proof check failed for candidate={} index={}",
                    candidate_hash,
                    active.chunk_index);
         }
       } else {
-        SL_TRACE(log(),
+        SL_INFO(log(),
                  "fetch received non-chunk response for candidate={}",
                  candidate_hash);
       }
     } else {
-      SL_TRACE(log(),
+      SL_INFO(log(),
                "chunk is not okay for candidate={}, error: {}",
                candidate_hash,
                _chunk.error());
     }
     lock.unlock();
-    SL_TRACE(log(),
+    SL_INFO(log(),
              "retrying fetch for candidate={} index={}",
              candidate_hash,
              active.chunk_index);
