@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "libp2p/peer/peer_id.hpp"
 #include "parachain/availability/fetch/fetch.hpp"
 
 #include <mutex>
@@ -43,13 +44,13 @@ namespace kagome::parachain {
       RelayHash relay_parent;
       std::vector<primitives::AuthorityDiscoveryId> validators;
       storage::trie::RootHash erasure_encoding_root;
-      uint32_t pending_requests = 0;
+      std::unordered_set<libp2p::peer::PeerId> pending_requests;
     };
 
     void fetch(const CandidateHash &candidate_hash);
     void fetch(const CandidateHash &candidate_hash,
-               outcome::result<network::FetchChunkResponse> _chunk);
-
+               outcome::result<network::FetchChunkResponse> _chunk,
+               const libp2p::peer::PeerId &peer_id);
     std::shared_ptr<AvailabilityStore> av_store_;
     std::shared_ptr<authority_discovery::Query> query_audi_;
     std::shared_ptr<network::Router> router_;

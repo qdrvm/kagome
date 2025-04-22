@@ -66,7 +66,6 @@ namespace kagome::parachain {
     active.relay_parent = core.candidate_descriptor.relay_parent;
     active.erasure_encoding_root =
         core.candidate_descriptor.erasure_encoding_root;
-    active.pending_requests = 0;  // Initialize counter
 
     SL_INFO(log(),
             "fetch Candidate {}, setting up active fetch for chunk {}, "
@@ -116,8 +115,11 @@ namespace kagome::parachain {
           network::ReqChunkVersion::V2);
 
       // Increment pending requests counter
-      active.pending_requests++;
-
+      SL_INFO(log(),
+              "Pending requests after increment: {} candidate={} index={}",
+              active.pending_requests.size(),
+              candidate_hash,
+              active.chunk_index);
       switch (req_chunk_version) {
         case network::ReqChunkVersion::V2:
           SL_INFO(log(),
@@ -125,6 +127,7 @@ namespace kagome::parachain {
                   active.chunk_index,
                   candidate_hash,
                   peer_id);
+          active.pending_requests.insert(peer_id);
           router_->getFetchChunkProtocol()->doRequest(
               peer_id,
               {candidate_hash, active.chunk_index},
@@ -148,7 +151,7 @@ namespace kagome::parachain {
                             r.error());
                   }
 
-                  self->fetch(candidate_hash, std::move(r));
+                  self->fetch(candidate_hash, std::move(r), peer_id);
                 }
               });
           break;
@@ -172,9 +175,9 @@ namespace kagome::parachain {
                               .proof = std::move(chunk_obsolete.proof),
                           };
                         });
-                    self->fetch(candidate_hash, std::move(response));
+                    self->fetch(candidate_hash, std::move(response), peer_id);
                   } else {
-                    self->fetch(candidate_hash, r.as_failure());
+                    self->fetch(candidate_hash, r.as_failure(), peer_id);
                   }
                 }
               });
@@ -187,7 +190,7 @@ namespace kagome::parachain {
 
     // If we get here, we've tried all validators and have no more to try
     // Only remove from active_ if there are no pending requests
-    if (active.pending_requests == 0) {
+    if (active.pending_requests.empty()) {
       SL_INFO(log(),
               "candidate={} chunk={} not found, no more validators to try",
               candidate_hash,
@@ -199,12 +202,13 @@ namespace kagome::parachain {
               "requests",
               candidate_hash,
               active.chunk_index,
-              active.pending_requests);
+              active.pending_requests.size());
     }
   }
 
   void FetchImpl::fetch(const CandidateHash &candidate_hash,
-                        outcome::result<network::FetchChunkResponse> _chunk) {
+                        outcome::result<network::FetchChunkResponse> _chunk,
+                        const libp2p::peer::PeerId &peer_id) {
     SL_INFO(log(), "fetch chunk for {}", candidate_hash);
     std::unique_lock lock{mutex_};
     auto it = active_.find(candidate_hash);
@@ -216,8 +220,18 @@ namespace kagome::parachain {
     auto &active = it->second;
 
     // Decrement pending requests counter
-    if (active.pending_requests > 0) {
-      active.pending_requests--;
+    SL_INFO(log(),
+            "Pending requests before decrement: {} candidate={} index={}",
+            active.pending_requests.size(),
+            candidate_hash,
+            active.chunk_index);
+    if (not active.pending_requests.empty()) {
+      active.pending_requests.erase(peer_id);
+      SL_INFO(log(),
+              "Pending requests after decrement: {} candidate={} index={}",
+              active.pending_requests.size(),
+              candidate_hash,
+              active.chunk_index);
     }
 
     if (_chunk) {
@@ -266,7 +280,7 @@ namespace kagome::parachain {
 
     // If we have no more validators to try and no pending requests, remove from
     // active_
-    if (active.validators.empty() && active.pending_requests == 0) {
+    if (active.validators.empty() && active.pending_requests.empty()) {
       SL_INFO(log(),
               "candidate={} chunk={} failed, no more validators to try and no "
               "pending requests",
