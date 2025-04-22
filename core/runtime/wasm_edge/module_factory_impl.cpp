@@ -113,6 +113,21 @@ namespace kagome::runtime::wasm_edge {
                                        WasmEdge_Proposal_BulkMemoryOperations);
     }
     WasmEdge_ConfigureRemoveProposal(ctx_raw, WasmEdge_Proposal_ReferenceTypes);
+
+    enum WasmEdge_CompilerOptimizationLevel level {};
+    switch (config.optimization_level) {
+      case OptimizationLevel::O0:
+        level = WasmEdge_CompilerOptimizationLevel_O0;
+        break;
+      case OptimizationLevel::O1:
+        level = WasmEdge_CompilerOptimizationLevel_O1;
+        break;
+      case OptimizationLevel::O2:
+        level = WasmEdge_CompilerOptimizationLevel_O2;
+        break;
+    }
+    WasmEdge_ConfigureCompilerSetOptimizationLevel(ctx_raw, level);
+
     return ctx;
   }
 
@@ -409,8 +424,6 @@ namespace kagome::runtime::wasm_edge {
 
     OUTCOME_TRY(configure_ctx, configureCtx(config));
     auto configure_ctx_raw = configure_ctx.raw();
-    WasmEdge_ConfigureCompilerSetOptimizationLevel(
-        configure_ctx_raw, WasmEdge_CompilerOptimizationLevel_O0);
 
     CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx_raw);
     SL_INFO(log_, "Start compiling wasm module {}", path_compiled);

@@ -11,6 +11,7 @@
 #include <regex>
 #include <string>
 
+#include <fmt/ranges.h>
 #include <fmt/std.h>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
@@ -39,8 +40,9 @@
 #include "utils/write_file.hpp"
 
 namespace {
-  namespace fs = kagome::filesystem;
-  using kagome::application::AppConfiguration;
+  using namespace kagome;
+  namespace fs = filesystem;
+  using application::AppConfiguration;
 
   template <typename T, typename Func>
   void find_argument(boost::program_options::variables_map &vm,
@@ -176,12 +178,11 @@ namespace {
 
   static constexpr std::array<std::string_view,
                               1 + KAGOME_WASM_COMPILER_WASM_EDGE>
-      interpreters {
+      interpreters{
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-    "WasmEdge",
+          "WasmEdge",
 #endif
-        "Binaryen"
-  };
+          "Binaryen"};
 
   static const std::string interpreters_str =
       fmt::format("[{}]", fmt::join(interpreters, ", "));
@@ -208,6 +209,25 @@ namespace {
       return RI::Binaryen;
     }
     return std::nullopt;
+  }
+
+  constexpr std::array<std::pair<std::string_view, runtime::OptimizationLevel>,
+                       3>
+      wasm_optimization_level_map{
+          std::pair{"0", runtime::OptimizationLevel::O0},
+          {"1", runtime::OptimizationLevel::O1},
+          {"2", runtime::OptimizationLevel::O2}};
+
+  std::optional<runtime::OptimizationLevel> str_to_optimization_level(
+      std::string_view str) {
+    const auto it = std::ranges::find(
+        wasm_optimization_level_map, str, [](const auto &pair) {
+          return pair.first;
+        });
+    if (it == wasm_optimization_level_map.end()) {
+      return std::nullopt;
+    }
+    return it->second;
   }
 
   std::optional<kagome::application::AppConfiguration::OffchainWorkerMode>
@@ -295,8 +315,7 @@ namespace kagome::application {
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
         recovery_state_{def_block_to_recover},
-        db_cache_size_{def_db_cache_size},
-        state_pruning_depth_{} {}
+        db_cache_size_{def_db_cache_size} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
@@ -869,6 +888,7 @@ namespace kagome::application {
         "Disables spawn of child pvf check processes, thus they could not be aborted by deadline timer")
         ("pvf-max-workers", po::value<size_t>()->default_value(pvf_max_workers_),
         "Max PVF execution threads or processes.")
+        ("pvf-optimization-level", po::value<std::string>()->default_value("2"), "Optimization level for PVF runtime compilation")
         ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
         ("precompile-relay", po::bool_switch(), "precompile relay")
         ("precompile-para", po::value<decltype(PrecompileWasmConfig::parachains)>()->multitoken(), "paths to wasm or chainspec files")
@@ -1483,6 +1503,18 @@ namespace kagome::application {
 
     if (auto arg = find_argument<size_t>(vm, "pvf-max-workers")) {
       pvf_max_workers_ = *arg;
+    }
+
+    if (auto arg = find_argument<std::string>(vm, "pvf-optimization-level")) {
+      if (auto level = str_to_optimization_level(*arg); level.has_value()) {
+        pvf_optimization_level_ = *level;
+      } else {
+        SL_ERROR(
+            logger_,
+            "Invalid pvf-optimization-level provided. Valid options are: {}",
+            wasm_optimization_level_map | std::views::elements<0>);
+        return false;
+      }
     }
 
     if (find_argument(vm, "insecure-validator-i-know-what-i-do")) {

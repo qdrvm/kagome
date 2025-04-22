@@ -54,7 +54,7 @@ namespace kagome::runtime {
       const storage::trie::RootHash &storage_state) {
     OUTCOME_TRY(item, codeAt(block, storage_state));
     return runtime_instances_pool_->instantiateFromCode(
-        item.hash, [&] { return item.code; }, {.memory_limits = item.config});
+        item.hash, [&] { return item.code; }, item.ctx_params);
   }
 
   outcome::result<std::optional<primitives::Version>>
@@ -88,8 +88,9 @@ namespace kagome::runtime {
         item.code = std::make_shared<Buffer>(code);
         BOOST_OUTCOME_TRY(item.version, readEmbeddedVersion(code));
         OUTCOME_TRY(batch, trie_storage_->getEphemeralBatchAt(storage_state));
-        BOOST_OUTCOME_TRY(item.config.heap_alloc_strategy,
+        BOOST_OUTCOME_TRY(item.ctx_params.memory_limits.heap_alloc_strategy,
                           heapAllocStrategyHeappagesDefault(*batch));
+        item.ctx_params.optimization_level = OptimizationLevel::O2;
         cache_.put(state, item);
       }
       return outcome::success();

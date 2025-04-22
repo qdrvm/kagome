@@ -27,7 +27,8 @@ namespace kagome::application::mode {
         block_tree_{std::move(block_tree)},
         parachain_api_{std::move(parachain_api)},
         hasher_{std::move(hasher)},
-        module_factory_{std::move(module_factory)} {}
+        module_factory_{std::move(module_factory)},
+        opt_level_{app_config.pvfOptimizationLevel()} {}
 
   int PrecompileWasmMode::run() const {
     auto r = runOutcome();
@@ -76,8 +77,9 @@ namespace kagome::application::mode {
       auto &bytes = bytes_opt.value();
       // https://github.com/paritytech/polkadot-sdk/blob/b4ae5b01da280f754ccc00b94314a30b658182a1/polkadot/parachain/src/primitives.rs#L74-L81
       auto code_hash = hasher_->blake2b_256(bytes);
-      OUTCOME_TRY(config,
-                  parachain::sessionParams(*parachain_api_, block.hash));
+      OUTCOME_TRY(
+          config,
+          parachain::sessionParams(*parachain_api_, block.hash, opt_level_));
       OUTCOME_TRY(
           module_factory_->precompile(code_hash, bytes, config.context_params));
     }

@@ -15,6 +15,7 @@
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+#include "runtime/runtime_context.hpp"
 
 namespace kagome {
   class PoolHandler;
@@ -62,6 +63,7 @@ namespace kagome::parachain {
     struct Config {
       bool precompile_modules;
       unsigned precompile_threads_num{1};
+      runtime::OptimizationLevel opt_level{runtime::OptimizationLevel::O2};
     };
 
     PvfImpl(const Config &config,

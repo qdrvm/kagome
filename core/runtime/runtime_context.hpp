@@ -30,6 +30,12 @@ namespace kagome::runtime {
   class ModuleRepository;
   class Memory;
 
+  enum class OptimizationLevel : uint8_t {
+    O0,
+    O1,
+    O2,
+  };
+
   class RuntimeContext {
    public:
     // should be created from runtime contex factory
@@ -44,11 +50,12 @@ namespace kagome::runtime {
 
     // https://github.com/paritytech/polkadot-sdk/blob/e16ef0861f576dd260487d78b57949b18795ed77/polkadot/primitives/src/v6/executor_params.rs#L32
     static constexpr size_t DEFAULT_STACK_MAX = 65536;
-    static constexpr bool DEFAULT_WASM_EXT_BULK_MEMORY = false;
 
     struct ContextParams {
       MemoryLimits memory_limits;
-      bool wasm_ext_bulk_memory = DEFAULT_WASM_EXT_BULK_MEMORY;
+      bool wasm_ext_bulk_memory = false;
+      OptimizationLevel optimization_level{};
+
       bool operator==(const ContextParams &other) const = default;
     };
 
@@ -57,7 +64,8 @@ namespace kagome::runtime {
    private:
     friend class RuntimeContextFactoryImpl;
     friend class RuntimeContextFactory;
-    RuntimeContext(std::shared_ptr<ModuleInstance> module_instance);
+
+    explicit RuntimeContext(std::shared_ptr<ModuleInstance> module_instance);
   };
 
   class RuntimeContextFactory {
