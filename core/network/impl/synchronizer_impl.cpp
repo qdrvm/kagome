@@ -922,7 +922,7 @@ namespace kagome::network {
       }
       BlocksRequest request{
           .fields = BlockAttribute::HEADER | BlockAttribute::JUSTIFICATION,
-          .from = root.hash,
+          .from = known_blocks_.at(root.hash).data.header.value().parent_hash,
           .direction = Direction::DESCENDING,
       };
       if (auto chosen_peer = choose_peer(root, request.fingerprint())) {

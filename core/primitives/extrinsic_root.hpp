@@ -14,16 +14,17 @@
 #include "storage/trie/serialization/ordered_trie_hash.hpp"
 
 namespace kagome::primitives {
+  inline auto extrinsicRoot(const BlockBody &body) {
+    return calculateOrderedTrieHash(
+               storage::trie::StateVersion::V0,
+               body | boost::adaptors::transformed([](const Extrinsic &ext) {
+                 return common::Buffer{scale::encode(ext).value()};
+               }),
+               crypto::blake2b)
+        .value();
+  }
   inline bool checkExtrinsicRoot(const BlockHeader &header,
                                  const BlockBody &body) {
-    auto root =
-        calculateOrderedTrieHash(
-            storage::trie::StateVersion::V0,
-            body | boost::adaptors::transformed([](const Extrinsic &ext) {
-              return common::Buffer{scale::encode(ext).value()};
-            }),
-            crypto::blake2b)
-            .value();
-    return root == header.extrinsics_root;
+    return extrinsicRoot(body) == header.extrinsics_root;
   }
 }  // namespace kagome::primitives
