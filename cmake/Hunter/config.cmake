@@ -19,7 +19,7 @@
 
 hunter_config(
     qtils
-    VERSION 0.1.0
+    VERSION 0.1.1
     CMAKE_ARGS
       FORMAT_ERROR_WITH_FULLTYPE=ON
 )
@@ -30,6 +30,7 @@ hunter_config(
     SHA1 93c4c843fc9308e62ac462459077d87dc6dd9885
     CMAKE_ARGS
       BACKWARD_TESTS=OFF
+      CMAKE_POLICY_VERSION_MINIMUM=3.5      
     KEEP_PACKAGE_SOURCES
 )
 
@@ -130,6 +131,7 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
       VERSION 1.0.14
       CMAKE_ARGS
         WAVM_CXX_FLAGS=${WAVM_CXX_FLAGS}
+        CMAKE_POLICY_VERSION_MINIMUM=3.5        
       KEEP_PACKAGE_SOURCES
   )
 endif ()
@@ -148,6 +150,11 @@ hunter_config(
 )
 
 hunter_config(
+    libp2p
+    VERSION 0.1.35
+)
+
+hunter_config(
     wabt
     URL https://github.com/qdrvm/wabt/archive/2e9d30c4a67c1b884a8162bf3f3a5a8585cfdb94.tar.gz
     SHA1 b5759660eb8ad3f074274341641e918f688868bd
@@ -160,4 +167,97 @@ hunter_config(
   CMAKE_ARGS
     -DHAVE_STD_REGEX=ON 
     -DRUN_HAVE_STD_REGEX=1
+)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(BORINGSSL_C_FLAGS -Wno-stringop-overflow)
+  set(BORINGSSL_CXX_FLAGS -Wno-stringop-overflow)
+else()
+  set(BORINGSSL_C_FLAGS -Wno-error)
+  set(BORINGSSL_CXX_FLAGS -Wno-error)
+endif()
+
+hunter_config(
+    BoringSSL
+    VERSION qdrvm1
+    CMAKE_ARGS
+      CMAKE_C_FLAGS=${BORINGSSL_C_FLAGS}
+      CMAKE_CXX_FLAGS=${BORINGSSL_CXX_FLAGS}
+      CMAKE_THREAD_LIBS_INIT=-lpthread
+      CMAKE_HAVE_THREADS_LIBRARY=1
+      CMAKE_USE_WIN32_THREADS_INIT=0
+      CMAKE_USE_PTHREADS_INIT=1
+      THREADS_PREFER_PTHREAD_FLAG=ON
+)
+
+hunter_config(
+    binaryen
+    VERSION 1.38.28-patch.3
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    ZLIB
+    VERSION 1.2.11-p1
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    Protobuf
+    VERSION 3.19.4-p0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    c-ares
+    VERSION 1.14.0-p0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    yaml-cpp
+    VERSION 0.6.2-p0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    RapidJSON
+    VERSION 1.1.0-66eb606-p0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    jsonrpc-lean
+    VERSION 0.0.0-6c093da8
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    Boost.DI
+    VERSION 1.1.0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    zstd
+    VERSION 1.4.5-d73e2fb-p0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
 )

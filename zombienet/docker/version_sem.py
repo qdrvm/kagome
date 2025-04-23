@@ -49,9 +49,9 @@ def select_release_tags(all_tags):
 def get_version(repo_url):
     repo_short_name = repo_url.split("/")[-1].split(".")[0]
     all_tags = list_all_tags_for_remote_git_repo(repo_url)  # cloned_repo.tags
-    print(f"All tags received: {all_tags}")
+    #print(f"All tags received: {all_tags}")
     release_tags = select_release_tags(all_tags)
-    print((f"Filtered release tags: {release_tags}"))
+    #print((f"Filtered release tags: {release_tags}"))
     last_tag = get_last_tag(release_tags)
     print(f"Latest release: {last_tag}")
 

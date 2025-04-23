@@ -32,4 +32,6 @@ endforeach()
 add_cache_flag(CMAKE_EXE_LINKER_FLAGS "-fsanitize=address")
 add_cache_flag(CMAKE_SHARED_LINKER_FLAGS "-fsanitize=address")
 
-message(STATUS "Address sanitizer has activated")
+add_compile_definitions(KAGOME_WITH_ASAN)
+
+message(STATUS "Address sanitizer is active")

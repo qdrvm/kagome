@@ -14,7 +14,7 @@
 
 namespace kagome::network {
 
-  struct ReqPovProtocolImpl
+  struct ReqPovProtocolInner
       : RequestResponseProtocolImpl<RequestPov,
                                     ResponsePov,
                                     ScaleMessageReadWriter>,
@@ -22,21 +22,21 @@ namespace kagome::network {
         NonMovable {
     static constexpr std::chrono::seconds kRequestTimeout{2};
 
-    ReqPovProtocolImpl(RequestResponseInject &&inject,
-                       const application::ChainSpec &chain_spec,
-                       const blockchain::GenesisBlockHash &genesis_hash,
-                       std::shared_ptr<ReqPovObserver> observer)
+    ReqPovProtocolInner(RequestResponseInject &&inject,
+                        const application::ChainSpec &chain_spec,
+                        const blockchain::GenesisBlockHash &genesis_hash,
+                        std::shared_ptr<ReqPovObserver> observer)
         : RequestResponseProtocolImpl<
-            RequestPov,
-            ResponsePov,
-            ScaleMessageReadWriter>{kReqPovProtocolName,
-                                    std::move(inject),
-                                    make_protocols(kReqPovProtocol,
-                                                   genesis_hash,
-                                                   kProtocolPrefixPolkadot),
-                                    log::createLogger(kReqPovProtocolName,
-                                                      "req_pov_protocol"),
-                                    kRequestTimeout},
+              RequestPov,
+              ResponsePov,
+              ScaleMessageReadWriter>{kReqPovProtocolName,
+                                      std::move(inject),
+                                      make_protocols(kReqPovProtocol,
+                                                     genesis_hash,
+                                                     kProtocolPrefixPolkadot),
+                                      log::createLogger(kReqPovProtocolName,
+                                                        "req_pov_protocol"),
+                                      kRequestTimeout},
           observer_{std::move(observer)} {}
 
    protected:
@@ -70,35 +70,36 @@ namespace kagome::network {
     std::shared_ptr<ReqPovObserver> observer_;
   };
 
-  ReqPovProtocol::ReqPovProtocol(
+  ReqPovProtocolImpl::ReqPovProtocolImpl(
       RequestResponseInject inject,
       const application::ChainSpec &chain_spec,
       const blockchain::GenesisBlockHash &genesis_hash,
       std::shared_ptr<ReqPovObserver> observer)
-      : impl_{std::make_shared<ReqPovProtocolImpl>(
-          std::move(inject), chain_spec, genesis_hash, std::move(observer))} {}
+      : impl_{std::make_shared<ReqPovProtocolInner>(
+            std::move(inject), chain_spec, genesis_hash, std::move(observer))} {
+  }
 
-  const Protocol &ReqPovProtocol::protocolName() const {
+  const Protocol &ReqPovProtocolImpl::protocolName() const {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");
     return impl_->protocolName();
   }
 
-  bool ReqPovProtocol::start() {
+  bool ReqPovProtocolImpl::start() {
     BOOST_ASSERT(impl_ && !!"ReqPovProtocolImpl must be initialized!");
     return impl_->start();
   }
 
-  void ReqPovProtocol::onIncomingStream(std::shared_ptr<Stream>) {
+  void ReqPovProtocolImpl::onIncomingStream(std::shared_ptr<Stream>) {
     BOOST_ASSERT(!"Must not be called!");
   }
 
-  void ReqPovProtocol::newOutgoingStream(
+  void ReqPovProtocolImpl::newOutgoingStream(
       const PeerId &,
       std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&) {
     BOOST_ASSERT(!"Must not be called!");
   }
 
-  void ReqPovProtocol::request(
+  void ReqPovProtocolImpl::request(
       const PeerId &peer_id,
       RequestPov request,
       std::function<void(outcome::result<ResponsePov>)> &&response_handler) {

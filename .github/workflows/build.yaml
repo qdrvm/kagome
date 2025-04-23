@@ -4,19 +4,396 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-name: Manual Workflow Dispatch
+name: "Kagome Build"
 
 on:
+  # push:
+  #   branches:
+  #     - master
+  #   tags:
+  #     - '*'
   workflow_dispatch:
+    inputs:
+      build_amd64:
+        description: "Build linux/amd64"
+        type: boolean
+        required: false
+        default: true
+      build_arm64:
+        description: "Build linux/arm64"
+        type: boolean
+        required: false
+        default: true
+      build_debug:
+        description: "Build Debug"
+        type: boolean
+        required: false
+        default: true
+      build_release:
+        description: "Build Release"
+        type: boolean
+        required: false
+        default: true
+      build_relwithdebinfo:
+        description: "Build RelWithDebInfo"
+        type: boolean
+        required: false
+        default: true
+      use_cache:
+        description: "Use cache"
+        type: boolean
+        required: false
+        default: true
+      cache_upload_allowed:
+        description: "Force cache upload"
+        type: boolean
+        required: false
+        default: false
+      builder_latest_tag:
+        description: "(In) Custom Builder tag"
+        type: string
+        required: false
+        default: "20250322" # Default to latest
+
+  workflow_call:
+    inputs:
+      build_amd64:
+        type: string
+        default: "true"
+        required: true
+      build_arm64:
+        type: string
+        default: "true"
+        required: true
+      build_debug:
+        type: string
+        default: "true"
+        required: true
+      build_release:
+        type: string
+        default: "true"
+        required: true
+      build_relwithdebinfo:
+        type: string
+        default: "true"
+        required: true
+      use_cache:
+        type: string
+        default: "true"
+        required: true
+      cache_upload_allowed:
+        type: string
+        default: "false"
+        required: true
+      builder_latest_tag:
+        type: string
+        default: "20250322" # Default to latest
+        required: false
+    secrets:
+      GCP_SERVICE_ACCOUNT_KEY:
+        required: true
+      GCP_REGISTRY:
+        required: true
+      GCP_PROJECT:
+        required: true
+      HUNTER_USERNAME:
+        required: true
+      HUNTER_TOKEN:
+        required: true
+
+env:
+  DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+  CI: true
+  CACHE_PATH: ./build_docker_ci/cache
+  DOCKER_BUILD_DIR_NAME: build_docker_ci
+
+  USE_CACHE: ${{ inputs.use_cache || github.event.inputs.use_cache || 'true' }}
+  CACHE_UPLOAD_ALLOWED: ${{ inputs.cache_upload_allowed || github.event.inputs.cache_upload_allowed || 'false' }}
+  BUILDER_LATEST_TAG: ${{ inputs.builder_latest_tag || github.event.inputs.builder_latest_tag || '20250322' }}
+
+  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+  GIT_REF_NAME: ${{ github.ref_name }}
+  IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
+  GIT_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
 
 jobs:
-  example-job:
+  setup_matrix:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Generate build matrix"
+        id: matrix
+        uses: ./.github/actions/matrix-builder
+        with:
+          build_amd64: ${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}
+          build_arm64: ${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'true' }}
+          build_debug: ${{ inputs.build_debug || github.event.inputs.build_debug || 'true' }}
+          build_release: ${{ inputs.build_release || github.event.inputs.build_release || 'true' }}
+          build_relwithdebinfo: ${{ inputs.build_relwithdebinfo || github.event.inputs.build_relwithdebinfo || 'true' }}
+          amd64_runner: '"actions-runner-controller"'
+          arm64_runner: '["self-hosted","qdrvm-arm64"]'
+          
+      - name: "Debug matrix configuration"
+        run: |
+          echo "Input parameters:"
+          echo "build_amd64: ${{ inputs.build_amd64 || github.event.inputs.build_amd64 || 'true' }}"
+          echo "build_arm64: ${{ inputs.build_arm64 || github.event.inputs.build_arm64 || 'true' }}"
+          echo "build_debug: ${{ inputs.build_debug || github.event.inputs.build_debug || 'true' }}"
+          echo "build_release: ${{ inputs.build_release || github.event.inputs.build_release || 'true' }}"
+          echo "build_relwithdebinfo: ${{ inputs.build_relwithdebinfo || github.event.inputs.build_relwithdebinfo || 'true' }}"
+          echo "use_cache: ${{ env.USE_CACHE }}"
+          echo "---"
+          echo "Matrix output: ${{ steps.matrix.outputs.matrix }}"
+
+  build:
+    needs: setup_matrix
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup_matrix.outputs.matrix) }}
+
+    runs-on: ${{ matrix.runs_on }}
+    timeout-minutes: 180
+
+    env:
+      PLATFORM: ${{ matrix.platform }}
+      BUILD_TYPE: ${{ matrix.build_type }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: "Checkout"
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Print template message
-        run: echo "This is a template for testing workflows in branches."
-        
+    - name: "Get master branch"
+      if: ${{ github.ref != 'refs/heads/master' }}
+      run: git fetch origin master:master || true
+
+    - name: "Authenticate with Google Cloud"
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+    - name: "Set up Cloud SDK"
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: "Configure Docker for GCR"
+      run: |
+        gcloud auth configure-docker --quiet
+        gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+    - name: "Get commit version"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: make configure
+
+    - name: "Install zstd"
+      run: |
+        if ! command -v zstd &> /dev/null; then
+          echo "zstd not found, installing..."
+          sudo apt-get update && sudo apt-get install -y zstd || echo "Failed to install zstd, but continuing..."
+        else
+          echo "zstd is already installed"
+        fi
+
+    - name: "Get Cache"
+      if: ${{ env.USE_CACHE == 'true' }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make cache_get || true
+
+    - name: "Build target"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        echo "Building for PLATFORM=${{ matrix.platform }}, BUILD_TYPE=${{ matrix.build_type }}"
+        make kagome_docker_build BUILD_TYPE=${{ matrix.build_type }}
+        echo "Build finished!"
+
+    - name: "Upload cache"
+      if: ${{ success() }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make cache_check_and_upload || true
+
+    - name: "Push Kagome APT Package"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make upload_apt_package BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: "Set up Docker Buildx"
+      uses: docker/setup-buildx-action@v3.6.1
+
+    - name: "Build Docker Image"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make kagome_image_build BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: "Push Docker Image to GCR"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make kagome_image_push BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: "Login to Docker Hub"
+      uses: docker/login-action@v3
+      if: ${{ (matrix.build_type == 'Release') }}
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
+
+    - name: "Push Docker Image to Docker Hub"
+      if: ${{ (matrix.build_type == 'Release') }}
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make kagome_image_push_dockerhub BUILD_TYPE=${{ matrix.build_type }}
+
+    - name: "Versions Info"
+      working-directory: ./housekeeping/docker/kagome-dev
+      run: |
+        make kagome_deb_package_info || true
+
+  docker_manifest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    needs: [build]
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Fetch master branch"
+        if: github.ref != 'refs/heads/master'
+        run: |
+          git fetch origin master:master || true
+          
+      - name: "Print Git ref info"
+        run: |
+          echo "GitHub ref: ${{ github.ref }}"
+          echo "GitHub ref_name: ${{ github.ref_name }}"
+          echo "IS_MAIN_OR_TAG: ${{ env.IS_MAIN_OR_TAG }}"
+          echo "GIT_REF_NAME: ${{ env.GIT_REF_NAME }}"
+          echo "GIT_TAG: ${{ env.GIT_TAG }}"
+
+      - name: "Authenticate with Google Cloud"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: "Set up Cloud SDK"
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: "Configure Docker for GCR"
+        run: |
+          gcloud auth configure-docker --quiet
+          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
+
+      - name: "Login to Docker Hub"
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: "Get commit version"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: make configure
+
+      - name: "Push Kagome Image Manifests (GCR)"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          if [[ "${{ inputs.build_release || github.event.inputs.build_release || 'true' }}" == "true" ]]; then
+            echo "Pushing Release image manifests"
+            make kagome_image_push_manifest BUILD_TYPE=Release
+            echo "Release manifests pushed successfully"
+          fi
+          
+          if [[ "${{ inputs.build_debug || github.event.inputs.build_debug || 'true' }}" == "true" ]]; then
+            echo "Pushing Debug image manifests"
+            make kagome_image_push_manifest BUILD_TYPE=Debug
+            echo "Debug manifests pushed successfully"
+          fi
+          
+          if [[ "${{ inputs.build_relwithdebinfo || github.event.inputs.build_relwithdebinfo || 'true' }}" == "true" ]]; then
+            echo "Pushing RelWithDebInfo image manifests"
+            make kagome_image_push_manifest BUILD_TYPE=RelWithDebInfo
+            echo "RelWithDebInfo manifests pushed successfully"
+          fi
+
+      - name: "Push Kagome Image Manifests (DockerHub)"
+        working-directory: ./housekeeping/docker/kagome-dev
+        run: |
+          if [[ "${{ inputs.build_release || github.event.inputs.build_release || 'true' }}" == "true" ]]; then
+            echo "Pushing Release image manifests to DockerHub"
+            make kagome_image_push_dockerhub_manifest BUILD_TYPE=Release
+            echo "DockerHub Release manifests pushed successfully"
+          fi
+
+      - name: "Check multiarch manifest status"
+        working-directory: ./housekeeping/docker/kagome-dev
+        if: always()
+        run: |
+          echo "Verifying manifests were created successfully..."
+          make configure
+          
+          # Get current version info
+          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
+          
+          echo "=== GCR Manifests ==="
+          if [[ "${{ inputs.build_release || github.event.inputs.build_release || 'true' }}" == "true" ]]; then
+            echo "Release manifest:"
+            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_release:${SHORT_COMMIT_HASH} || echo "Release manifest not found!"
+            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_release:latest || echo "Release latest manifest not found!"
+            
+            # Check tag manifest if this is a tag push
+            if [[ -n "${{ env.GIT_TAG }}" ]]; then
+              echo "Tag manifest (${{ env.GIT_TAG }}):"
+              docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_release:${{ env.GIT_TAG }} || echo "Tag manifest not found!"
+            fi
+          fi
+          
+          if [[ "${{ inputs.build_debug || github.event.inputs.build_debug || 'true' }}" == "true" ]]; then
+            echo "Debug manifest:"
+            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_debug:${SHORT_COMMIT_HASH} || echo "Debug manifest not found!"
+            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_debug:latest || echo "Debug latest manifest not found!"
+          fi
+          
+          if [[ "${{ inputs.build_relwithdebinfo || github.event.inputs.build_relwithdebinfo || 'true' }}" == "true" ]]; then
+            echo "RelWithDebInfo manifest:"
+            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_relwithdebinfo:${SHORT_COMMIT_HASH} || echo "RelWithDebInfo manifest not found!"
+            docker manifest inspect ${DOCKER_REGISTRY_PATH}kagome_relwithdebinfo:latest || echo "RelWithDebInfo latest manifest not found!"
+          fi
+          
+          echo "=== DockerHub Manifests ==="
+          if [[ "${{ inputs.build_release || github.event.inputs.build_release || 'true' }}" == "true" ]]; then
+            echo "DockerHub manifest:"
+            docker manifest inspect ${DOCKERHUB_REGISTRY_PATH}:${SHORT_COMMIT_HASH} || echo "DockerHub manifest not found!"
+            docker manifest inspect ${DOCKERHUB_REGISTRY_PATH}:latest || echo "DockerHub latest manifest not found!"
+            
+            # Check tag manifest if this is a tag push
+            if [[ -n "${{ env.GIT_TAG }}" ]]; then
+              echo "DockerHub tag manifest (${{ env.GIT_TAG }}):"
+              docker manifest inspect ${DOCKERHUB_REGISTRY_PATH}:${{ env.GIT_TAG }} || echo "DockerHub tag manifest not found!"
+            fi
+          fi
+          
+      - name: "Display image information"
+        working-directory: ./housekeeping/docker/kagome-dev
+        if: always()
+        run: |
+          if [[ "${{ inputs.build_release || github.event.inputs.build_release || 'true' }}" == "true" ]]; then
+            echo "Release image information:"
+            make kagome_image_info BUILD_TYPE=Release
+          fi
+          
+          if [[ "${{ inputs.build_debug || github.event.inputs.build_debug || 'true' }}" == "true" ]]; then
+            echo "Debug image information:"
+            make kagome_image_info BUILD_TYPE=Debug
+          fi
+          
+          if [[ "${{ inputs.build_relwithdebinfo || github.event.inputs.build_relwithdebinfo || 'true' }}" == "true" ]]; then
+            echo "RelWithDebInfo image information:"
+            make kagome_image_info BUILD_TYPE=RelWithDebInfo
+          fi
