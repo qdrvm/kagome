@@ -690,7 +690,8 @@ namespace kagome::parachain {
       std::shared_ptr<Recovery> recovery,
       ApprovalThreadPool &approval_thread_pool,
       common::MainThreadPool &main_thread_pool,
-      LazySPtr<dispute::DisputeCoordinator> dispute_coordinator)
+      LazySPtr<dispute::DisputeCoordinator> dispute_coordinator,
+      std::shared_ptr<authority_discovery::Query> query_audi)
       : approval_thread_handler_{poolHandlerReadyMake(
             this, app_state_manager, approval_thread_pool, logger_)},
         worker_pool_handler_{worker_thread_pool.handler(*app_state_manager)},
@@ -711,6 +712,7 @@ namespace kagome::parachain {
         recovery_(std::move(recovery)),
         main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
         dispute_coordinator_{dispute_coordinator},
+        query_audi_(std::move(query_audi)),
         scheduler_{std::make_shared<libp2p::basic::SchedulerImpl>(
             std::make_shared<libp2p::basic::AsioSchedulerBackend>(
                 approval_thread_pool.io_context()),
@@ -731,6 +733,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(worker_pool_handler_);
     BOOST_ASSERT(approval_thread_handler_);
+    BOOST_ASSERT(query_audi_);
 
     metrics_registry_->registerCounterFamily(
         kMetricNoShowsTotal,
@@ -1023,58 +1026,45 @@ namespace kagome::parachain {
   outcome::result<std::pair<grid::RequiredRouting,
                             std::unordered_set<libp2p::peer::PeerId>>>
   ApprovalDistribution::DistribBlockEntry::note_approval(
-      const approval::IndirectSignedApprovalVoteV2 &approval_value) {
-    const approval::IndirectApprovalVoteV2 &approval =
-        getPayload(approval_value);
+      const approval::IndirectSignedApprovalVoteV2 &vote) {
+    const auto validator_index = vote.payload.ix;
 
-    std::optional<grid::RequiredRouting> required_routing;
-    std::unordered_set<libp2p::peer::PeerId> peers_randomly_routed_to;
-
-    if (candidates.size() < approval.candidate_indices.size()) {
-      return ApprovalDistributionError::CANDIDATE_INDEX_OUT_OF_BOUNDS;
-    }
-
-    std::unordered_set<scale::BitVector> covered_assignments_bitfields;
-    std::ignore = approval::iter_ones(
-        approval.candidate_indices,
-        [&](const auto candidate_index) -> outcome::result<void> {
-          if (candidate_index < candidates.size()) {
-            const auto &candidate_entry = candidates[candidate_index];
-            if (auto it = utils::get(candidate_entry.assignments,
-                                     approval_value.payload.ix)) {
-              covered_assignments_bitfields.insert(it->get());
-            }
-          }
-          return outcome::success();
-        });
-
-    for (const auto &assignment_bitfield : covered_assignments_bitfields) {
-      if (auto it = utils::get(
-              approval_entries,
-              std::make_pair(approval_value.payload.ix, assignment_bitfield))) {
-        auto &approval_entry = it->get();
-        OUTCOME_TRY(approval_entry.note_approval(approval_value));
-
-        peers_randomly_routed_to.insert(
-            approval_entry.routing_info.peers_randomly_routed.begin(),
-            approval_entry.routing_info.peers_randomly_routed.end());
-        if (required_routing) {
-          if (*required_routing
-              != approval_entry.routing_info.required_routing) {
-            return ApprovalDistributionError::
-                ASSIGNMENTS_FOLLOWED_DIFFERENT_PATH;
-          }
-        } else {
-          required_routing = approval_entry.routing_info.required_routing;
+    // Find an approval entry for this validator
+    std::optional<std::reference_wrapper<DistribApprovalEntry>> found_entry;
+    for (auto &[key, entry] : approval_entries) {
+      // We're looking for entries from this validator
+      if (key.first == validator_index) {
+        // Check if the approval is relevant to this entry
+        if (entry.includes_approval_candidates(vote)) {
+          found_entry = std::ref(entry);
+          break;
         }
       }
     }
 
-    if (required_routing) {
-      return std::make_pair(*required_routing,
-                            std::move(peers_randomly_routed_to));
+    if (!found_entry) {
+      return ApprovalDistributionError::UNKNOWN_ASSIGNMENT;
     }
-    return ApprovalDistributionError::UNKNOWN_ASSIGNMENT;
+
+    auto &approval_entry = found_entry->get();
+    if (auto r = approval_entry.note_approval(vote); r.has_error()) {
+      return r.as_failure();
+    }
+
+    // Create routing information
+    grid::RequiredRouting required_routing{grid::RequiredRouting::All};
+    std::unordered_set<libp2p::peer::PeerId> peers_to_propagate;
+
+    // Add peers that should receive this message
+    for (auto &[peer, _] : known_by) {
+      if (approval_entry.routing_info.grid_peers_x.contains(peer)) {
+        peers_to_propagate.insert(peer);
+      } else if (approval_entry.routing_info.grid_peers_y.contains(peer)) {
+        peers_to_propagate.insert(peer);
+      }
+    }
+
+    return std::make_pair(required_routing, std::move(peers_to_propagate));
   }
 
   std::optional<scale::BitVector>
@@ -2149,7 +2139,6 @@ namespace kagome::parachain {
       const approval::IndirectAssignmentCertV2 &assignment,
       const scale::BitVector &claimed_candidate_indices) {
     BOOST_ASSERT(approval_thread_handler_->isInCurrentThread());
-
     const auto &block_hash = assignment.block_hash;
     const auto validator_index = assignment.validator;
 
@@ -2163,7 +2152,6 @@ namespace kagome::parachain {
           validator_index);
       return;
     }
-    auto &entry = opt_entry->get();
 
     SL_DEBUG(logger_,
              "Import assignment. (peer id={}, block hash={}, validator "
@@ -2173,20 +2161,19 @@ namespace kagome::parachain {
              validator_index,
              fmt::join(claimed_candidate_indices, ","));
 
-    // Compute metadata on the assignment.
+    auto &entry = opt_entry->get();
     auto message_subject{std::make_tuple(
         block_hash, claimed_candidate_indices, validator_index)};
     const auto message_kind{approval::MessageKind::Assignment};
 
     if (source) {
       const auto &peer_id = source->get();
-
       if (auto it = entry.known_by.find(peer_id); it != entry.known_by.end()) {
-        if (auto &peer_knowledge = it->second;
-            peer_knowledge.contains(message_subject, message_kind)) {
+        auto &peer_knowledge = it->second;
+        if (peer_knowledge.contains(message_subject, message_kind)) {
           if (!peer_knowledge.received.insert(message_subject, message_kind)) {
             SL_TRACE(logger_,
-                     "Duplicate assignment. (peer id={}, block_hash={}, "
+                     "Duplicate assignment. (peer id={}, block hash={}, "
                      "validator index={})",
                      peer_id,
                      std::get<0>(message_subject),
@@ -2216,11 +2203,7 @@ namespace kagome::parachain {
       switch (
           check_and_import_assignment(assignment, claimed_candidate_indices)) {
         case AssignmentCheckResult::Accepted: {
-          SL_TRACE(logger_,
-                   "Assignment accepted. (peer id={}, block hash={})",
-                   source->get(),
-                   block_hash);
-          entry.knowledge.known_messages[message_subject] = message_kind;
+          entry.knowledge.insert(message_subject, message_kind);
           if (auto it = entry.known_by.find(peer_id);
               it != entry.known_by.end()) {
             it->second.received.insert(message_subject, message_kind);
@@ -2228,7 +2211,7 @@ namespace kagome::parachain {
         } break;
         case AssignmentCheckResult::Bad: {
           SL_WARN(logger_,
-                  "Got bad assignment from peer. (peer id={}, block hash={})",
+                  "Got a bad assignment from peer. (peer id={}, block hash={})",
                   source->get(),
                   block_hash);
         }
@@ -2236,8 +2219,7 @@ namespace kagome::parachain {
         case AssignmentCheckResult::TooFarInFuture: {
           SL_TRACE(
               logger_,
-              "Got an assignment too far in the future. (peer id={}, block "
-              "hash={})",
+              "Assignment too far in the future. (peer id={}, block hash={})",
               source->get(),
               block_hash);
         }
@@ -2273,41 +2255,154 @@ namespace kagome::parachain {
     }
 
     const auto local = !source.has_value();
-    auto &approval_entry = entry.insert_approval_entry(DistribApprovalEntry{
+
+    // Setup grid peers
+    std::unordered_set<libp2p::peer::PeerId> grid_peers_x;
+    std::unordered_set<libp2p::peer::PeerId> grid_peers_y;
+    grid::RequiredRouting required_routing = {.value =
+                                                  grid::RequiredRouting::None};
+
+    auto block_entry = storedBlockEntries().get(block_hash);
+
+    if (block_entry) {
+      auto &block = block_entry->get();
+      if (auto session_info_res =
+              parachain_host_->session_info(block.parent_hash, block.session);
+          session_info_res.has_value() && session_info_res.value()) {
+        auto &session_info = *session_info_res.value();
+
+        // Get validator index from the assignment
+        if (validator_index < session_info.validators.size()) {
+          // Compute validator positions in the grid
+          const size_t grid_size = session_info.validators.size();
+          grid::Grid grid(grid_size);
+
+          // Get the current validator's position in the grid
+          auto validator_pos = grid._split(validator_index);
+
+          // For each validator in the session
+          for (size_t idx = 0; idx < session_info.validators.size(); ++idx) {
+            // Skip ourselves
+            if (idx == validator_index) {
+              continue;
+            }
+
+            const auto &other_validator_pubkey = session_info.validators[idx];
+
+            // Try to find a peer ID for this validator through authority
+            // discovery Authority IDs should be the same as validator public
+            // keys
+            if (auto peer_info = query_audi_->get(other_validator_pubkey)) {
+              const auto &peer_id = peer_info->id;
+
+              // Compute this validator's position in the grid
+              auto peer_pos = grid._split(idx);
+
+              // If same row as our validator, add to X peers
+              if (peer_pos.first == validator_pos.first) {
+                grid_peers_x.insert(peer_id);
+                SL_TRACE(logger_,
+                         "Adding peer {} to grid row (X) for validator {}",
+                         peer_id,
+                         validator_index);
+              }
+
+              // If same column as our validator, add to Y peers
+              if (peer_pos.second == validator_pos.second) {
+                grid_peers_y.insert(peer_id);
+                SL_TRACE(logger_,
+                         "Adding peer {} to grid column (Y) for validator {}",
+                         peer_id,
+                         validator_index);
+              }
+            }
+          }
+
+          // Set appropriate required routing based on what we found
+          if (!grid_peers_x.empty() && !grid_peers_y.empty()) {
+            required_routing.value = grid::RequiredRouting::GridXY;
+          } else if (!grid_peers_x.empty()) {
+            required_routing.value = grid::RequiredRouting::GridX;
+          } else if (!grid_peers_y.empty()) {
+            required_routing.value = grid::RequiredRouting::GridY;
+          } else {
+            // If we couldn't place any peers in the grid, use All routing
+            required_routing.value = grid::RequiredRouting::All;
+          }
+        }
+      }
+    }
+
+    // Create approval entry with grid topology information
+    DistribApprovalEntry approval_entry_data{
         .assignment = assignment,
         .assignment_claimed_candidates = claimed_candidate_indices,
         .approvals = {},
         .validator_index = assignment.validator,
         .routing_info =
             ApprovalRouting{
-                .required_routing =
-                    grid::RequiredRouting{
-                        .value =
-                            grid::RequiredRouting::All},  /// TODO(iceseer):
-                                                          /// calculate
-                                                          /// based on grid
+                .required_routing = required_routing,
                 .local = local,
                 .random_routing = {},
                 .peers_randomly_routed = {},
+                .grid_peers_x = std::move(grid_peers_x),
+                .grid_peers_y = std::move(grid_peers_y),
             },
-    });
+    };
+
+    // Insert the approval entry
+    auto &approval_entry_ref =
+        entry.insert_approval_entry(std::move(approval_entry_data));
 
     const auto n_peers_total = peer_view_->peersCount();
-    auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
-      if (!source || peer != source->get()) {
-        const auto route_random =
-            approval_entry.routing_info.random_routing.sample(n_peers_total);
-        if (route_random) {
-          approval_entry.routing_info.mark_randomly_sent(peer);
+    auto peer_filter = [&approval_entry_ref, n_peers_total](
+                           const auto &peer, const auto &peer_kn) {
+      // Check grid routing requirements
+      if (approval_entry_ref.routing_info.required_routing.value
+          != grid::RequiredRouting::None) {
+        bool should_send = false;
+
+        // Handle different routing requirements
+        switch (approval_entry_ref.routing_info.required_routing.value) {
+          case grid::RequiredRouting::GridXY:
+            should_send =
+                approval_entry_ref.routing_info.grid_peers_x.contains(peer)
+                || approval_entry_ref.routing_info.grid_peers_y.contains(peer);
+            break;
+          case grid::RequiredRouting::GridX:
+            should_send =
+                approval_entry_ref.routing_info.grid_peers_x.contains(peer);
+            break;
+          case grid::RequiredRouting::GridY:
+            should_send =
+                approval_entry_ref.routing_info.grid_peers_y.contains(peer);
+            break;
+          case grid::RequiredRouting::All:
+            should_send = true;
+            break;
+          default:
+            break;
+        }
+
+        if (should_send) {
           return true;
         }
+      }
+
+      // Fall back to random routing
+      const auto route_random =
+          approval_entry_ref.routing_info.random_routing.sample(n_peers_total);
+      if (route_random) {
+        approval_entry_ref.routing_info.mark_randomly_sent(peer);
+        return true;
       }
       return false;
     };
 
     std::unordered_set<libp2p::peer::PeerId> peers{};
     for (auto &[peer_id, peer_knowledge] : entry.known_by) {
-      if (peer_filter(peer_id, peer_knowledge)) {
+      if ((!source || peer_id != source->get())
+          && peer_filter(peer_id, peer_knowledge)) {
         peers.insert(peer_id);
         peer_knowledge.sent.insert(message_subject, message_kind);
       }
@@ -2450,15 +2545,24 @@ namespace kagome::parachain {
     const auto &nar = res.value();
     SL_TRACE(logger_, "NAR. (peers=[{}])", fmt::join(nar.second, ","));
 
-    auto peer_filter = [&](const auto &peer, const auto &peer_kn) {
+    auto peer_filter = [&nar, &source, &message_subject, &message_kind, &entry](
+                           const auto &peer, const auto &peer_kn) {
       if (source && peer == source->get()) {
         return false;
       }
 
       if (source) {
-        const auto &[_, pr] = nar;
-        /// TODO(iceseer): topology https://github.com/qdrvm/kagome/issues/2404
-        return pr.contains(peer);
+        const auto &[required_routing, pr] = nar;
+
+        // Check if peer is in list of peers to propagate to
+        if (pr.contains(peer)) {
+          return true;
+        }
+
+        // Use proper random routing sample mechanism for fallback propagation
+        static grid::RandomRouting random_routing;
+        const auto n_peers_total = entry.known_by.size();
+        return random_routing.sample(n_peers_total);
       }
       return peer_kn.sent.can_send(message_subject, message_kind);
     };
@@ -3458,12 +3562,55 @@ namespace kagome::parachain {
               approval_entry.routing_info.required_routing;
           [[maybe_unused]] auto &routing_info = approval_entry.routing_info;
 
-          auto peer_filter = [&](const libp2p::peer::PeerId &) {
-            /// TODO(iceseer): check topology
-            return true;
+          auto is_peer_in_required_grid_routing = [&approval_entry,
+                                                   &peer_id]() {
+            // Handle different routing requirements based on the grid topology
+            if (approval_entry.routing_info.required_routing.value
+                != grid::RequiredRouting::None) {
+              // Check if peer should receive based on grid topology
+              switch (approval_entry.routing_info.required_routing.value) {
+                case grid::RequiredRouting::GridXY:
+                  if (approval_entry.routing_info.grid_peers_x.contains(peer_id)
+                      || approval_entry.routing_info.grid_peers_y.contains(
+                          peer_id)) {
+                    return true;
+                  }
+                  break;
+                case grid::RequiredRouting::GridX:
+                  if (approval_entry.routing_info.grid_peers_x.contains(
+                          peer_id)) {
+                    return true;
+                  }
+                  break;
+                case grid::RequiredRouting::GridY:
+                  if (approval_entry.routing_info.grid_peers_y.contains(
+                          peer_id)) {
+                    return true;
+                  }
+                  break;
+                case grid::RequiredRouting::All:
+                  return true;
+                case grid::RequiredRouting::PendingTopology:
+                case grid::RequiredRouting::None:
+                default:
+                  break;
+              }
+            }
+
+            // If not already in random routing peers, check if we should
+            // randomly route
+            if (!approval_entry.routing_info.peers_randomly_routed.contains(
+                    peer_id)) {
+              const auto n_peers_total =
+                  approval_entry.routing_info.peers_randomly_routed.size() + 1;
+              return approval_entry.routing_info.random_routing.sample(
+                  n_peers_total);
+            }
+
+            return false;
           };
 
-          if (!peer_filter(peer_id)) {
+          if (not is_peer_in_required_grid_routing()) {
             continue;
           }
 
