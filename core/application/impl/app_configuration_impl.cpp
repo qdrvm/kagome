@@ -887,7 +887,7 @@ namespace kagome::application {
         "Max PVF execution threads or processes.")
         ("pvf-optimization-level", po::value<std::string>()->default_value("2"), "Optimization level for PVF runtime compilation")
         ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
-        ("precompile-relay", po::bool_switch(), "precompile relay")
+        ("precompile-relay", po::bool_switch(), "Enter wasm precompilation mode, precompile relay chain runtimes. Useful for tests.")
         ("precompile-para", po::value<decltype(PrecompileWasmConfig::parachains)>()->multitoken(), "paths to wasm or chainspec files")
         ("unsafe-sync-to", po::value<BlockNumber>(), "unsafe sync to specified or earlier block")
         ;
