@@ -114,9 +114,8 @@ namespace kagome::parachain {
       auto req_chunk_version = pm_->getReqChunkVersion(peer_id).value_or(
           network::ReqChunkVersion::V2);
 
-      // Increment pending requests counter
       SL_INFO(log(),
-              "Pending requests after increment: {} candidate={} index={}",
+              "Pending requests before increment: {} candidate={} index={}",
               active.pending_requests.size(),
               candidate_hash,
               active.chunk_index);
@@ -128,6 +127,11 @@ namespace kagome::parachain {
                   candidate_hash,
                   peer_id);
           active.pending_requests.insert(peer_id);
+          SL_INFO(log(),
+                  "Pending requests after increment: {} candidate={} index={}",
+                  active.pending_requests.size(),
+                  candidate_hash,
+                  active.chunk_index);
           router_->getFetchChunkProtocol()->doRequest(
               peer_id,
               {candidate_hash, active.chunk_index},
@@ -156,6 +160,11 @@ namespace kagome::parachain {
               });
           break;
         case network::ReqChunkVersion::V1_obsolete:
+          SL_INFO(log(),
+                  "Obsolete request of chunk {} of candidate {} to peer {}",
+                  active.chunk_index,
+                  candidate_hash,
+                  peer_id);
           router_->getFetchChunkProtocolObsolete()->doRequest(
               peer_id,
               {candidate_hash, active.chunk_index},

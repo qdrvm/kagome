@@ -103,44 +103,42 @@ namespace kagome::network {
         }
       }
 
-      static auto request_id_atomic = std::atomic<int>(0);
-      const auto request_id = request_id_atomic.fetch_add(1);
-
-      {
-        auto weak_self = std::weak_ptr{self};
-        IF_WEAK_LOCK(self) {
-          SL_DEBUG(self->base_.logger(), "New request_id: {}", request_id);
-        }
-      }
-
       auto cb_shared =
           std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
+      static std::atomic<uint64_t> global_request_id = 0;
+      const auto request_id = global_request_id.fetch_add(1);
+      SL_INFO(
+          self->base_.logger(), "New request with request_id: {}", request_id);
 
       auto timer = self->scheduler_->scheduleWithHandle(
           [weak_self{std::weak_ptr{self}},
            weak_stream{std::move(weak_stream)},
-           peer_id{std::move(peer_id)},
+           peer_id{peer_id},
            cb_shared,
            request_id] {
             IF_WEAK_LOCK(stream) {
               stream->reset();
-              IF_WEAK_LOCK(self) {
-                self->metrics_.timeout_->inc();
-                SL_DEBUG(
-                    self->base_.logger(),
-                    "Stream is valid, calling cb_shared for request_id: {}",
-                    request_id);
-                (**cb_shared)(outcome::failure(ProtocolError::TIMEOUT));
-              }
             }
-            else {
-              IF_WEAK_LOCK(self) {
-                SL_DEBUG(
+            IF_WEAK_LOCK(self) {
+              self->metrics_.timeout_->inc();
+              SL_INFO(
+                  self->base_.logger(),
+                  "Timeout: request timeout with peer {} for request_id: {}",
+                  peer_id.value(),
+                  request_id);
+              if (auto cb = qtils::optionTake(*cb_shared)) {
+                SL_INFO(
                     self->base_.logger(),
-                    "Stream is not valid, calling cb_shared for request_id: {}",
+                    "Timeout: optionTake success for peer {} request_id: {}",
+                    peer_id.value(),
                     request_id);
-                self->metrics_.timeout_->inc();
-                (**cb_shared)(outcome::failure(ProtocolError::TIMEOUT));
+                (*cb)(outcome::failure(ProtocolError::TIMEOUT));
+              } else {
+                SL_INFO(
+                    self->base_.logger(),
+                    "Timeout: optionTake is nullopt for peer {} request_id: {}",
+                    peer_id.value(),
+                    request_id);
               }
             }
           },
@@ -150,20 +148,37 @@ namespace kagome::network {
                              cb_shared,
                              lost{RequestResponseMetrics::Lost{self->metrics_}},
                              timer{std::move(timer)},
-                             peer_id{std::move(peer_id)},
-                             request_id{request_id}](auto &&r) mutable {
+                             peer_id{peer_id},
+                             request_id](auto &&r) mutable {
         lost.notLost();
         timer.reset();
         IF_WEAK_LOCK(self) {
           if (r) {
+            SL_INFO(self->base_.logger(),
+                    "SharedFn: Success callback for peer {} request_id: {}",
+                    peer_id.value(),
+                    request_id);
             self->metrics_.success_->inc();
           } else {
+            SL_INFO(self->base_.logger(),
+                    "SharedFn: Failure callback for peer {} request_id: {}",
+                    peer_id.value(),
+                    request_id);
             self->metrics_.failure_->inc();
           }
-          SL_DEBUG(self->base_.logger(),
-                   "From SharedFn, calling cb_shared for request_id: {}",
-                   request_id);
-          (**cb_shared)(std::move(r));
+          if (auto cb = qtils::optionTake(*cb_shared)) {
+            SL_INFO(self->base_.logger(),
+                    "SharedFn: Success optionTake for peer {} request_id: {}",
+                    peer_id.value(),
+                    request_id);
+            (*cb)(std::move(r));
+          } else {
+            SL_INFO(
+                self->base_.logger(),
+                "SharedFn: optionTake is nullopt for peer {} request_id: {}",
+                peer_id.value(),
+                request_id);
+          }
         }
       }};
     }
@@ -229,10 +244,10 @@ namespace kagome::network {
 
             RequestResponseTimeout::wrap(self, response_handler, stream);
 
-            SL_DEBUG(self->base_.logger(),
-                     "Established outgoing {} stream with {}",
-                     self->protocolName(),
-                     stream->remotePeerId().value());
+            SL_INFO(self->base_.logger(),
+                    "Established outgoing {} stream with {}",
+                    self->protocolName(),
+                    stream->remotePeerId().value());
 
             self->writeRequest(std::move(stream),
                                std::move(request),
@@ -259,10 +274,10 @@ namespace kagome::network {
     void onIncomingStream(std::shared_ptr<Stream> stream) override {
       BOOST_ASSERT(stream);
       BOOST_ASSERT(stream->remotePeerId().has_value());
-      SL_DEBUG(base_.logger(),
-               "New incoming {} stream with {}",
-               protocolName(),
-               stream->remotePeerId().value());
+      SL_INFO(base_.logger(),
+              "New incoming {} stream with {}",
+              protocolName(),
+              stream->remotePeerId().value());
       readRequest(std::move(stream));
     }
 
@@ -295,10 +310,10 @@ namespace kagome::network {
               return;
             }
 
-            SL_DEBUG(self->base_.logger(),
-                     "Established connection over {} stream with {}",
-                     self->protocolName(),
-                     peer_id);
+            SL_INFO(self->base_.logger(),
+                    "Established connection over {} stream with {}",
+                    self->protocolName(),
+                    peer_id);
             cb(std::move(stream));
           });
     }
@@ -312,10 +327,10 @@ namespace kagome::network {
 
       static_assert(std::is_same_v<M, RequestType>
                     || std::is_same_v<M, ResponseType>);
-      SL_DEBUG(base_.logger(),
-               "Write msg into {} stream with {}",
-               protocolName(),
-               stream->remotePeerId().value());
+      SL_INFO(base_.logger(),
+              "Write msg into {} stream with {}",
+              protocolName(),
+              stream->remotePeerId().value());
 
       auto read_writer = std::make_shared<ReadWriterType>(stream);
       read_writer->write(
@@ -344,7 +359,7 @@ namespace kagome::network {
               return;
             }
 
-            SL_DEBUG(
+            SL_INFO(
                 self->base_.logger(),
                 "Request written successful into outgoing {} stream with {}",
                 self->protocolName(),
@@ -410,41 +425,49 @@ namespace kagome::network {
         std::function<void(outcome::result<M>, std::shared_ptr<Stream>)> &&cb) {
       BOOST_ASSERT(stream);
 
-      SL_DEBUG(base_.logger(),
-               "Read from {} stream with {}",
-               protocolName(),
-               stream->remotePeerId().value());
+      SL_INFO(base_.logger(),
+              "Read from stream with {}",
+              stream->remotePeerId().value());
 
       auto read_writer = std::make_shared<ReadWriterType>(stream);
+      auto read_begin = std::chrono::steady_clock::now();
       read_writer->template read<M>(
           [stream{std::move(stream)},
            wptr{this->weak_from_this()},
-           cb{std::move(cb)}](outcome::result<M> read_result) mutable {
+           cb{std::move(cb)},
+           read_begin{std::move(read_begin)}](
+              outcome::result<M> read_result) mutable {
             BOOST_ASSERT(stream);
 
             auto self = wptr.lock();
             if (!self) {
               cb(outcome::failure(ProtocolError::GONE), nullptr);
-              self->base_.closeStream(std::move(wptr), std::move(stream));
               return;
             }
 
+            auto read_end = std::chrono::steady_clock::now();
+            auto read_duration =
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    read_end - read_begin)
+                    .count();
+            SL_INFO(self->base_.logger(),
+                    "Read from outgoing stream with {} duration: {} ms",
+                    stream->remotePeerId().value(),
+                    read_duration);
             if (read_result.has_error()) {
-              SL_DEBUG(self->base_.logger(),
-                       "Error at read from outgoing {} stream with {}: {}",
-                       self->protocolName(),
-                       stream->remotePeerId().value(),
-                       read_result.error());
+              SL_INFO(self->base_.logger(),
+                      "Error at read from outgoing stream with {}: {}",
+                      stream->remotePeerId().value(),
+                      read_result.error());
 
               cb(read_result.as_failure(), nullptr);
               self->base_.closeStream(std::move(wptr), std::move(stream));
               return;
             }
 
-            SL_DEBUG(self->base_.logger(),
-                     "Successful response read from outgoing {} stream with {}",
-                     self->protocolName(),
-                     stream->remotePeerId().value());
+            SL_INFO(self->base_.logger(),
+                    "Successful response read from outgoing stream with {}",
+                    stream->remotePeerId().value());
             cb(outcome::success(std::move(read_result.value())),
                std::move(stream));
           });
