@@ -16,6 +16,7 @@
 #include "blockchain/block_tree.hpp"
 #include "blockchain/block_tree_error.hpp"
 #include "common/main_thread_pool.hpp"
+#include "consensus/babe/impl/babe_digests_util.hpp"
 #include "consensus/beefy/beefy.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
@@ -808,9 +809,27 @@ namespace kagome::network {
       if (block_tree_->has(block_info.hash)) {
         return false;
       }
+      auto allow_block = isBlockAllowed(header);
+      if (allow_block) {
+        if (auto parent_res = block_tree_->getBlockHeader(parent_info->hash)) {
+          auto &parent = parent_res.value();
+          if (not isSlotIncreasing(parent, data.header.value())) {
+            allow_block = false;
+          } else {
+            attached_roots_.emplace(block_info);
+          }
+        } else if (auto parent = entry(known_blocks_, parent_info->hash)) {
+          if (not isSlotIncreasing(parent->data.header.value(),
+                                   data.header.value())) {
+            allow_block = false;
+          }
+        } else {
+          detached_roots_.emplace(block_info);
+        }
+      }
       // Skip headers of blocks that don't meet the validation criteria
       // and clean up any child blocks that might already be in our tree
-      if (not isBlockAllowed(header)) {
+      if (not allow_block) {
         // Find all child blocks of this disallowed block in the ancestry map
         for (auto [it, end] = ancestry_.equal_range(block_info); it != end;) {
           auto child = it->second;
@@ -828,14 +847,15 @@ namespace kagome::network {
           .ancestry_it = ancestry_.emplace(*parent_info, block_info),
       });
       metric_import_queue_length_->set(known_blocks_.size());
-      if (block_tree_->has(parent_info->hash)) {
-        attached_roots_.emplace(block_info);
-      } else if (not known_blocks_.contains(parent_info->hash)) {
-        detached_roots_.emplace(block_info);
-      }
-      for (auto [it, end] = ancestry_.equal_range(block_info); it != end;
-           ++it) {
+      for (auto [it, end] = ancestry_.equal_range(block_info); it != end;) {
+        auto it2 = std::next(it);
         detached_roots_.erase(it->second);
+        if (not isSlotIncreasing(
+                known->data.header.value(),
+                known_blocks_.at(it->second.hash).data.header.value())) {
+          removeBlockRecursive(it->second);
+        }
+        it = it2;
       }
     }
     known->peers.emplace(peer_id);
@@ -1115,5 +1135,24 @@ namespace kagome::network {
       removeBlock(block.data.header.value().blockInfo());
       return VisitAncestryResult::CONTINUE;
     });
+  }
+
+  bool SynchronizerImpl::isSlotIncreasing(const BlockHeader &parent,
+                                          const BlockHeader &header) const {
+    if (auto pre_result = consensus::babe::getBabeBlockHeader(header)) {
+      auto &pre = pre_result.value();
+      if (parent.number == 0) {
+        return true;
+      }
+      if (auto parent_pre_result =
+              consensus::babe::getBabeBlockHeader(parent)) {
+        auto &parent_pre = parent_pre_result.value();
+                     parent_pre.slot_number,
+                     pre.slot_number,
+                     parent_pre.slot_number < pre.slot_number);
+        return parent_pre.slot_number < pre.slot_number;
+      }
+    }
+    return false;
   }
 }  // namespace kagome::network

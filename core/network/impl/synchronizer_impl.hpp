@@ -336,6 +336,8 @@ namespace kagome::network {
     bool isBlockAllowed(const BlockHeader &header) const;
     void removeBlock(const BlockInfo &block);
     void removeBlockRecursive(const BlockInfo &block);
+    bool isSlotIncreasing(const BlockHeader &parent,
+                          const BlockHeader &header) const;
 
     log::Logger log_;
 

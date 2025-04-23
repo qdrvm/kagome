@@ -34,7 +34,11 @@
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/map_entry.hpp"
 
+using kagome::entry;
+using kagome::blockchain::BlockTreeError;
+using kagome::consensus::babe::BabeBlockHeader;
 using kagome::crypto::HasherImpl;
 using kagome::network::BlockAttribute;
 using kagome::network::BlocksRequest;
@@ -44,13 +48,15 @@ using kagome::network::PeerManagerMock;
 using kagome::network::PeerState;
 using kagome::network::SyncProtocolMock;
 using kagome::primitives::BlockBody;
+using kagome::primitives::kBabeEngineId;
+using kagome::primitives::PreRuntime;
+using kagome::primitives::Seal;
 using libp2p::PeerId;
 
 using namespace kagome;
 using namespace clock;
 using consensus::BlockExecutorMock;
 using consensus::BlockHeaderAppenderMock;
-using namespace consensus::babe;
 using namespace consensus::grandpa;
 using namespace storage;
 using application::AppStateManagerMock;
@@ -89,7 +95,7 @@ class SynchronizerTest
 
   void SetUp() override {
     genesis_.updateHash(*hasher);
-    db_blocks_.emplace(genesis_.hash());
+    db_blocks_.emplace(genesis_.hash(), genesis_);
     best_ = genesis_.blockInfo();
     finalized_ = best_;
     EXPECT_CALL(*block_tree, bestBlock()).WillRepeatedly([this] {
@@ -99,6 +105,14 @@ class SynchronizerTest
         .WillRepeatedly([this](const BlockHash &hash) {
           return db_blocks_.contains(hash);
         });
+    EXPECT_CALL(*block_tree, getBlockHeader(_))
+        .WillRepeatedly(
+            [this](const BlockHash &hash) -> outcome::result<BlockHeader> {
+              if (auto block = entry(db_blocks_, hash)) {
+                return *block;
+              }
+              return BlockTreeError::HEADER_NOT_FOUND;
+            });
     EXPECT_CALL(*block_tree, getLastFinalized()).WillRepeatedly([this] {
       return finalized_;
     });
@@ -159,6 +173,12 @@ class SynchronizerTest
     header.number = parent.number + 1;
     header.parent_hash = parent.hash();
     header.extrinsics_root = extrinsicRoot(body_);
+    BabeBlockHeader pre{.slot_number = header.number};
+    header.digest.emplace_back(PreRuntime{
+        kBabeEngineId,
+        Buffer{::kagome::scale::encode(pre).value()},
+    });
+    header.digest.emplace_back(Seal{});
     header.updateHash(*hasher);
     return header;
   }
@@ -261,7 +281,7 @@ class SynchronizerTest
   BlockBody body_;
   BlockInfo best_;
   BlockInfo finalized_;
-  std::unordered_set<BlockHash> db_blocks_;
+  std::unordered_map<BlockHash, BlockHeader> db_blocks_;
   BlockNumber peer_best_ = 0;
 };
 
