@@ -94,26 +94,53 @@ namespace kagome::network {
     static void wrap(const std::shared_ptr<T> &self,
                      auto &cb,
                      std::weak_ptr<Stream> weak_stream) {
+      // Capture peer ID immediately while the stream is guaranteed to be valid
+      std::optional<libp2p::peer::PeerId> peer_id;
+      if (auto stream = weak_stream.lock()) {
+        auto peer_id_res = stream->remotePeerId();
+        if (peer_id_res.has_value()) {
+          peer_id = peer_id_res.value();
+        }
+      }
+
+      static auto request_id_atomic = std::atomic<int>(0);
+      const auto request_id = request_id_atomic.fetch_add(1);
+
+      {
+        auto weak_self = std::weak_ptr{self};
+        IF_WEAK_LOCK(self) {
+          SL_DEBUG(self->base_.logger(), "New request_id: {}", request_id);
+        }
+      }
+
       auto cb_shared =
           std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
+
       auto timer = self->scheduler_->scheduleWithHandle(
           [weak_self{std::weak_ptr{self}},
            weak_stream{std::move(weak_stream)},
-           cb_shared] {
+           peer_id{std::move(peer_id)},
+           cb_shared,
+           request_id] {
             IF_WEAK_LOCK(stream) {
               stream->reset();
               IF_WEAK_LOCK(self) {
                 self->metrics_.timeout_->inc();
-                if (auto cb = qtils::optionTake(*cb_shared)) {
-                  (*cb)(outcome::failure(ProtocolError::TIMEOUT));
-                }
+                SL_DEBUG(
+                    self->base_.logger(),
+                    "Stream is valid, calling cb_shared for request_id: {}",
+                    request_id);
+                (**cb_shared)(outcome::failure(ProtocolError::TIMEOUT));
               }
-            } else {
+            }
+            else {
               IF_WEAK_LOCK(self) {
+                SL_DEBUG(
+                    self->base_.logger(),
+                    "Stream is not valid, calling cb_shared for request_id: {}",
+                    request_id);
                 self->metrics_.timeout_->inc();
-                if (auto cb = qtils::optionTake(*cb_shared)) {
-                  (*cb)(outcome::failure(ProtocolError::TIMEOUT));
-                }
+                (**cb_shared)(outcome::failure(ProtocolError::TIMEOUT));
               }
             }
           },
@@ -122,14 +149,21 @@ namespace kagome::network {
       cb = libp2p::SharedFn{[weak_self{std::weak_ptr{self}},
                              cb_shared,
                              lost{RequestResponseMetrics::Lost{self->metrics_}},
-                             timer{std::move(timer)}](auto &&r) mutable {
+                             timer{std::move(timer)},
+                             peer_id{std::move(peer_id)},
+                             request_id{request_id}](auto &&r) mutable {
         lost.notLost();
         timer.reset();
         IF_WEAK_LOCK(self) {
-          (r ? self->metrics_.success_ : self->metrics_.failure_)->inc();
-        }
-        if (auto cb = qtils::optionTake(*cb_shared)) {
-          (*cb)(std::move(r));
+          if (r) {
+            self->metrics_.success_->inc();
+          } else {
+            self->metrics_.failure_->inc();
+          }
+          SL_DEBUG(self->base_.logger(),
+                   "From SharedFn, calling cb_shared for request_id: {}",
+                   request_id);
+          (**cb_shared)(std::move(r));
         }
       }};
     }
