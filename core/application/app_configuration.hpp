@@ -44,8 +44,7 @@ namespace kagome::application {
   using BenchmarkConfigSection = std::variant<BlockBenchmarkConfig>;
 
   /**
-   * Parse and store application config.pes.hpp"
-    #include "storage/tr
+   * Parse and store application config
    */
   class AppConfiguration {
    public:

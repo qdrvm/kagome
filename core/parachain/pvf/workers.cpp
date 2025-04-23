@@ -125,7 +125,7 @@ namespace kagome::parachain {
             .log_params = app_config.log(),
             .force_disable_secure_mode = app_config.disableSecureMode(),
             .secure_mode_support = secure_mode_support,
-        } {
+            .opt_level = app_config.pvfOptimizationLevel()} {
     metrics_registry_->registerGaugeFamily(kMetricQueueSize, "pvf queue size");
     std::unordered_map<PvfExecTimeoutKind, std::string> kind_name{
         {PvfExecTimeoutKind::Approval, "Approval"},
@@ -158,7 +158,8 @@ namespace kagome::parachain {
       std::error_code ec;
       std::filesystem::remove(unix_socket_path, ec);
       if (ec) {
-        return job.cb(ec);
+        job.cb(ec);
+        return;
       }
       auto acceptor = std::make_shared<unix::acceptor>(
           *io_context_, unix_socket_path.native());
@@ -176,7 +177,8 @@ namespace kagome::parachain {
         std::filesystem::remove(unix_socket_path, ec2);
         WEAK_LOCK(self);
         if (ec) {
-          return job.cb(ec);
+          job.cb(ec);
+          return;
         }
         process->socket = std::move(socket);
         process->writeScale(
@@ -274,6 +276,7 @@ namespace kagome::parachain {
                                [cb](outcome::result<void> r) mutable {
                                  if (not r) {
                                    cb(r.error());
+                                   return;
                                  }
                                });
     worker.process->read(std::move(cb));

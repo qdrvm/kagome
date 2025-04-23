@@ -90,7 +90,9 @@ namespace kagome::runtime {
         OUTCOME_TRY(batch, trie_storage_->getEphemeralBatchAt(storage_state));
         BOOST_OUTCOME_TRY(item.ctx_params.memory_limits.heap_alloc_strategy,
                           heapAllocStrategyHeappagesDefault(*batch));
-        item.ctx_params.optimization_level = OptimizationLevel::O2;
+
+        item.ctx_params.optimization_level =
+            DEFAULT_RELAY_CHAIN_RUNTIME_OPT_LEVEL;
         cache_.put(state, item);
       }
       return outcome::success();

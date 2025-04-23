@@ -30,12 +30,6 @@ namespace kagome::runtime {
   class ModuleRepository;
   class Memory;
 
-  enum class OptimizationLevel : uint8_t {
-    O0,
-    O1,
-    O2,
-  };
-
   class RuntimeContext {
    public:
     // should be created from runtime contex factory

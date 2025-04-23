@@ -77,6 +77,15 @@ namespace kagome::runtime {
     INSTRUMENTATION_FAILED,
   };
 
+  enum class OptimizationLevel : uint8_t {
+    O0,
+    O1,
+    O2,
+  };
+
+  static constexpr OptimizationLevel DEFAULT_RELAY_CHAIN_RUNTIME_OPT_LEVEL =
+      OptimizationLevel::O2;
+
 }  // namespace kagome::runtime
 
 OUTCOME_HPP_DECLARE_ERROR(kagome::runtime, Error);
