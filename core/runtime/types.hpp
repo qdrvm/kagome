@@ -50,7 +50,7 @@ namespace kagome::runtime {
   using WasmI64 = int64_t;
 
   struct MemoryLimits {
-    std::optional<uint32_t> max_stack_values_num{};
+    std::optional<uint32_t> max_stack_values_num;
     HeapAllocStrategy heap_alloc_strategy;
     bool operator==(const MemoryLimits &) const = default;
   };
@@ -82,6 +82,18 @@ namespace kagome::runtime {
     O1,
     O2,
   };
+
+  constexpr std::string_view to_string(OptimizationLevel lvl) {
+    switch (lvl) {
+      case OptimizationLevel::O0:
+        return "O0";
+      case OptimizationLevel::O1:
+        return "O1";
+      case OptimizationLevel::O2:
+        return "O2";
+    }
+    UNREACHABLE
+  }
 
   static constexpr OptimizationLevel DEFAULT_RELAY_CHAIN_RUNTIME_OPT_LEVEL =
       OptimizationLevel::O2;

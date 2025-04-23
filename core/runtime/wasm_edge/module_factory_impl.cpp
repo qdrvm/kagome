@@ -14,6 +14,7 @@
 #include "crypto/hasher.hpp"
 #include "host_api/host_api_factory.hpp"
 #include "log/formatters/filepath.hpp"
+#include "log/formatters/optional.hpp"
 #include "log/trace_macros.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/memory_provider.hpp"
@@ -53,7 +54,7 @@ namespace kagome::runtime::wasm_edge {
 
   static const auto kMemoryName = WasmEdge_StringCreateByCString("memory");
 
-  static const class final : public std::error_category {
+  static const class WasmEdgeErrCategory final : public std::error_category {
    public:
     const char *name() const noexcept override {
       return "WasmEdge";
@@ -427,6 +428,14 @@ namespace kagome::runtime::wasm_edge {
 
     CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx_raw);
     SL_INFO(log_, "Start compiling wasm module {}", path_compiled);
+    auto [memory_limits, bulk_memory, opt_level] = config;
+    SL_VERBOSE(log_,
+               "Compile options: max stack values: {}, bulk memory: {}, "
+               "optimization: {}",
+               memory_limits.max_stack_values_num,
+               bulk_memory,
+               to_string(opt_level));
+
     // Multiple processes can write to same cache file concurrently,
     // write to tmp file first to avoid conflict.
     OUTCOME_TRY(tmp, TmpFile::make(path_compiled));
