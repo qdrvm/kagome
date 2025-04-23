@@ -33,8 +33,6 @@
 
 #include "utils/weak_macro.hpp"
 
-// TODO(turuslan): #1651, report equivocation
-
 namespace kagome::network {
   constexpr std::chrono::minutes kRebroadcastAfter{1};
 
