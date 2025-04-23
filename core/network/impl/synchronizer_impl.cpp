@@ -1147,9 +1147,6 @@ namespace kagome::network {
       if (auto parent_pre_result =
               consensus::babe::getBabeBlockHeader(parent)) {
         auto &parent_pre = parent_pre_result.value();
-                     parent_pre.slot_number,
-                     pre.slot_number,
-                     parent_pre.slot_number < pre.slot_number);
         return parent_pre.slot_number < pre.slot_number;
       }
     }
