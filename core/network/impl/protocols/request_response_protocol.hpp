@@ -109,15 +109,40 @@ namespace kagome::network {
       const auto request_id = global_request_id.fetch_add(1);
       SL_INFO(
           self->base_.logger(), "New request with request_id: {}", request_id);
+      const auto request_start_time = std::chrono::steady_clock::now();
 
       auto timer = self->scheduler_->scheduleWithHandle(
           [weak_self{std::weak_ptr{self}},
            weak_stream{std::move(weak_stream)},
            peer_id{peer_id},
            cb_shared,
-           request_id] {
+           request_id,
+           request_start_time] {
+            const auto request_duration_till_timeout =
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - request_start_time)
+                    .count();
+            IF_WEAK_LOCK(self) {
+              SL_INFO(self->base_.logger(),
+                      "Request duration till timeout: {} ms for request_id: {}",
+                      request_duration_till_timeout,
+                      request_id);
+            }
             IF_WEAK_LOCK(stream) {
+              const auto stream_duration_start =
+                  std::chrono::steady_clock::now();
               stream->reset();
+              const auto stream_duration =
+                  std::chrono::duration_cast<std::chrono::milliseconds>(
+                      std::chrono::steady_clock::now() - stream_duration_start)
+                      .count();
+              IF_WEAK_LOCK(self) {
+                SL_INFO(self->base_.logger(),
+                        "Stream reset duration on timeout: {} ms for "
+                        "request_id: {}",
+                        stream_duration,
+                        request_id);
+              }
             }
             IF_WEAK_LOCK(self) {
               self->metrics_.timeout_->inc();
@@ -149,7 +174,18 @@ namespace kagome::network {
                              lost{RequestResponseMetrics::Lost{self->metrics_}},
                              timer{std::move(timer)},
                              peer_id{peer_id},
-                             request_id](auto &&r) mutable {
+                             request_id,
+                             request_start_time](auto &&r) mutable {
+        const auto request_duration_till_callback =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - request_start_time)
+                .count();
+        IF_WEAK_LOCK(self) {
+          SL_INFO(self->base_.logger(),
+                  "Request duration till callback: {} ms for request_id: {}",
+                  request_duration_till_callback,
+                  request_id);
+        }
         lost.notLost();
         timer.reset();
         IF_WEAK_LOCK(self) {
