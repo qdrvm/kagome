@@ -111,8 +111,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/c7b37d6e6d472f653361a99b46f44b193db5b60a.tar.gz
-    SHA1 81dde524d8929aaac0652e33ba235d35bb8c6dc5
+    VERSION 0.1.36
+    KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
@@ -146,14 +146,6 @@ hunter_config(
 hunter_config(
     binaryen
     VERSION 1.38.28-patch.3
-    CMAKE_ARGS
-      CMAKE_POLICY_VERSION_MINIMUM=3.5
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    ZLIB
-    VERSION 1.2.11-p1
     CMAKE_ARGS
       CMAKE_POLICY_VERSION_MINIMUM=3.5
     KEEP_PACKAGE_SOURCES
