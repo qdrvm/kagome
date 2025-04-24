@@ -23,7 +23,6 @@ namespace kagome::network {
   class PeerView;
   struct Seconded;
   class ValidationObserver;
-  struct View;
 }  // namespace kagome::network
 
 namespace kagome::network {
@@ -76,6 +75,7 @@ namespace kagome::network {
     primitives::events::SyncStateSubscriptionEnginePtr sync_engine_;
     std::shared_ptr<void> sync_sub_;
     std::shared_ptr<void> my_view_sub_;
+    View last_sent_view_;
     // NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes)
   };
 
