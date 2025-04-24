@@ -92,9 +92,6 @@ namespace kagome::network {
         .new_head = header,
         .lost = {},
     };
-    if (event.view == my_view_) {
-      return;
-    }
     my_view_stripped_ = std::move(stripped_view);
     for (const auto &head : my_view_.heads_) {
       if (not event.view.contains(head)) {
