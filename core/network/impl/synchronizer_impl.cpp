@@ -20,6 +20,7 @@
 #include "consensus/beefy/beefy.hpp"
 #include "consensus/grandpa/environment.hpp"
 #include "consensus/grandpa/has_authority_set_change.hpp"
+#include "consensus/timeline/slots_util.hpp"
 #include "consensus/timeline/timeline.hpp"
 #include "network/peer_manager.hpp"
 #include "network/protocols/state_protocol.hpp"
@@ -76,6 +77,8 @@ namespace {
 
   /// restart synchronizer if no blocks are applied within specified time
   constexpr auto kHangTimer = std::chrono::minutes{5};
+
+  constexpr kagome::consensus::SlotNumber kAllowedFutureBlockSlots = 2;
 }  // namespace
 
 namespace kagome::network {
@@ -89,6 +92,8 @@ namespace kagome::network {
       const application::AppConfiguration &app_config,
       application::AppStateManager &app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
+      std::shared_ptr<clock::SystemClock> clock,
+      LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
       std::shared_ptr<consensus::BlockExecutor> block_executor,
       std::shared_ptr<storage::trie::TrieStorageBackend> trie_node_db,
@@ -106,6 +111,8 @@ namespace kagome::network {
       std::shared_ptr<blockchain::BlockStorage> block_storage)
       : log_(log::createLogger("Synchronizer", "synchronizer")),
         block_tree_(std::move(block_tree)),
+        clock_{std::move(clock)},
+        slots_util_{std::move(slots_util)},
         block_appender_(std::move(block_appender)),
         block_executor_(std::move(block_executor)),
         trie_node_db_(std::move(trie_node_db)),
@@ -806,6 +813,9 @@ namespace kagome::network {
     }
     auto known = entry(known_blocks_, block_info.hash);
     if (not known) {
+      if (isFutureBlock(data.header.value())) {
+        return false;
+      }
       if (block_tree_->has(block_info.hash)) {
         return false;
       }
@@ -1151,5 +1161,15 @@ namespace kagome::network {
       }
     }
     return false;
+  }
+
+  bool SynchronizerImpl::isFutureBlock(const BlockHeader &header) const {
+    if (auto pre_result = consensus::babe::getBabeBlockHeader(header)) {
+      auto &pre = pre_result.value();
+      auto allowed_slot = slots_util_.get()->timeToSlot(clock_->now())
+                        + kAllowedFutureBlockSlots;
+      return pre.slot_number > allowed_slot;
+    }
+    return true;
   }
 }  // namespace kagome::network

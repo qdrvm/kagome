@@ -15,9 +15,11 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/timeline/block_appender_mock.hpp"
 #include "mock/core/consensus/timeline/block_executor_mock.hpp"
+#include "mock/core/consensus/timeline/slots_util_mock.hpp"
 #include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
@@ -38,6 +40,9 @@
 
 using kagome::entry;
 using kagome::blockchain::BlockTreeError;
+using kagome::clock::SystemClockMock;
+using kagome::consensus::SlotsUtil;
+using kagome::consensus::SlotsUtilMock;
 using kagome::consensus::babe::BabeBlockHeader;
 using kagome::crypto::HasherImpl;
 using kagome::network::BlockAttribute;
@@ -54,7 +59,6 @@ using kagome::primitives::Seal;
 using libp2p::PeerId;
 
 using namespace kagome;
-using namespace clock;
 using consensus::BlockExecutorMock;
 using consensus::BlockHeaderAppenderMock;
 using namespace consensus::grandpa;
@@ -117,6 +121,10 @@ class SynchronizerTest
       return finalized_;
     });
 
+    EXPECT_CALL(*clock_, now())
+        .WillRepeatedly(Return(SystemClockMock::TimePoint{}));
+    EXPECT_CALL(*slots_util_, timeToSlot(_)).WillRepeatedly(Return(100));
+
     EXPECT_CALL(*app_state_manager, atLaunch(_)).WillRepeatedly(Return());
     EXPECT_CALL(*app_state_manager, atShutdown(_)).WillRepeatedly(Return());
 
@@ -142,26 +150,27 @@ class SynchronizerTest
     main_thread_pool = std::make_shared<MainThreadPool>(
         watchdog, std::make_shared<boost::asio::io_context>());
 
-    auto _timeline = testutil::sptr_to_lazy<Timeline>(timeline);
-    synchronizer =
-        std::make_shared<network::SynchronizerImpl>(app_config,
-                                                    *app_state_manager,
-                                                    block_tree,
-                                                    block_appender,
-                                                    block_executor,
-                                                    trie_node_db,
-                                                    storage,
-                                                    state_pruner,
-                                                    router,
-                                                    peer_manager_,
-                                                    scheduler,
-                                                    hasher,
-                                                    chain_sub_engine,
-                                                    _timeline,
-                                                    nullptr,
-                                                    grandpa_environment,
-                                                    *main_thread_pool,
-                                                    block_storage);
+    synchronizer = std::make_shared<network::SynchronizerImpl>(
+        app_config,
+        *app_state_manager,
+        block_tree,
+        clock_,
+        testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
+        block_appender,
+        block_executor,
+        trie_node_db,
+        storage,
+        state_pruner,
+        router,
+        peer_manager_,
+        scheduler,
+        hasher,
+        chain_sub_engine,
+        testutil::sptr_to_lazy<Timeline>(timeline),
+        nullptr,
+        grandpa_environment,
+        *main_thread_pool,
+        block_storage);
   }
 
   void TearDown() override {
@@ -236,6 +245,9 @@ class SynchronizerTest
       std::make_shared<application::AppStateManagerMock>();
   std::shared_ptr<blockchain::BlockTreeMock> block_tree =
       std::make_shared<blockchain::BlockTreeMock>();
+  std::shared_ptr<SystemClockMock> clock_ = std::make_shared<SystemClockMock>();
+  std::shared_ptr<SlotsUtilMock> slots_util_ =
+      std::make_shared<SlotsUtilMock>();
   std::shared_ptr<BlockHeaderAppenderMock> block_appender =
       std::make_shared<BlockHeaderAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =

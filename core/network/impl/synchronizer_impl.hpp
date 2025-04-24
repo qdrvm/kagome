@@ -54,6 +54,7 @@ namespace kagome::consensus {
   class BlockHeaderAppender;
   class BlockExecutor;
   class Timeline;
+  class SlotsUtil;
 }  // namespace kagome::consensus
 
 namespace kagome::consensus::grandpa {
@@ -117,6 +118,8 @@ namespace kagome::network {
         const application::AppConfiguration &app_config,
         application::AppStateManager &app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
+        std::shared_ptr<clock::SystemClock> clock,
+        LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<consensus::BlockHeaderAppender> block_appender,
         std::shared_ptr<consensus::BlockExecutor> block_executor,
         std::shared_ptr<storage::trie::TrieStorageBackend> trie_node_db,
@@ -338,10 +341,13 @@ namespace kagome::network {
     void removeBlockRecursive(const BlockInfo &block);
     bool isSlotIncreasing(const BlockHeader &parent,
                           const BlockHeader &header) const;
+    bool isFutureBlock(const BlockHeader &header) const;
 
     log::Logger log_;
 
     std::shared_ptr<blockchain::BlockTree> block_tree_;
+    std::shared_ptr<clock::SystemClock> clock_;
+    LazySPtr<consensus::SlotsUtil> slots_util_;
     std::shared_ptr<consensus::BlockHeaderAppender> block_appender_;
     std::shared_ptr<consensus::BlockExecutor> block_executor_;
     std::shared_ptr<storage::trie::TrieStorageBackend> trie_node_db_;
