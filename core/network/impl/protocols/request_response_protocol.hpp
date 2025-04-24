@@ -8,6 +8,7 @@
 
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/shared_fn.hpp>
+#include <qtils/option_take.hpp>
 
 #include "common/main_thread_pool.hpp"
 #include "metrics/metrics.hpp"
@@ -93,27 +94,128 @@ namespace kagome::network {
     static void wrap(const std::shared_ptr<T> &self,
                      auto &cb,
                      std::weak_ptr<Stream> weak_stream) {
+      // Capture peer ID immediately while the stream is guaranteed to be valid
+      std::optional<libp2p::peer::PeerId> peer_id;
+      if (auto stream = weak_stream.lock()) {
+        auto peer_id_res = stream->remotePeerId();
+        if (peer_id_res.has_value()) {
+          peer_id = peer_id_res.value();
+        }
+      }
+
+      auto cb_shared =
+          std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
+      static std::atomic<uint64_t> global_request_id = 0;
+      const auto request_id = global_request_id.fetch_add(1);
+      SL_INFO(
+          self->base_.logger(), "New request with request_id: {}", request_id);
+      const auto request_start_time = std::chrono::steady_clock::now();
+
       auto timer = self->scheduler_->scheduleWithHandle(
           [weak_self{std::weak_ptr{self}},
-           weak_stream{std::move(weak_stream)}] {
+           weak_stream{std::move(weak_stream)},
+           peer_id{peer_id},
+           cb_shared,
+           request_id,
+           request_start_time] {
+            const auto request_duration_till_timeout =
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - request_start_time)
+                    .count();
+            IF_WEAK_LOCK(self) {
+              SL_INFO(self->base_.logger(),
+                      "Request duration till timeout: {} ms for request_id: {}",
+                      request_duration_till_timeout,
+                      request_id);
+            }
             IF_WEAK_LOCK(stream) {
+              const auto stream_duration_start =
+                  std::chrono::steady_clock::now();
               stream->reset();
+              const auto stream_duration =
+                  std::chrono::duration_cast<std::chrono::milliseconds>(
+                      std::chrono::steady_clock::now() - stream_duration_start)
+                      .count();
               IF_WEAK_LOCK(self) {
-                self->metrics_.timeout_->inc();
+                SL_INFO(self->base_.logger(),
+                        "Stream reset duration on timeout: {} ms for "
+                        "request_id: {}",
+                        stream_duration,
+                        request_id);
+              }
+            }
+            IF_WEAK_LOCK(self) {
+              self->metrics_.timeout_->inc();
+              SL_INFO(
+                  self->base_.logger(),
+                  "Timeout: request timeout with peer {} for request_id: {}",
+                  peer_id.value(),
+                  request_id);
+              if (auto cb = qtils::optionTake(*cb_shared)) {
+                SL_INFO(
+                    self->base_.logger(),
+                    "Timeout: optionTake success for peer {} request_id: {}",
+                    peer_id.value(),
+                    request_id);
+                (*cb)(outcome::failure(ProtocolError::TIMEOUT));
+              } else {
+                SL_INFO(
+                    self->base_.logger(),
+                    "Timeout: optionTake is nullopt for peer {} request_id: {}",
+                    peer_id.value(),
+                    request_id);
               }
             }
           },
           self->timeout_);
+
       cb = libp2p::SharedFn{[weak_self{std::weak_ptr{self}},
-                             cb{std::move(cb)},
+                             cb_shared,
                              lost{RequestResponseMetrics::Lost{self->metrics_}},
-                             timer{std::move(timer)}](auto r) mutable {
+                             timer{std::move(timer)},
+                             peer_id{peer_id},
+                             request_id,
+                             request_start_time](auto &&r) mutable {
+        const auto request_duration_till_callback =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - request_start_time)
+                .count();
+        IF_WEAK_LOCK(self) {
+          SL_INFO(self->base_.logger(),
+                  "Request duration till callback: {} ms for request_id: {}",
+                  request_duration_till_callback,
+                  request_id);
+        }
         lost.notLost();
         timer.reset();
         IF_WEAK_LOCK(self) {
-          (r ? self->metrics_.success_ : self->metrics_.failure_)->inc();
+          if (r) {
+            SL_INFO(self->base_.logger(),
+                    "SharedFn: Success callback for peer {} request_id: {}",
+                    peer_id.value(),
+                    request_id);
+            self->metrics_.success_->inc();
+          } else {
+            SL_INFO(self->base_.logger(),
+                    "SharedFn: Failure callback for peer {} request_id: {}",
+                    peer_id.value(),
+                    request_id);
+            self->metrics_.failure_->inc();
+          }
+          if (auto cb = qtils::optionTake(*cb_shared)) {
+            SL_INFO(self->base_.logger(),
+                    "SharedFn: Success optionTake for peer {} request_id: {}",
+                    peer_id.value(),
+                    request_id);
+            (*cb)(std::move(r));
+          } else {
+            SL_INFO(
+                self->base_.logger(),
+                "SharedFn: optionTake is nullopt for peer {} request_id: {}",
+                peer_id.value(),
+                request_id);
+          }
         }
-        cb(std::move(r));
       }};
     }
   };
@@ -178,10 +280,10 @@ namespace kagome::network {
 
             RequestResponseTimeout::wrap(self, response_handler, stream);
 
-            SL_DEBUG(self->base_.logger(),
-                     "Established outgoing {} stream with {}",
-                     self->protocolName(),
-                     stream->remotePeerId().value());
+            SL_INFO(self->base_.logger(),
+                    "Established outgoing {} stream with {}",
+                    self->protocolName(),
+                    stream->remotePeerId().value());
 
             self->writeRequest(std::move(stream),
                                std::move(request),
@@ -208,10 +310,10 @@ namespace kagome::network {
     void onIncomingStream(std::shared_ptr<Stream> stream) override {
       BOOST_ASSERT(stream);
       BOOST_ASSERT(stream->remotePeerId().has_value());
-      SL_DEBUG(base_.logger(),
-               "New incoming {} stream with {}",
-               protocolName(),
-               stream->remotePeerId().value());
+      SL_INFO(base_.logger(),
+              "New incoming {} stream with {}",
+              protocolName(),
+              stream->remotePeerId().value());
       readRequest(std::move(stream));
     }
 
@@ -244,10 +346,10 @@ namespace kagome::network {
               return;
             }
 
-            SL_DEBUG(self->base_.logger(),
-                     "Established connection over {} stream with {}",
-                     self->protocolName(),
-                     peer_id);
+            SL_INFO(self->base_.logger(),
+                    "Established connection over {} stream with {}",
+                    self->protocolName(),
+                    peer_id);
             cb(std::move(stream));
           });
     }
@@ -261,10 +363,10 @@ namespace kagome::network {
 
       static_assert(std::is_same_v<M, RequestType>
                     || std::is_same_v<M, ResponseType>);
-      SL_DEBUG(base_.logger(),
-               "Write msg into {} stream with {}",
-               protocolName(),
-               stream->remotePeerId().value());
+      SL_INFO(base_.logger(),
+              "Write msg into {} stream with {}",
+              protocolName(),
+              stream->remotePeerId().value());
 
       auto read_writer = std::make_shared<ReadWriterType>(stream);
       read_writer->write(
@@ -293,7 +395,7 @@ namespace kagome::network {
               return;
             }
 
-            SL_DEBUG(
+            SL_INFO(
                 self->base_.logger(),
                 "Request written successful into outgoing {} stream with {}",
                 self->protocolName(),
@@ -359,41 +461,49 @@ namespace kagome::network {
         std::function<void(outcome::result<M>, std::shared_ptr<Stream>)> &&cb) {
       BOOST_ASSERT(stream);
 
-      SL_DEBUG(base_.logger(),
-               "Read from {} stream with {}",
-               protocolName(),
-               stream->remotePeerId().value());
+      SL_INFO(base_.logger(),
+              "Read from stream with {}",
+              stream->remotePeerId().value());
 
       auto read_writer = std::make_shared<ReadWriterType>(stream);
+      auto read_begin = std::chrono::steady_clock::now();
       read_writer->template read<M>(
           [stream{std::move(stream)},
            wptr{this->weak_from_this()},
-           cb{std::move(cb)}](outcome::result<M> read_result) mutable {
+           cb{std::move(cb)},
+           read_begin{std::move(read_begin)}](
+              outcome::result<M> read_result) mutable {
             BOOST_ASSERT(stream);
 
             auto self = wptr.lock();
             if (!self) {
               cb(outcome::failure(ProtocolError::GONE), nullptr);
-              self->base_.closeStream(std::move(wptr), std::move(stream));
               return;
             }
 
+            auto read_end = std::chrono::steady_clock::now();
+            auto read_duration =
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    read_end - read_begin)
+                    .count();
+            SL_INFO(self->base_.logger(),
+                    "Read from outgoing stream with {} duration: {} ms",
+                    stream->remotePeerId().value(),
+                    read_duration);
             if (read_result.has_error()) {
-              SL_DEBUG(self->base_.logger(),
-                       "Error at read from outgoing {} stream with {}: {}",
-                       self->protocolName(),
-                       stream->remotePeerId().value(),
-                       read_result.error());
+              SL_INFO(self->base_.logger(),
+                      "Error at read from outgoing stream with {}: {}",
+                      stream->remotePeerId().value(),
+                      read_result.error());
 
               cb(read_result.as_failure(), nullptr);
               self->base_.closeStream(std::move(wptr), std::move(stream));
               return;
             }
 
-            SL_DEBUG(self->base_.logger(),
-                     "Successful response read from outgoing {} stream with {}",
-                     self->protocolName(),
-                     stream->remotePeerId().value());
+            SL_INFO(self->base_.logger(),
+                    "Successful response read from outgoing stream with {}",
+                    stream->remotePeerId().value());
             cb(outcome::success(std::move(read_result.value())),
                std::move(stream));
           });
