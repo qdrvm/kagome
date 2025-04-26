@@ -410,7 +410,7 @@ namespace kagome::runtime::wasm_edge {
     OUTCOME_TRY(configure_ctx, configureCtx(config));
     auto configure_ctx_raw = configure_ctx.raw();
     WasmEdge_ConfigureCompilerSetOptimizationLevel(
-        configure_ctx_raw, WasmEdge_CompilerOptimizationLevel_O0);
+        configure_ctx_raw, WasmEdge_CompilerOptimizationLevel_O2);
 
     CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx_raw);
     SL_INFO(log_, "Start compiling wasm module {}", path_compiled);
