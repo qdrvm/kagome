@@ -16,7 +16,7 @@ struct fmt::formatter<qtils::BytesIn> {
 
   constexpr auto parse(format_parse_context &ctx) {
     auto it = ctx.begin();
-    auto end = [&] { return it == ctx.end() or *it == '}'; };
+    auto end = [&] { return it == ctx.end() or * it == '}'; };
     if (end()) {
       return it;
     }
@@ -140,7 +140,7 @@ void test(std::string name, const kagome::runtime::ModuleFactory &factory) {
     auto instrument = std::make_shared<kagome::runtime::WasmInstrumenter>();
     auto instrumented = instrument->instrument(code, context_params);
     if (not instrumented) {
-      fmt::println("instrument: [{}]", instrumented.error().message());
+      fmt::println("instrument: {}", instrumented.error().message());
     }
     if (bulk) {
       EXPECT_TRUE(instrumented);
@@ -154,7 +154,7 @@ void test(std::string name, const kagome::runtime::ModuleFactory &factory) {
 
     auto _compile = factory.compile(path, code, context_params);
     if (not _compile) {
-      fmt::println("compile: [{}]", _compile.error().message());
+      fmt::println("compile: {}", _compile.error().message());
     }
     if (bulk) {
       EXPECT_TRUE(_compile);
@@ -166,7 +166,7 @@ void test(std::string name, const kagome::runtime::ModuleFactory &factory) {
     }
     auto _module = factory.loadCompiled(path, context_params);
     if (not _module) {
-      fmt::println("loadCompiled: [{}]", _module.error().message());
+      fmt::println("loadCompiled: {}", _module.error().message());
     }
     if (bulk) {
       EXPECT_TRUE(_module);
