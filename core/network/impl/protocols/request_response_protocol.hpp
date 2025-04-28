@@ -258,7 +258,21 @@ namespace kagome::network {
                    Request request,
                    std::function<void(outcome::result<Response>)>
                        &&response_handler) override {
+      auto request_start_time = std::chrono::steady_clock::now();
       onTxRequest(request);
+      {
+        auto request_duration =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - request_start_time)
+                .count();
+        auto weak_self = this->weak_from_this();
+        auto self = weak_self.lock();
+        if (self) {
+          SL_INFO(self->base_.logger(),
+                  "onTxRequest duration: {} ms",
+                  request_duration);
+        }
+      }
       newOutgoingStream(
           peer_id,
           [WEAK_SELF,
@@ -321,17 +335,33 @@ namespace kagome::network {
         const PeerId &peer_id,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override {
+      static std::atomic<uint64_t> stream_id = 0;
+      const auto stream_id_ = stream_id.fetch_add(1);
       SL_TRACE(base_.logger(),
-               "New outgoing {} stream with {}",
-               protocolName(),
-               peer_id);
+               "New outgoing stream with {} (stream_id: {})",
+               peer_id,
+               stream_id_);
       newStream(
           base_.host(),
           peer_id,
           base_.protocolIds(),
-          [wptr{this->weak_from_this()}, peer_id, cb{std::move(cb)}](
+          [wptr{this->weak_from_this()},
+           peer_id,
+           stream_id_,
+           cb{std::move(cb)}](
               libp2p::StreamAndProtocolOrError &&stream_and_proto) mutable {
             if (!stream_and_proto.has_value()) {
+              {
+                auto self = wptr.lock();
+                if (self) {
+                  SL_INFO(self->base_.logger(),
+                          "New outgoing stream with {} failed, stream_id: {}, "
+                          "reason: {}",
+                          peer_id,
+                          stream_id_,
+                          stream_and_proto.error());
+                }
+              }
               cb(stream_and_proto.as_failure());
               return;
             }
@@ -347,9 +377,9 @@ namespace kagome::network {
             }
 
             SL_INFO(self->base_.logger(),
-                    "Established connection over {} stream with {}",
-                    self->protocolName(),
-                    peer_id);
+                    "Established connection with {} (stream_id: {})",
+                    peer_id,
+                    stream_id_);
             cb(std::move(stream));
           });
     }

@@ -119,6 +119,8 @@ namespace kagome::parachain {
               active.pending_requests.size(),
               candidate_hash,
               active.chunk_index);
+
+      const auto request_start = std::chrono::steady_clock::now();
       switch (req_chunk_version) {
         case network::ReqChunkVersion::V2:
           SL_INFO(log(),
@@ -138,27 +140,34 @@ namespace kagome::parachain {
               [=, chunk_index{active.chunk_index}, weak{weak_from_this()}](
                   outcome::result<network::FetchChunkResponse> r) {
                 if (auto self = weak.lock()) {
+                  const auto request_duration_ms =
+                      std::chrono::duration_cast<std::chrono::milliseconds>(
+                          std::chrono::steady_clock::now() - request_start)
+                          .count();
                   if (r.has_value()) {
                     SL_INFO(log(),
                             "Result of request chunk {} of candidate {} to "
-                            "peer {}: success",
-                            chunk_index,
-                            candidate_hash,
-                            peer_id);
-                  } else {
-                    SL_INFO(log(),
-                            "Result of request chunk {} of candidate {} to "
-                            "peer {}: {}",
+                            "peer {}: success, duration {} ms",
                             chunk_index,
                             candidate_hash,
                             peer_id,
-                            r.error());
+                            request_duration_ms);
+                  } else {
+                    SL_INFO(log(),
+                            "Result of request chunk {} of candidate {} to "
+                            "peer {}: {}, duration {} ms",
+                            chunk_index,
+                            candidate_hash,
+                            peer_id,
+                            r.error(),
+                            request_duration_ms);
                   }
 
                   self->fetch(candidate_hash, std::move(r), peer_id);
                 }
               });
           break;
+
         case network::ReqChunkVersion::V1_obsolete:
           SL_INFO(log(),
                   "Obsolete request of chunk {} of candidate {} to peer {}",
@@ -191,8 +200,10 @@ namespace kagome::parachain {
                 }
               });
           break;
+
         default:
-          UNREACHABLE;
+          SL_ERROR(log(), "Unknown request chunk version for peer {}", peer_id);
+          break;
       }
       return;
     }
