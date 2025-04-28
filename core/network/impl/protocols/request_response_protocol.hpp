@@ -346,11 +346,15 @@ namespace kagome::network {
           std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
       const auto stream_init_time = std::chrono::steady_clock::now();
 
+      auto stream_holder =
+          std::make_shared<std::optional<std::shared_ptr<Stream>>>();
+
       auto timer = scheduler_->scheduleWithHandle(
           [weak_self{this->weak_from_this()},
            peer_id,
            stream_id_,
            cb_shared,
+           stream_holder,
            stream_init_time] {
             const auto init_duration_till_timeout =
                 std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -363,6 +367,24 @@ namespace kagome::network {
                   init_duration_till_timeout,
                   stream_id_);
               self->metrics_.timeout_->inc();
+
+              // Reset the stream if it has been established
+              if (stream_holder->has_value()) {
+                const auto stream_duration_start =
+                    std::chrono::steady_clock::now();
+                (*stream_holder)->reset();
+                const auto stream_duration =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now()
+                        - stream_duration_start)
+                        .count();
+                SL_INFO(
+                    self->base_.logger(),
+                    "Stream reset duration on timeout: {} ms for stream_id: {}",
+                    stream_duration,
+                    stream_id_);
+              }
+
               SL_INFO(self->base_.logger(),
                       "Timeout: stream connection timeout with peer {} for "
                       "stream_id: {}",
@@ -440,6 +462,7 @@ namespace kagome::network {
           [wptr{this->weak_from_this()},
            peer_id,
            stream_id_,
+           stream_holder,
            cb_shared,
            stream_init_time](
               libp2p::StreamAndProtocolOrError &&stream_and_proto) mutable {
@@ -476,6 +499,9 @@ namespace kagome::network {
 
             auto &stream = stream_and_proto.value().stream;
             BOOST_ASSERT(stream);
+
+            // Store the established stream in the shared holder
+            *stream_holder = stream;
 
             SL_INFO(self->base_.logger(),
                     "Established connection with {} (stream_id: {}), "
