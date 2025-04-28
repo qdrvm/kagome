@@ -65,7 +65,9 @@ namespace kagome::parachain {
     struct Used {
       Used(PvfWorkers &self);
       Used(const Used &) = delete;
+      Used(Used &&) = delete;
       void operator=(const Used &) = delete;
+      void operator=(Used &&) = delete;
       ~Used();
 
       std::weak_ptr<PvfWorkers> weak_self;

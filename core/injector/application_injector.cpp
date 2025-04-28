@@ -602,7 +602,7 @@ namespace {
     parachain::PvfImpl::Config pvf_config{
         .precompile_modules = config->shouldPrecompileParachainModules(),
         .precompile_threads_num = config->parachainPrecompilationThreadNum(),
-    };
+        .opt_level = config->pvfOptimizationLevel()};
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
     runtime::wasm_edge::ModuleFactoryImpl::Config wasmedge_config{
         config->runtimeExecMethod()

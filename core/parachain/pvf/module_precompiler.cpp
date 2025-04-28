@@ -49,11 +49,11 @@ namespace kagome::parachain {
     return visit_in_place(
         core,
         [](const runtime::OccupiedCore &core) mutable
-        -> std::optional<ParachainId> {
+            -> std::optional<ParachainId> {
           return core.candidate_descriptor.para_id;
         },
         [](const runtime::ScheduledCore &core) mutable
-        -> std::optional<ParachainId> { return core.para_id; },
+            -> std::optional<ParachainId> { return core.para_id; },
         [](runtime::FreeCore) -> std::optional<ParachainId> {
           return std::nullopt;
         });
@@ -61,8 +61,9 @@ namespace kagome::parachain {
 
   outcome::result<void> ModulePrecompiler::precompileModulesAt(
       const primitives::BlockHash &last_finalized) {
-    OUTCOME_TRY(executor_params,
-                sessionParams(*parachain_api_, last_finalized));
+    OUTCOME_TRY(
+        executor_params,
+        sessionParams(*parachain_api_, last_finalized, config_.opt_level));
     auto cores_res = parachain_api_->availability_cores(last_finalized);
     if (cores_res.has_error()
         && cores_res.error()

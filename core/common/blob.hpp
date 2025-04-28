@@ -9,6 +9,7 @@
 #include <array>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <boost/functional/hash.hpp>
 #include <scale/scale.hpp>
 
@@ -240,6 +241,10 @@ struct std::hash<kagome::common::Blob<N>> {
     return boost::hash_range(blob.data(), blob.data() + N);  // NOLINT
   }
 };
+
+template <size_t N, typename Char>
+struct fmt::range_format_kind<kagome::common::Blob<N>, Char>
+    : std::integral_constant<fmt::range_format, fmt::range_format::disabled> {};
 
 template <size_t N>
 struct fmt::formatter<kagome::common::Blob<N>> {

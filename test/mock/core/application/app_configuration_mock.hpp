@@ -141,6 +141,11 @@ namespace kagome::application {
 
     MOCK_METHOD(size_t, pvfMaxWorkers, (), (const, override));
 
+    MOCK_METHOD(runtime::OptimizationLevel,
+                pvfOptimizationLevel,
+                (),
+                (const, override));
+
     MOCK_METHOD(bool, disableSecureMode, (), (const, override));
 
     MOCK_METHOD(bool, enableDbMigration, (), (const, override));

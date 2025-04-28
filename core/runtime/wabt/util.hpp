@@ -29,12 +29,16 @@ namespace kagome::runtime {
     return outcome::success();
   }
 
+  struct WasmFeatures {
+    bool ext_bulk_memory{false};
+  };
+
   inline WabtOutcome<wabt::Module> wabtDecode(
-      common::BufferView code, const RuntimeContext::ContextParams &config) {
+      common::BufferView code, const WasmFeatures &requested_features) {
     wabt::Module module;
     wabt::Features features;
     features.disable_reference_types();
-    if (not config.wasm_ext_bulk_memory) {
+    if (not requested_features.ext_bulk_memory) {
       features.disable_bulk_memory();
     }
     OUTCOME_TRY(wabtTry([&](wabt::Errors &errors) {

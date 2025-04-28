@@ -9,6 +9,7 @@
 #include "runtime/wabt/util.hpp"
 
 namespace kagome::runtime {
+
   outcome::result<std::optional<primitives::Version>> readEmbeddedVersion(
       BufferView wasm) {
     OUTCOME_TRY(module, wabtDecode(wasm, {}));
