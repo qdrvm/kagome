@@ -95,8 +95,10 @@ namespace kagome::runtime {
     UNREACHABLE
   }
 
+  // O2 is temporarily not default because there is a runtime on Polkadot 
+  // that compiles for an indefinite amount of time on O2
   static constexpr OptimizationLevel DEFAULT_RELAY_CHAIN_RUNTIME_OPT_LEVEL =
-      OptimizationLevel::O2;
+      OptimizationLevel::O1;
 
 }  // namespace kagome::runtime
 
