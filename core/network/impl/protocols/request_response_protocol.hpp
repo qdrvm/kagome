@@ -173,7 +173,7 @@ namespace kagome::network {
                              cb_shared,
                              lost{RequestResponseMetrics::Lost{self->metrics_}},
                              timer{std::move(timer)},
-                             peer_id{peer_id},
+                             peer_id,
                              request_id,
                              request_start_time](auto &&r) mutable {
         const auto request_duration_till_callback =
@@ -341,6 +341,98 @@ namespace kagome::network {
                "New outgoing stream with {} (stream_id: {})",
                peer_id,
                stream_id_);
+
+      auto cb_shared =
+          std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
+      const auto stream_init_time = std::chrono::steady_clock::now();
+
+      auto timer = scheduler_->scheduleWithHandle(
+          [weak_self{this->weak_from_this()},
+           peer_id,
+           stream_id_,
+           cb_shared,
+           stream_init_time] {
+            const auto init_duration_till_timeout =
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - stream_init_time)
+                    .count();
+            IF_WEAK_LOCK(self) {
+              SL_INFO(
+                  self->base_.logger(),
+                  "Stream init duration till timeout: {} ms for stream_id: {}",
+                  init_duration_till_timeout,
+                  stream_id_);
+              self->metrics_.timeout_->inc();
+              SL_INFO(self->base_.logger(),
+                      "Timeout: stream connection timeout with peer {} for "
+                      "stream_id: {}",
+                      peer_id,
+                      stream_id_);
+              if (auto cb = qtils::optionTake(*cb_shared)) {
+                SL_INFO(self->base_.logger(),
+                        "Timeout: optionTake success for peer {} stream_id: {}",
+                        peer_id,
+                        stream_id_);
+                (*cb)(outcome::failure(ProtocolError::TIMEOUT));
+              } else {
+                SL_INFO(
+                    self->base_.logger(),
+                    "Timeout: optionTake is nullopt for peer {} stream_id: {}",
+                    peer_id,
+                    stream_id_);
+              }
+            }
+          },
+          timeout_);
+
+      cb = libp2p::SharedFn{[weak_self{this->weak_from_this()},
+                             cb_shared,
+                             lost{RequestResponseMetrics::Lost{this->metrics_}},
+                             timer{std::move(timer)},
+                             peer_id,
+                             stream_id_,
+                             stream_init_time](auto &&r) mutable {
+        const auto init_duration_till_callback =
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - stream_init_time)
+                .count();
+        IF_WEAK_LOCK(self) {
+          SL_INFO(self->base_.logger(),
+                  "Stream init duration till callback: {} ms for stream_id: {}",
+                  init_duration_till_callback,
+                  stream_id_);
+        }
+        lost.notLost();
+        timer.reset();
+        IF_WEAK_LOCK(self) {
+          if (r) {
+            SL_INFO(self->base_.logger(),
+                    "SharedFn: Success callback for peer {} stream_id: {}",
+                    peer_id,
+                    stream_id_);
+            self->metrics_.success_->inc();
+          } else {
+            SL_INFO(self->base_.logger(),
+                    "SharedFn: Failure callback for peer {} stream_id: {}",
+                    peer_id,
+                    stream_id_);
+            self->metrics_.failure_->inc();
+          }
+          if (auto cb = qtils::optionTake(*cb_shared)) {
+            SL_INFO(self->base_.logger(),
+                    "SharedFn: Success optionTake for peer {} stream_id: {}",
+                    peer_id,
+                    stream_id_);
+            (*cb)(std::move(r));
+          } else {
+            SL_INFO(self->base_.logger(),
+                    "SharedFn: optionTake is nullopt for peer {} stream_id: {}",
+                    peer_id,
+                    stream_id_);
+          }
+        }
+      }};
+
       newStream(
           base_.host(),
           peer_id,
@@ -348,39 +440,52 @@ namespace kagome::network {
           [wptr{this->weak_from_this()},
            peer_id,
            stream_id_,
-           cb{std::move(cb)}](
+           cb_shared,
+           stream_init_time](
               libp2p::StreamAndProtocolOrError &&stream_and_proto) mutable {
+            const auto stream_init_duration =
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - stream_init_time)
+                    .count();
+
+            auto self = wptr.lock();
+            if (!self) {
+              return;
+            }
+
+            SL_INFO(self->base_.logger(),
+                    "Stream connection callback for {} (stream_id: {}), "
+                    "stream_init_duration: {} ms",
+                    peer_id,
+                    stream_id_,
+                    stream_init_duration);
+
             if (!stream_and_proto.has_value()) {
-              {
-                auto self = wptr.lock();
-                if (self) {
-                  SL_INFO(self->base_.logger(),
-                          "New outgoing stream with {} failed, stream_id: {}, "
-                          "reason: {}",
-                          peer_id,
-                          stream_id_,
-                          stream_and_proto.error());
-                }
+              SL_INFO(self->base_.logger(),
+                      "New outgoing stream with {} failed, stream_id: {}, "
+                      "reason: {}, stream_init_duration: {} ms",
+                      peer_id,
+                      stream_id_,
+                      stream_and_proto.error(),
+                      stream_init_duration);
+              if (auto cb = qtils::optionTake(*cb_shared)) {
+                (*cb)(stream_and_proto.as_failure());
               }
-              cb(stream_and_proto.as_failure());
               return;
             }
 
             auto &stream = stream_and_proto.value().stream;
             BOOST_ASSERT(stream);
 
-            auto self = wptr.lock();
-            if (not self) {
-              cb(ProtocolError::GONE);
-              self->base_.closeStream(std::move(wptr), std::move(stream));
-              return;
-            }
-
             SL_INFO(self->base_.logger(),
-                    "Established connection with {} (stream_id: {})",
+                    "Established connection with {} (stream_id: {}), "
+                    "stream_init_duration: {} ms",
                     peer_id,
-                    stream_id_);
-            cb(std::move(stream));
+                    stream_id_,
+                    stream_init_duration);
+            if (auto cb = qtils::optionTake(*cb_shared)) {
+              (*cb)(std::move(stream));
+            }
           });
     }
 
