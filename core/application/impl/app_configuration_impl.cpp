@@ -885,7 +885,7 @@ namespace kagome::application {
         "Disables spawn of child pvf check processes, thus they could not be aborted by deadline timer")
         ("pvf-max-workers", po::value<size_t>()->default_value(pvf_max_workers_),
         "Max PVF execution threads or processes.")
-        ("pvf-optimization-level", po::value<std::string>()->default_value("2"), "Optimization level for PVF runtime compilation")
+        ("pvf-optimization-level", po::value<std::string>()->default_value("1"), "Optimization level for PVF runtime compilation")
         ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
         ("precompile-relay", po::bool_switch(), "Enter wasm precompilation mode, precompile relay chain runtimes. Useful for tests.")
         ("precompile-para", po::value<decltype(PrecompileWasmConfig::parachains)>()->multitoken(), "paths to wasm or chainspec files")
