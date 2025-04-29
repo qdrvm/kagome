@@ -8,6 +8,7 @@
 
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/shared_fn.hpp>
+#include <qtils/option_take.hpp>
 
 #include "common/main_thread_pool.hpp"
 #include "metrics/metrics.hpp"
@@ -93,27 +94,41 @@ namespace kagome::network {
     static void wrap(const std::shared_ptr<T> &self,
                      auto &cb,
                      std::weak_ptr<Stream> weak_stream) {
+      auto cb_shared =
+          std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
+
       auto timer = self->scheduler_->scheduleWithHandle(
           [weak_self{std::weak_ptr{self}},
-           weak_stream{std::move(weak_stream)}] {
+           weak_stream{std::move(weak_stream)},
+           cb_shared] {
             IF_WEAK_LOCK(stream) {
               stream->reset();
-              IF_WEAK_LOCK(self) {
-                self->metrics_.timeout_->inc();
+            }
+            IF_WEAK_LOCK(self) {
+              self->metrics_.timeout_->inc();
+              if (auto cb = qtils::optionTake(*cb_shared)) {
+                (*cb)(outcome::failure(ProtocolError::TIMEOUT));
               }
             }
           },
           self->timeout_);
+
       cb = libp2p::SharedFn{[weak_self{std::weak_ptr{self}},
-                             cb{std::move(cb)},
+                             cb_shared,
                              lost{RequestResponseMetrics::Lost{self->metrics_}},
-                             timer{std::move(timer)}](auto r) mutable {
+                             timer{std::move(timer)}](auto &&r) mutable {
         lost.notLost();
         timer.reset();
         IF_WEAK_LOCK(self) {
-          (r ? self->metrics_.success_ : self->metrics_.failure_)->inc();
+          if (r) {
+            self->metrics_.success_->inc();
+          } else {
+            self->metrics_.failure_->inc();
+          }
+          if (auto cb = qtils::optionTake(*cb_shared)) {
+            (*cb)(std::move(r));
+          }
         }
-        cb(std::move(r));
       }};
     }
   };
@@ -219,36 +234,75 @@ namespace kagome::network {
         const PeerId &peer_id,
         std::function<void(outcome::result<std::shared_ptr<Stream>>)> &&cb)
         override {
-      SL_TRACE(base_.logger(),
-               "New outgoing {} stream with {}",
-               protocolName(),
-               peer_id);
+      auto cb_shared =
+          std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
+
+      auto stream_holder =
+          std::make_shared<std::optional<std::shared_ptr<Stream>>>();
+
+      auto timer = scheduler_->scheduleWithHandle(
+          [weak_self{this->weak_from_this()},
+           peer_id,
+           cb_shared,
+           stream_holder] {
+            IF_WEAK_LOCK(self) {
+              self->metrics_.timeout_->inc();
+              // Reset the stream if it has been established
+              if (stream_holder->has_value()) {
+                (*stream_holder)->reset();
+              }
+              if (auto cb = qtils::optionTake(*cb_shared)) {
+                (*cb)(outcome::failure(ProtocolError::TIMEOUT));
+              }
+            }
+          },
+          timeout_);
+
+      cb = libp2p::SharedFn{[weak_self{this->weak_from_this()},
+                             cb_shared,
+                             lost{RequestResponseMetrics::Lost{this->metrics_}},
+                             timer{std::move(timer)},
+                             peer_id](auto &&r) mutable {
+        lost.notLost();
+        timer.reset();
+        IF_WEAK_LOCK(self) {
+          if (not r) {
+            self->metrics_.failure_->inc();
+          }
+          if (auto cb = qtils::optionTake(*cb_shared)) {
+            (*cb)(std::move(r));
+          }
+        }
+      }};
+
       newStream(
           base_.host(),
           peer_id,
           base_.protocolIds(),
-          [wptr{this->weak_from_this()}, peer_id, cb{std::move(cb)}](
+          [wptr{this->weak_from_this()},
+           wrapped_cb = std::move(cb),  // Use the wrapped cb here
+           peer_id,
+           stream_holder](
               libp2p::StreamAndProtocolOrError &&stream_and_proto) mutable {
+            auto self = wptr.lock();
+            if (!self) {
+              return;
+            }
+
             if (!stream_and_proto.has_value()) {
-              cb(stream_and_proto.as_failure());
+              // Call the wrapped callback with the error
+              wrapped_cb(stream_and_proto.as_failure());
               return;
             }
 
             auto &stream = stream_and_proto.value().stream;
             BOOST_ASSERT(stream);
 
-            auto self = wptr.lock();
-            if (not self) {
-              cb(ProtocolError::GONE);
-              self->base_.closeStream(std::move(wptr), std::move(stream));
-              return;
-            }
+            // Store the established stream in the shared holder
+            *stream_holder = stream;
 
-            SL_DEBUG(self->base_.logger(),
-                     "Established connection over {} stream with {}",
-                     self->protocolName(),
-                     peer_id);
-            cb(std::move(stream));
+            // Call the wrapped callback with the success result
+            wrapped_cb(std::move(stream));
           });
     }
 
@@ -374,7 +428,6 @@ namespace kagome::network {
             auto self = wptr.lock();
             if (!self) {
               cb(outcome::failure(ProtocolError::GONE), nullptr);
-              self->base_.closeStream(std::move(wptr), std::move(stream));
               return;
             }
 
