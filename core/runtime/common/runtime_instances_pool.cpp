@@ -120,22 +120,25 @@ namespace kagome::runtime {
       name.append("wasm_");
     }
     fmt::format_to(to, "{}_s", code_hash.toHex());
-    if (auto &stack = config.memory_limits.max_stack_values_num) {
+
+    auto &[memory_limits, _bulk_memory, opt_level] = config;
+    if (auto &stack = memory_limits.max_stack_values_num) {
       fmt::format_to(to, "{}", *stack);
     }
     if (auto v = boost::get<HeapAllocStrategyDynamic>(
-            &config.memory_limits.heap_alloc_strategy)) {
+            &memory_limits.heap_alloc_strategy)) {
       name.append("_d");
       if (auto &max = v->maximum_pages) {
         fmt::format_to(to, "{}", *max);
       }
     } else {
-      fmt::format_to(to,
-                     "_s{}",
-                     boost::get<HeapAllocStrategyStatic>(
-                         config.memory_limits.heap_alloc_strategy)
-                         .extra_pages);
+      fmt::format_to(
+          to,
+          "_s{}",
+          boost::get<HeapAllocStrategyStatic>(memory_limits.heap_alloc_strategy)
+              .extra_pages);
     }
+    fmt::format_to(to, "_{}", to_string(opt_level));
     return cache_dir_ / name;
   }
 

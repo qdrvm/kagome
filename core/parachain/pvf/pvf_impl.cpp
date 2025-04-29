@@ -171,7 +171,9 @@ namespace kagome::parachain {
         log_{log::createLogger("PVF Executor", "pvf_executor")},
         pvf_pool_{std::move(pvf_pool)},
         precompiler_{std::make_shared<ModulePrecompiler>(
-            ModulePrecompiler::Config{config_.precompile_threads_num},
+            ModulePrecompiler::Config{
+                .precompile_threads_num = config_.precompile_threads_num,
+                .opt_level = config_.opt_level},
             parachain_api_,
             pvf_pool_,
             hasher_)},
@@ -377,7 +379,9 @@ namespace kagome::parachain {
                          runtime::PvfExecTimeoutKind timeout_kind,
                          WasmCb cb) const {
     CB_TRY(auto executor_params,
-           sessionParams(*parachain_api_, receipt.descriptor.relay_parent));
+           sessionParams(*parachain_api_,
+                         receipt.descriptor.relay_parent,
+                         config_.opt_level));
     const auto &context_params = executor_params.context_params;
 
     constexpr auto name = "validate_block";
@@ -400,7 +404,8 @@ namespace kagome::parachain {
       CB_TRY(auto ctx, runtime::RuntimeContextFactory::stateless(instance));
       KAGOME_PROFILE_END(single_process_runtime_instantitation);
       KAGOME_PROFILE_START_L(log_, single_process_runtime_call);
-      return cb(executor_->call<ValidationResult>(ctx, name, params));
+      cb(executor_->call<ValidationResult>(ctx, name, params));
+      return;
     }
     kagome::parachain::PvfWorkerInputCodeParams code_params{
         .path = pvf_pool_->getCachePath(code_hash, context_params),
@@ -411,7 +416,8 @@ namespace kagome::parachain {
         .cb =
             [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
               if (r.has_error()) {
-                return cb(r.error());
+                cb(r.error());
+                return;
               }
               cb(scale::decode<ValidationResult>(r.value()));
             },

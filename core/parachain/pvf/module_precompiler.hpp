@@ -27,6 +27,7 @@ namespace kagome::parachain {
    public:
     struct Config {
       unsigned precompile_threads_num;
+      runtime::OptimizationLevel opt_level;
     };
 
     ModulePrecompiler(const Config &config,

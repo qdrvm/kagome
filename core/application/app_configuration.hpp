@@ -21,6 +21,7 @@
 #include "network/types/roles.hpp"
 #include "primitives/account.hpp"
 #include "primitives/block_id.hpp"
+#include "runtime/runtime_context.hpp"
 #include "telemetry/endpoint.hpp"
 
 namespace kagome::application {
@@ -43,7 +44,7 @@ namespace kagome::application {
   using BenchmarkConfigSection = std::variant<BlockBenchmarkConfig>;
 
   /**
-   * Parse and store application config.
+   * Parse and store application config
    */
   class AppConfiguration {
    public:
@@ -269,6 +270,8 @@ namespace kagome::application {
      */
     virtual size_t pvfMaxWorkers() const = 0;
 
+    virtual runtime::OptimizationLevel pvfOptimizationLevel() const = 0;
+
     /**
      * Whether secure validator mode should be disabled.
      */
@@ -336,7 +339,7 @@ namespace kagome::application {
     virtual std::optional<std::string> getValidatorAddress() const = 0;
 
     virtual uint32_t maxParallelDownloads() const = 0;
-    
+
     virtual std::optional<BlockNumber> unsafeSyncTo() const = 0;
   };
 

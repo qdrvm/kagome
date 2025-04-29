@@ -613,6 +613,7 @@ namespace kagome {
             column_data.file_count,
             5);
       }
+      db->Close();
     }
 
    private:

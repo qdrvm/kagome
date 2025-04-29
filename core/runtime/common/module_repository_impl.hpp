@@ -13,6 +13,7 @@
 
 #include "log/logger.hpp"
 #include "runtime/instance_environment.hpp"
+#include "runtime/runtime_context.hpp"
 #include "utils/lru.hpp"
 #include "utils/safe_object.hpp"
 
@@ -57,7 +58,7 @@ namespace kagome::runtime {
       common::Hash256 hash;
       std::shared_ptr<const common::Buffer> code;
       std::optional<primitives::Version> version;
-      MemoryLimits config;
+      RuntimeContext::ContextParams ctx_params;
     };
 
     outcome::result<Item> codeAt(const primitives::BlockInfo &block,
