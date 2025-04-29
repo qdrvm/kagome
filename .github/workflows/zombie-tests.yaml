@@ -38,7 +38,7 @@ on:
         type: 'string'
       runtime_package_version:
         description: '(In) Custom runtime package version'
-        default: '20250424-0.14.1-3fbf6c6'
+        default: '20250429-0.14.1-3fbf6c6'
         required: true
         type: 'string'
       run_amd64:
@@ -90,7 +90,7 @@ on:
         description: 'Custom Zombie Tester tag'
       runtime_package_version:
         type: string
-        default: '20250424-0.14.1-3fbf6c6'
+        default: '20250429-0.14.1-3fbf6c6'
         required: false
         description: 'Custom runtime package version'
       run_amd64:
@@ -124,7 +124,7 @@ env:
 
   BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || inputs.builder_latest_tag || '20250322' }} # Or 'latest'
   TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || inputs.zombie_tester_latest_tag || '20250323' }} # Or 'latest'
-  RUNTIME_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.runtime_package_version || inputs.runtime_package_version || '20250424-0.14.1-3fbf6c6' }}
+  RUNTIME_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.runtime_package_version || inputs.runtime_package_version || '20250429-0.14.1-3fbf6c6' }}
 
   CACHE_PATH: ./build_docker_ci/cache
   USE_CACHE: ${{ github.event.inputs.use_cache || inputs.use_cache || 'true' }}
