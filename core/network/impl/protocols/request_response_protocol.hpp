@@ -492,7 +492,18 @@ namespace kagome::network {
                       stream_and_proto.error(),
                       stream_init_duration);
               if (auto cb = qtils::optionTake(*cb_shared)) {
+                SL_INFO(self->base_.logger(),
+                        "newStream: on error optionTake success for peer {} "
+                        "stream_id: {}",
+                        peer_id,
+                        stream_id_);
                 (*cb)(stream_and_proto.as_failure());
+              } else {
+                SL_INFO(self->base_.logger(),
+                        "newStream: on error optionTake is nullopt for peer {} "
+                        "stream_id: {}",
+                        peer_id,
+                        stream_id_);
               }
               return;
             }
@@ -510,7 +521,18 @@ namespace kagome::network {
                     stream_id_,
                     stream_init_duration);
             if (auto cb = qtils::optionTake(*cb_shared)) {
+              SL_INFO(self->base_.logger(),
+                      "newStream: on success optionTake success for peer {} "
+                      "stream_id: {}",
+                      peer_id,
+                      stream_id_);
               (*cb)(std::move(stream));
+            } else {
+              SL_INFO(self->base_.logger(),
+                      "newStream: on success optionTake is nullopt for peer {} "
+                      "stream_id: {}",
+                      peer_id,
+                      stream_id_);
             }
           });
     }
