@@ -150,40 +150,23 @@ namespace kagome::storage {
                                       rocks_db,
                                       ttl_migrated_path,
                                       log));
-    } else {
-      if (not enable_migration) {
-        SL_ERROR(log,
-                 "Database migration is disabled, use older kagome version or "
-                 "run with --enable-db-migration flag");
-        return DatabaseError::IO_ERROR;
-      }
-
-      OUTCOME_TRY(migrateDatabase(options,
-                                  path,
-                                  column_family_descriptors,
-                                  ttls,
-                                  rocks_db,
-                                  ttl_migrated_path,
-                                  log));
+      return rocks_db;
     }
 
-    // Print size of each column family
-    SL_INFO(log, "RocksDB column family sizes:");
-    for (size_t i = 0; i < rocks_db->column_family_handles_.size(); i++) {
-      auto handle = rocks_db->column_family_handles_[i];
-      std::string size_str;
-      if (rocks_db->db_->GetProperty(
-              handle, "rocksdb.estimate-live-data-size", &size_str)) {
-        uint64_t size_bytes = std::stoull(size_str);
-        double size_mb = static_cast<double>(size_bytes) / (1024 * 1024);
-        SL_INFO(
-            log, "Column family '{}': {:.2f} MB", handle->GetName(), size_mb);
-      } else {
-        SL_WARN(
-            log, "Failed to get size of column family '{}'", handle->GetName());
-      }
+    if (not enable_migration) {
+      SL_ERROR(log,
+               "Database migration is disabled, use older kagome version or "
+               "run with --enable-db-migration flag");
+      return DatabaseError::IO_ERROR;
     }
 
+    OUTCOME_TRY(migrateDatabase(options,
+                                path,
+                                column_family_descriptors,
+                                ttls,
+                                rocks_db,
+                                ttl_migrated_path,
+                                log));
     return rocks_db;
   }
 
