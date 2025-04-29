@@ -337,10 +337,10 @@ namespace kagome::network {
         override {
       static std::atomic<uint64_t> stream_id = 0;
       const auto stream_id_ = stream_id.fetch_add(1);
-      SL_TRACE(base_.logger(),
-               "New outgoing stream with {} (stream_id: {})",
-               peer_id,
-               stream_id_);
+      SL_INFO(base_.logger(),
+              "New outgoing stream with {} (stream_id: {})",
+              peer_id,
+              stream_id_);
 
       auto cb_shared =
           std::make_shared<std::optional<std::decay_t<decltype(cb)>>>(cb);
@@ -460,10 +460,10 @@ namespace kagome::network {
           peer_id,
           base_.protocolIds(),
           [wptr{this->weak_from_this()},
+           wrapped_cb = std::move(cb),  // Use the wrapped cb here
            peer_id,
            stream_id_,
            stream_holder,
-           cb_shared,
            stream_init_time](
               libp2p::StreamAndProtocolOrError &&stream_and_proto) mutable {
             const auto stream_init_duration =
@@ -491,20 +491,9 @@ namespace kagome::network {
                       stream_id_,
                       stream_and_proto.error(),
                       stream_init_duration);
-              if (auto cb = qtils::optionTake(*cb_shared)) {
-                SL_INFO(self->base_.logger(),
-                        "newStream: on error optionTake success for peer {} "
-                        "stream_id: {}",
-                        peer_id,
-                        stream_id_);
-                (*cb)(stream_and_proto.as_failure());
-              } else {
-                SL_INFO(self->base_.logger(),
-                        "newStream: on error optionTake is nullopt for peer {} "
-                        "stream_id: {}",
-                        peer_id,
-                        stream_id_);
-              }
+
+              // Call the wrapped callback with the error
+              wrapped_cb(stream_and_proto.as_failure());
               return;
             }
 
@@ -520,20 +509,9 @@ namespace kagome::network {
                     peer_id,
                     stream_id_,
                     stream_init_duration);
-            if (auto cb = qtils::optionTake(*cb_shared)) {
-              SL_INFO(self->base_.logger(),
-                      "newStream: on success optionTake success for peer {} "
-                      "stream_id: {}",
-                      peer_id,
-                      stream_id_);
-              (*cb)(std::move(stream));
-            } else {
-              SL_INFO(self->base_.logger(),
-                      "newStream: on success optionTake is nullopt for peer {} "
-                      "stream_id: {}",
-                      peer_id,
-                      stream_id_);
-            }
+
+            // Call the wrapped callback with the success result
+            wrapped_cb(std::move(stream));
           });
     }
 
