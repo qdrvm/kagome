@@ -173,7 +173,7 @@ namespace kagome::network {
 
   void SynchronizerImpl::addPeerKnownBlockInfo(const BlockInfo &block_info,
                                                const PeerId &peer_id) {
-    if (state_sync_.has_value()) {
+    if (state_sync_flow_.has_value()) {
       return;
     }
     // If provided block is already enqueued, just remember peer
@@ -187,7 +187,7 @@ namespace kagome::network {
 
   void SynchronizerImpl::onBlockAnnounce(const BlockHeader &header,
                                          const PeerId &peer_id) {
-    if (state_sync_.has_value()) {
+    if (state_sync_flow_.has_value()) {
       return;
     }
     addHeader(peer_id, {.header = header});
@@ -254,11 +254,7 @@ namespace kagome::network {
   void SynchronizerImpl::syncState(const BlockInfo &block,
                                    SyncStateCb handler) {
     std::unique_lock lock{state_sync_mutex_};
-    if (state_sync_) {
-      return;
-    }
-    auto peer = peer_manager_->peerFinalized(block.number, nullptr);
-    if (not peer) {
+    if (state_sync_peer_.has_value()) {
       return;
     }
     auto _header = block_tree_->getBlockHeader(block.hash);
@@ -276,18 +272,24 @@ namespace kagome::network {
     if (not state_sync_flow_ or state_sync_flow_->blockInfo() != block) {
       state_sync_flow_.emplace(trie_node_db_, block, header);
     }
-    state_sync_.emplace(StateSync{
-        .peer = *peer,
-        .cb = std::move(handler),
-    });
-    SL_INFO(log_, "Sync of state for block {} has started", block);
+    state_sync_cb_.emplace(std::move(handler));
     syncState();
   }
 
   void SynchronizerImpl::syncState() {
+    if (not state_sync_peer_.has_value()) {
+      BlocksRequest::Fingerprint fingerprint = 0;
+      auto peer = chooseJustificationPeer(state_sync_flow_->blockInfo().number,
+                                          fingerprint);
+      if (not peer.has_value()) {
+        return;
+      }
+      state_sync_peer_ = peer;
+      scheduleRecentRequestRemoval(*peer, fingerprint);
+    }
     SL_TRACE(log_,
              "State sync request has sent to {} for block {}",
-             state_sync_->peer,
+             *state_sync_peer_,
              state_sync_flow_->blockInfo());
 
     auto request = state_sync_flow_->nextRequest();
@@ -301,19 +303,17 @@ namespace kagome::network {
         return;
       }
       std::unique_lock lock{self->state_sync_mutex_};
-      auto block = self->state_sync_flow_->blockInfo();
       auto ok = self->syncState(lock, std::move(_res));
       if (not ok) {
-        auto cb = std::move(self->state_sync_->cb);
         SL_WARN(self->log_, "State syncing failed with error: {}", ok.error());
-        self->state_sync_.reset();
+        self->state_sync_peer_.reset();
         lock.unlock();
-        self->syncState(block, std::move(cb));
+        self->syncState();
       }
     };
 
     protocol->request(
-        state_sync_->peer, std::move(request), std::move(response_handler));
+        *state_sync_peer_, std::move(request), std::move(response_handler));
   }
 
   outcome::result<void> SynchronizerImpl::syncState(
@@ -334,8 +334,8 @@ namespace kagome::network {
     chain_sub_engine_->notify(primitives::events::ChainEventType::kNewRuntime,
                               block.hash);
 
-    auto cb = std::move(state_sync_->cb);
-    state_sync_.reset();
+    auto cb = qtils::optionTake(state_sync_cb_).value();
+    state_sync_flow_.reset();
 
     // State syncing has completed; Switch to the full syncing
     afterStateSync();
@@ -345,7 +345,7 @@ namespace kagome::network {
   }
 
   void SynchronizerImpl::applyNextBlock() {
-    if (state_sync_.has_value()) {
+    if (state_sync_flow_.has_value()) {
       // Skip block application during state synchronization
       return;
     }
@@ -465,6 +465,12 @@ namespace kagome::network {
         [wp{weak_from_this()}, peer_id, fingerprint] {
           if (auto self = wp.lock()) {
             self->recent_requests_.erase(std::tuple(peer_id, fingerprint));
+            std::unique_lock lock{self->state_sync_mutex_};
+            if (self->state_sync_flow_.has_value()
+                and not self->state_sync_peer_.has_value()) {
+              lock.unlock();
+              self->syncState();
+            }
           }
         },
         kRecentnessDuration);
