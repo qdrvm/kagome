@@ -120,11 +120,7 @@ namespace kagome::network {
         lost.notLost();
         timer.reset();
         IF_WEAK_LOCK(self) {
-          if (r) {
-            self->metrics_.success_->inc();
-          } else {
-            self->metrics_.failure_->inc();
-          }
+          (r ? self->metrics_.success_ : self->metrics_.failure_)->inc();
           if (auto cb = qtils::optionTake(*cb_shared)) {
             (*cb)(std::move(r));
           }
@@ -280,7 +276,7 @@ namespace kagome::network {
           peer_id,
           base_.protocolIds(),
           [wptr{this->weak_from_this()},
-           wrapped_cb = std::move(cb),  // Use the wrapped cb here
+           wrapped_cb = std::move(cb),
            peer_id,
            stream_holder](
               libp2p::StreamAndProtocolOrError &&stream_and_proto) mutable {
@@ -290,7 +286,6 @@ namespace kagome::network {
             }
 
             if (!stream_and_proto.has_value()) {
-              // Call the wrapped callback with the error
               wrapped_cb(stream_and_proto.as_failure());
               return;
             }
@@ -300,8 +295,11 @@ namespace kagome::network {
 
             // Store the established stream in the shared holder
             *stream_holder = stream;
+            SL_DEBUG(self->base_.logger(),
+                     "Established connection over {} stream with {}",
+                     self->protocolName(),
+                     peer_id);
 
-            // Call the wrapped callback with the success result
             wrapped_cb(std::move(stream));
           });
     }
