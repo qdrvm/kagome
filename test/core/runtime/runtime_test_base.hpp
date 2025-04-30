@@ -24,6 +24,7 @@
 #include "crypto/sr25519/sr25519_provider_impl.hpp"
 #include "filesystem/common.hpp"
 #include "host_api/impl/host_api_factory_impl.hpp"
+#include "mock/core/api/service/state/state_api_mock.hpp"
 #include "mock/core/application/app_configuration_mock.hpp"
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
@@ -49,9 +50,9 @@
 #include "runtime/runtime_context.hpp"
 #include "runtime/wabt/instrument.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/runtime/common/basic_code_provider.hpp"
-
 using kagome::application::AppConfigurationMock;
 using kagome::runtime::RuntimeInstancesPoolImpl;
 using testing::_;
@@ -123,6 +124,7 @@ class RuntimeTestBaseImpl {
     offchain_worker_pool_ =
         std::make_shared<offchain::OffchainWorkerPoolMock>();
 
+    auto state_api_mock = std::make_shared<api::StateApiMock>();
     host_api_factory_ = std::make_shared<host_api::HostApiFactoryImpl>(
         kagome::host_api::OffchainExtensionConfig{},
         ecdsa_provider,
@@ -134,7 +136,8 @@ class RuntimeTestBaseImpl {
         hasher_,
         key_store,
         offchain_storage_,
-        offchain_worker_pool_);
+        offchain_worker_pool_,
+        testutil::sptr_to_lazy<api::StateApi>(state_api_mock));
 
     block_tree_ =
         std::make_shared<testing::NiceMock<blockchain::BlockTreeMock>>();
