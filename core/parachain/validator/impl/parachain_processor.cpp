@@ -63,6 +63,12 @@ namespace {
   constexpr auto parachain_inherent_data_extrinsic_version = 0x04;
   constexpr auto parachain_inherent_data_call = 0x36;
   constexpr auto parachain_inherent_data_module = 0x00;
+
+  // Version 5 extrinsic constants - RFC-0124
+  // Bit format: 0bSSSSVVVV where SSSS is the signed bit and VVVV is the version
+  constexpr uint8_t v5_bare_extrinsic = 0b00000101;  // 5 decimal - Bare format
+  constexpr uint8_t v5_general_extrinsic =
+      0b01000101;  // 69 decimal - General format
 }  // namespace
 
 namespace kagome::parachain {
@@ -2790,7 +2796,9 @@ namespace kagome::parachain {
     }
 
     // Handle cases where validation data is not found
-    std::optional<std::reference_wrapper<runtime::PersistedValidationData>> pvd;
+    std::optional<
+        std::reference_wrapper<const runtime::PersistedValidationData>>
+        pvd;
     if (maybe_pvd) {
       pvd = *maybe_pvd;
     } else if (!maybe_pvd && !maybe_parent_head && maybe_parent_head_hash) {
@@ -3498,26 +3506,164 @@ namespace kagome::parachain {
   ParachainProcessorImpl::extractParachainInherentData(
       const std::vector<primitives::Extrinsic> &block_body) const {
     for (const auto &extrinsic : block_body) {
-      if (extrinsic.data.size() < 3
-          || extrinsic.data[0] != parachain_inherent_data_extrinsic_version
-          || extrinsic.data[1] != parachain_inherent_data_call
-          || extrinsic.data[2] != parachain_inherent_data_module) {
+      // Version 4 extrinsic format check
+      if (extrinsic.data.size() >= 3
+          && extrinsic.data[0] == parachain_inherent_data_extrinsic_version
+          && extrinsic.data[1] == parachain_inherent_data_call
+          && extrinsic.data[2] == parachain_inherent_data_module) {
+        std::span<const uint8_t> buffer(&extrinsic.data[3],
+                                        extrinsic.data.size() - 3);
+        auto decode_res =
+            scale::decode<parachain::ParachainInherentData>(buffer);
+
+        if (decode_res) {
+          SL_TRACE(
+              logger_,
+              "Successfully decoded ParachainInherentData from v4 extrinsic");
+          return decode_res.value();
+        }
+
+        SL_DEBUG(logger_,
+                 "Failed to decode ParachainInherentData from v4 extrinsic: {}",
+                 decode_res.error());
         continue;
       }
 
-      std::span<const uint8_t> buffer(&extrinsic.data[3],
-                                      extrinsic.data.size() - 3);
-      auto decode_res = scale::decode<parachain::ParachainInherentData>(buffer);
-
-      if (decode_res) {
-        return decode_res.value();
+      // Version 5 extrinsic format check
+      if (extrinsic.data.empty()) {
+        continue;
       }
 
-      SL_DEBUG(logger_,
-               "Failed to decode ParachainInherentData: {}",
-               decode_res.error());
+      // For version 5, we'll manually parse the byte stream
+      try {
+        // Manually parse the extrinsic for version 5
+        // First byte should be the length prefix in SCALE compact format
+        // We need to skip the length prefix to get to the version byte
+
+        const auto &data = extrinsic.data;
+        size_t pos = 0;
+
+        // Skip the SCALE compact-encoded length prefix
+        // The first two bits of the first byte determine the mode:
+        // 0b00: single byte
+        // 0b01: two bytes
+        // 0b10: four bytes
+        // 0b11: variable length (complex case)
+        if (pos >= data.size()) {
+          continue;
+        }
+
+        uint8_t mode = data[pos] & 0b11;
+        if (mode == 0b00) {
+          // Single byte mode
+          pos += 1;
+        } else if (mode == 0b01) {
+          // Two byte mode
+          pos += 2;
+        } else if (mode == 0b10) {
+          // Four byte mode
+          pos += 4;
+        } else {
+          // Complex variable length mode, skip this extrinsic
+          continue;
+        }
+
+        // Make sure we have at least one more byte for the version
+        if (pos >= data.size()) {
+          continue;
+        }
+
+        // Check for version 5 extrinsic format
+        uint8_t version_byte = data[pos];
+        bool is_v5_extrinsic = false;
+
+        // Check for version 5 extrinsic - bare format (0b00000101)
+        if (version_byte == v5_bare_extrinsic) {
+          SL_TRACE(logger_, "Found v5 bare extrinsic");
+          is_v5_extrinsic = true;
+          pos += 1;  // Skip version byte
+
+          // For bare extrinsics, the next bytes should be the call directly
+        }
+        // Check for version 5 extrinsic - general format (0b01000101)
+        else if (version_byte == v5_general_extrinsic) {
+          SL_TRACE(logger_, "Found v5 general extrinsic");
+          is_v5_extrinsic = true;
+          pos += 1;  // Skip version byte
+
+          // Next byte is the extension version
+          if (pos >= data.size()) {
+            SL_DEBUG(logger_, "Not enough data for extension version byte");
+            continue;
+          }
+
+          uint8_t extension_version = data[pos];
+          SL_TRACE(logger_, "Extension version: {}", extension_version);
+          pos += 1;  // Skip extension version byte
+
+          // Now we need to skip over the extensions
+          // Since we don't know the exact structure of extensions,
+          // we'll search for the parachain module/call identifiers
+        }
+
+        if (is_v5_extrinsic) {
+          // Search for parachain inherent data in the remaining bytes
+          bool found_valid_parachain_data = false;
+
+          for (size_t i = pos; i < data.size() - 1; ++i) {
+            if (data[i] == parachain_inherent_data_call
+                && data[i + 1] == parachain_inherent_data_module) {
+              // Found the call identifiers, move past them
+              size_t data_pos = i + 2;
+
+              if (data_pos >= data.size()) {
+                break;
+              }
+
+              // Create a span of the remaining bytes and attempt to decode
+              std::span<const uint8_t> buffer(&data[data_pos],
+                                              data.size() - data_pos);
+              auto decode_res =
+                  scale::decode<parachain::ParachainInherentData>(buffer);
+
+              if (decode_res) {
+                // Additional verification that this is actually a parachain
+                // inherent data
+                if (!decode_res.value().bitfields.empty()
+                    || !decode_res.value().backed_candidates.empty()
+                    || !decode_res.value().disputes.empty()) {
+                  found_valid_parachain_data = true;
+                  SL_TRACE(logger_,
+                           "Successfully decoded ParachainInherentData "
+                           "from v5 extrinsic at position {}",
+                           i);
+                  return decode_res.value();
+                } else {
+                  SL_DEBUG(logger_,
+                           "Decoded data doesn't appear to be valid "
+                           "ParachainInherentData");
+                }
+              } else {
+                SL_DEBUG(logger_,
+                         "Found call identifiers but failed to decode "
+                         "ParachainInherentData: {}",
+                         decode_res.error());
+              }
+            }
+          }
+
+          if (!found_valid_parachain_data) {
+            SL_DEBUG(logger_,
+                     "Could not find valid parachain call identifiers in "
+                     "v5 extrinsic");
+          }
+        }
+      } catch (const std::exception &e) {
+        SL_DEBUG(logger_, "Exception while parsing extrinsic: {}", e.what());
+      }
     }
 
+    SL_DEBUG(logger_, "No ParachainInherentData found in any extrinsic");
     return std::nullopt;
   }
 
