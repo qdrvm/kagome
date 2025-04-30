@@ -8,6 +8,7 @@
 
 #include <libp2p/common/final_action.hpp>
 
+#include "application/app_configuration.hpp"
 #include "blockchain/block_tree.hpp"
 #include "offchain/offchain_worker_factory.hpp"
 #include "offchain/offchain_worker_pool.hpp"
@@ -21,6 +22,7 @@ namespace kagome::parachain {
   constexpr size_t kSessions = 3;
 
   PvfPrecheck::PvfPrecheck(
+      std::shared_ptr<application::AppConfiguration> app_config,
       std::shared_ptr<crypto::Hasher> hasher,
       std::shared_ptr<blockchain::BlockTree> block_tree,
       std::shared_ptr<ValidatorSignerFactory> signer_factory,
@@ -40,7 +42,8 @@ namespace kagome::parachain {
         offchain_worker_factory_{std::move(offchain_worker_factory)},
         offchain_worker_pool_{std::move(offchain_worker_pool)},
         chain_sub_{std::move(chain_sub_engine)},
-        pvf_thread_handler_{pvf_thread_pool.handlerManual()} {
+        pvf_thread_handler_{pvf_thread_pool.handlerManual()},
+        opt_level_{app_config->pvfOptimizationLevel()} {
     BOOST_ASSERT(hasher_ != nullptr);
     BOOST_ASSERT(block_tree_ != nullptr);
     BOOST_ASSERT(signer_factory_ != nullptr);
@@ -101,7 +104,8 @@ namespace kagome::parachain {
         }
         auto &code_zstd = *code_zstd_res.value();
         auto res = [&]() -> outcome::result<void> {
-          OUTCOME_TRY(config, sessionParams(*parachain_api_, block.hash));
+          OUTCOME_TRY(config,
+                      sessionParams(*parachain_api_, block.hash, opt_level_));
           OUTCOME_TRY(pvf_pool_->precompile(
               code_hash, code_zstd, config.context_params));
           return outcome::success();

@@ -3,7 +3,6 @@
     "configurePresets": [
         {
             "name": "base",
-            "toolchainFile": "${sourceDir}/cmake/toolchain/clang-19_cxx20.cmake",
             "generator": "Ninja",
             "hidden": true
         },

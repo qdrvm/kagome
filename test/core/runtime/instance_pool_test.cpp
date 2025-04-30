@@ -84,7 +84,9 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
   for (int i = 0; i < THREAD_NUM; i++) {
     threads.emplace_back([&pool, &code, i]() {
       ASSERT_OUTCOME_SUCCESS(pool->instantiateFromCode(
-          make_code_hash(i % POOL_SIZE), [&] { return code; }, {}));
+          make_code_hash(i % POOL_SIZE),
+          [&] { return code; },
+          RuntimeContext::ContextParams{{}, {}, {}}));
     });
   }
 
@@ -99,6 +101,6 @@ TEST(InstancePoolTest, HeavilyMultithreadedCompilation) {
     ASSERT_OUTCOME_SUCCESS(pool->instantiateFromCode(
         make_code_hash(i),
         []() -> decltype(code) { throw std::logic_error{"already compiled"}; },
-        {}));
+        RuntimeContext::ContextParams{{}, {}, {}}));
   }
 }

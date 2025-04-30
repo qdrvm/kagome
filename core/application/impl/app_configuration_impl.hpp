@@ -253,6 +253,10 @@ namespace kagome::application {
       return max_parallel_downloads_;
     }
 
+    runtime::OptimizationLevel pvfOptimizationLevel() const override {
+      return pvf_optimization_level_;
+    }
+
    private:
     void parse_general_segment(const rapidjson::Value &val);
     void parse_blockchain_segment(const rapidjson::Value &val);
@@ -394,6 +398,8 @@ namespace kagome::application {
     bool use_pvf_subprocess_{true};
     size_t pvf_max_workers_{
         std::max<size_t>(std::thread::hardware_concurrency(), 1)};
+    runtime::OptimizationLevel pvf_optimization_level_{
+        runtime::OptimizationLevel::O2};
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
     std::optional<std::string> validator_address_ss58_;

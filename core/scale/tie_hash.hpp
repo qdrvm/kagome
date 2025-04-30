@@ -35,10 +35,10 @@ namespace scale {
     return ::scale::tieHash(v);           \
   }
 
-#define SCALE_TIE_HASH_STD(type)                    \
-  template <>                                       \
-  struct std::hash<type> {                          \
-    inline size_t operator()(const type &v) const { \
-      return ::scale::tieHash(v);                   \
-    }                                               \
+#define SCALE_TIE_HASH_STD(type)             \
+  template <>                                \
+  struct std::hash<type> {                   \
+    size_t operator()(const type &v) const { \
+      return ::scale::tieHash(v);            \
+    }                                        \
   }

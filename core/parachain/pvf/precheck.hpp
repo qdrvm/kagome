@@ -14,6 +14,7 @@
 #include "parachain/validator/signer.hpp"
 #include "primitives/event_types.hpp"
 #include "runtime/runtime_api/parachain_host.hpp"
+#include "runtime/runtime_context.hpp"
 
 namespace kagome {
   class PoolHandler;
@@ -56,6 +57,7 @@ namespace kagome::parachain {
                       public std::enable_shared_from_this<PvfPrecheck> {
    public:
     PvfPrecheck(
+        std::shared_ptr<application::AppConfiguration> app_config,
         std::shared_ptr<crypto::Hasher> hasher,
         std::shared_ptr<blockchain::BlockTree> block_tree,
         std::shared_ptr<ValidatorSignerFactory> signer_factory,
@@ -89,5 +91,6 @@ namespace kagome::parachain {
         session_code_accept_;
     std::shared_ptr<PoolHandler> pvf_thread_handler_;
     log::Logger logger_ = log::createLogger("PvfPrecheck", "parachain");
+    runtime::OptimizationLevel opt_level_;
   };
 }  // namespace kagome::parachain
