@@ -106,9 +106,9 @@ namespace kagome::network {
             }
             IF_WEAK_LOCK(self) {
               self->metrics_.timeout_->inc();
-              if (auto cb = qtils::optionTake(*cb_shared)) {
-                (*cb)(outcome::failure(ProtocolError::TIMEOUT));
-              }
+            }
+            if (auto cb = qtils::optionTake(*cb_shared)) {
+              (*cb)(outcome::failure(ProtocolError::TIMEOUT));
             }
           },
           self->timeout_);
@@ -121,9 +121,9 @@ namespace kagome::network {
         timer.reset();
         IF_WEAK_LOCK(self) {
           (r ? self->metrics_.success_ : self->metrics_.failure_)->inc();
-          if (auto cb = qtils::optionTake(*cb_shared)) {
-            (*cb)(std::move(r));
-          }
+        }
+        if (auto cb = qtils::optionTake(*cb_shared)) {
+          (*cb)(std::move(r));
         }
       }};
     }
@@ -247,9 +247,9 @@ namespace kagome::network {
               if (stream_holder->has_value()) {
                 (*stream_holder)->reset();
               }
-              if (auto cb = qtils::optionTake(*cb_shared)) {
-                (*cb)(outcome::failure(ProtocolError::TIMEOUT));
-              }
+            }
+            if (auto cb = qtils::optionTake(*cb_shared)) {
+              (*cb)(outcome::failure(ProtocolError::TIMEOUT));
             }
           },
           timeout_);
@@ -265,9 +265,9 @@ namespace kagome::network {
           if (not r) {
             self->metrics_.failure_->inc();
           }
-          if (auto cb = qtils::optionTake(*cb_shared)) {
-            (*cb)(std::move(r));
-          }
+        }
+        if (auto cb = qtils::optionTake(*cb_shared)) {
+          (*cb)(std::move(r));
         }
       }};
 
@@ -282,6 +282,7 @@ namespace kagome::network {
               libp2p::StreamAndProtocolOrError &&stream_and_proto) mutable {
             auto self = wptr.lock();
             if (!self) {
+              wrapped_cb(outcome::failure(ProtocolError::GONE));
               return;
             }
 
