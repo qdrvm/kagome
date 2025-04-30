@@ -61,7 +61,7 @@ namespace kagome::storage {
      * Not exposed at SpacedStorage level as only used in pruner.
      * @param space - storage space identifier to clear
      */
-     outcome::result<void> dropColumn(Space space);
+    outcome::result<void> dropColumn(Space space);
 
     /**
      * Prepare configuration structure
@@ -124,7 +124,8 @@ namespace kagome::storage {
 
     rocksdb::DBWithTTL *db_{};
     std::vector<ColumnFamilyHandlePtr> column_family_handles_;
-    boost::container::flat_map<Space, std::shared_ptr<class RocksDbSpace>> spaces_;
+    boost::container::flat_map<Space, std::shared_ptr<class RocksDbSpace>>
+        spaces_;
     rocksdb::ReadOptions ro_;
     rocksdb::WriteOptions wo_;
     log::Logger logger_;

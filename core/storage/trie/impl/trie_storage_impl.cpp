@@ -82,7 +82,8 @@ namespace kagome::storage::trie {
     SL_DEBUG(logger_,
              "Initialize persistent trie batch with root: {} at an old state "
              "(direct storage is disabled, the latest state is {})",
-             root, last_hash);
+             root,
+             last_hash);
     return std::make_unique<PersistentTrieBatchImpl>(
         codec_, serializer_, changes_tracker, std::move(trie), state_pruner_);
   }
@@ -107,7 +108,8 @@ namespace kagome::storage::trie {
     SL_DEBUG(logger_,
              "Initialize ephemeral trie batch with root: {} at an old state "
              "(direct storage is disabled, the latest state is {})",
-             root, last_hash);
+             root,
+             last_hash);
     return std::make_unique<EphemeralTrieBatchImpl>(
         codec_, std::move(trie), serializer_, nullptr);
   }

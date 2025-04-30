@@ -16,7 +16,8 @@ namespace kagome {
 
   /// Convert ":heappages" from state trie to `HeapAllocStrategy`.
   inline outcome::result<std::optional<HeapAllocStrategy>>
-  heapAllocStrategyHeappages(const storage::face::Readable<Buffer, Buffer> &trie) {
+  heapAllocStrategyHeappages(
+      const storage::face::Readable<Buffer, Buffer> &trie) {
     OUTCOME_TRY(raw, trie.tryGet(storage::kRuntimeHeappagesKey));
     if (raw) {
       if (auto r = scale::decode<uint64_t>(*raw)) {

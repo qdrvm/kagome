@@ -23,7 +23,7 @@ namespace kagome::storage::trie {
     TrieBatchBase(std::shared_ptr<Codec> codec,
                   std::shared_ptr<TrieSerializer> serializer,
                   std::shared_ptr<PolkadotTrie> trie);
-                  
+
     struct Fresh {};
     TrieBatchBase(std::shared_ptr<Codec> codec,
                   std::shared_ptr<TrieSerializer> serializer,

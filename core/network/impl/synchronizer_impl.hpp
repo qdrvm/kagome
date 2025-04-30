@@ -66,7 +66,7 @@ namespace kagome::network {
 namespace kagome::storage {
   class SpacedStorage;
   class RocksDbSpace;
-}
+}  // namespace kagome::storage
 
 namespace kagome::storage::trie {
   class TrieSerializer;

@@ -26,8 +26,9 @@ namespace kagome::injector {
       storage::trie::TrieSerializer &trie_serializer,
       storage::BufferStorage &direct_trie_storage,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_cache) {
-    auto trie_from = [&direct_trie_storage](BufferView prefix,
-                        const application::GenesisRawData &kv)
+    auto trie_from = [&direct_trie_storage](
+                         BufferView prefix,
+                         const application::GenesisRawData &kv)
         -> outcome::result<std::shared_ptr<storage::trie::PolkadotTrieImpl>> {
       auto trie = storage::trie::PolkadotTrieImpl::createEmpty();
       for (const auto &[key, val] : kv) {
