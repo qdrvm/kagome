@@ -126,6 +126,7 @@ namespace kagome::network {
         beefy_{std::move(beefy)},
         grandpa_environment_{std::move(grandpa_environment)},
         chain_sub_engine_(std::move(chain_sub_engine)),
+        on_finalized_{chain_sub_engine_},
         main_pool_handler_{
             poolHandlerReadyMake(app_state_manager, main_thread_pool)},
         block_storage_{std::move(block_storage)},
@@ -160,6 +161,10 @@ namespace kagome::network {
   bool SynchronizerImpl::start() {
     randomWarp();
     setHangTimer();
+    on_finalized_.onFinalize([WEAK_SELF] {
+      WEAK_LOCK(self);
+      self->updateRoots();
+    });
     return true;
   }
   void SynchronizerImpl::stop() {

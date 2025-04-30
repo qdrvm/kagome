@@ -361,6 +361,7 @@ namespace kagome::network {
     std::shared_ptr<Beefy> beefy_;
     std::shared_ptr<consensus::grandpa::Environment> grandpa_environment_;
     primitives::events::ChainSubscriptionEnginePtr chain_sub_engine_;
+    primitives::events::ChainSub on_finalized_;
     std::shared_ptr<PoolHandlerReady> main_pool_handler_;
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
     uint32_t max_parallel_downloads_;
