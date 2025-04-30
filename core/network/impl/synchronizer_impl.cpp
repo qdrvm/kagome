@@ -1006,7 +1006,7 @@ namespace kagome::network {
 
           // Check if peer has newer blocks and isn't already busy with another
           // request Also avoid duplicate requests to the same peer
-          if (state.best_block.number >= max_attached
+          if (state.best_block.number > max_attached
               and not busy_peers_.contains(peer_id)
               and not recent_requests_.contains(
                   {peer_id, request.fingerprint()})) {

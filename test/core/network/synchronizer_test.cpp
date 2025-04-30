@@ -461,13 +461,15 @@ TEST_F(SynchronizerTest, Range) {
   auto block_1 = makeBlock(genesis_);
   auto block_2 = makeBlock(block_1);
 
-  auto reply_range_1 = expectRangeRequest(0);
+  auto reply_range_0 = expectRangeRequest(0);
   peer_best_ = block_2.number;
   synchronizer->addPeerKnownBlockInfo(block_2.blockInfo(), peer_id);
 
   auto reply_body = expectBodyRequest(block_1);
-  reply_range_1({genesis_, block_1});
+  reply_range_0({genesis_, block_1});
 
-  expectRangeRequest(1);
+  auto reply_range_1 = expectRangeRequest(1);
   reply_body({});
+
+  reply_range_1({block_1, block_2});
 }
