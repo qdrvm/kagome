@@ -929,16 +929,14 @@ namespace kagome::network {
                          std::move(request),
                          fetching_body_count_,
                          "body");
-
-              // Skip the subtree after requesting a body - we want to process
-              // this block and its ancestors fully before moving on to its
-              // descendants
-              return VisitAncestryResult::IGNORE_SUBTREE;
             }
+            // Skip the subtree after requesting a body - we want to process
+            // this block and its ancestors fully before moving on to its
+            // descendants
+            return VisitAncestryResult::IGNORE_SUBTREE;
           }
 
-          // Continue traversal for blocks that already have bodies or couldn't
-          // be requested
+          // Continue traversal for blocks that already have bodies
           return VisitAncestryResult::CONTINUE;
         });
       }
