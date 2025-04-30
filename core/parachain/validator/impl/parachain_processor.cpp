@@ -3529,8 +3529,10 @@ namespace kagome::parachain {
         continue;
       }
 
+      const auto &data = extrinsic.data;
+
       // Version 5 extrinsic format check
-      if (extrinsic.data.empty()) {
+      if (data.empty()) {
         continue;
       }
 
@@ -3540,7 +3542,6 @@ namespace kagome::parachain {
         // First byte should be the length prefix in SCALE compact format
         // We need to skip the length prefix to get to the version byte
 
-        const auto &data = extrinsic.data;
         size_t pos = 0;
 
         // Skip the SCALE compact-encoded length prefix
@@ -3549,27 +3550,29 @@ namespace kagome::parachain {
         // 0b01: two bytes
         // 0b10: four bytes
         // 0b11: variable length (complex case)
-        if (pos >= data.size()) {
-          continue;
-        }
 
         uint8_t mode = data[pos] & 0b11;
         if (mode == 0b00) {
+          SL_TRACE(logger_, "Single byte mode");
           // Single byte mode
           pos += 1;
         } else if (mode == 0b01) {
+          SL_TRACE(logger_, "Two byte mode");
           // Two byte mode
           pos += 2;
         } else if (mode == 0b10) {
+          SL_TRACE(logger_, "Four byte mode");
           // Four byte mode
           pos += 4;
         } else {
+          SL_TRACE(logger_, "Complex variable length mode");
           // Complex variable length mode, skip this extrinsic
           continue;
         }
 
         // Make sure we have at least one more byte for the version
         if (pos >= data.size()) {
+          SL_DEBUG(logger_, "Not enough data for version byte");
           continue;
         }
 
@@ -3577,6 +3580,7 @@ namespace kagome::parachain {
         uint8_t version_byte = data[pos];
         bool is_v5_extrinsic = false;
 
+        SL_TRACE(logger_, "Version byte: {}", version_byte);
         // Check for version 5 extrinsic - bare format (0b00000101)
         if (version_byte == v5_bare_extrinsic) {
           SL_TRACE(logger_, "Found v5 bare extrinsic");
@@ -3617,6 +3621,8 @@ namespace kagome::parachain {
               size_t data_pos = i + 2;
 
               if (data_pos >= data.size()) {
+                SL_DEBUG(logger_,
+                         "Not enough data for parachain inherent data");
                 break;
               }
 
