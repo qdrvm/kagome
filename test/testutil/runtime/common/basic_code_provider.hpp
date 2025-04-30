@@ -15,6 +15,8 @@ namespace kagome::runtime {
     explicit BasicCodeProvider(std::string_view path);
 
     Result getCodeAt(const storage::trie::RootHash &state) const override;
+    Result getPendingCodeAt(
+        const storage::trie::RootHash &state) const override;
 
    private:
     void initialize(std::string_view path);

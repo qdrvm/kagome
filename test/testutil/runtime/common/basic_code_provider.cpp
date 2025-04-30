@@ -18,6 +18,11 @@ namespace kagome::runtime {
     return buffer_;
   }
 
+  RuntimeCodeProvider::Result BasicCodeProvider::getPendingCodeAt(
+      const storage::trie::RootHash &at) const {
+    return outcome::success(nullptr);
+  }
+
   void BasicCodeProvider::initialize(std::string_view path) {
     common::Buffer code;
     if (not readFile(code, std::string{path})) {
