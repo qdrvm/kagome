@@ -23,6 +23,13 @@ namespace kagome::storage::trie {
     TrieBatchBase(std::shared_ptr<Codec> codec,
                   std::shared_ptr<TrieSerializer> serializer,
                   std::shared_ptr<PolkadotTrie> trie);
+                  
+    struct Fresh {};
+    TrieBatchBase(std::shared_ptr<Codec> codec,
+                  std::shared_ptr<TrieSerializer> serializer,
+                  std::shared_ptr<PolkadotTrie> trie,
+                  std::shared_ptr<BufferStorage> direct_kv_storage,
+                  Fresh);
 
     TrieBatchBase(const TrieBatchBase &) = delete;
     TrieBatchBase(TrieBatchBase &&) noexcept = default;
@@ -52,6 +59,11 @@ namespace kagome::storage::trie {
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
     std::shared_ptr<PolkadotTrie> trie_;
+    struct DirectStorage {
+      std::shared_ptr<BufferStorage> storage;
+      std::unordered_map<Buffer, std::optional<Buffer>> batch;
+    };
+    std::optional<DirectStorage> direct_kv_;
 
    private:
     std::unordered_map<common::Buffer, std::shared_ptr<TrieBatchBase>>

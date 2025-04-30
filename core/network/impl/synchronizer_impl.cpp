@@ -26,6 +26,7 @@
 #include "network/warp/protocol.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -112,7 +113,8 @@ namespace kagome::network {
       std::shared_ptr<Beefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
       common::MainThreadPool &main_thread_pool,
-      std::shared_ptr<blockchain::BlockStorage> block_storage)
+      std::shared_ptr<blockchain::BlockStorage> block_storage,
+      std::shared_ptr<storage::SpacedStorage> db)
       : log_(log::createLogger("Synchronizer", "synchronizer")),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
@@ -132,7 +134,10 @@ namespace kagome::network {
             poolHandlerReadyMake(app_state_manager, main_thread_pool)},
         block_storage_{std::move(block_storage)},
         max_parallel_downloads_{app_config.maxParallelDownloads()},
-        random_gen_{std::random_device{}()} {
+        random_gen_{std::random_device{}()},
+        trie_direct_storage_{
+            reinterpret_cast<storage::RocksDb &>(*db).getRocksSpace(
+                storage::Space::kTrieDirectKV)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);
@@ -145,6 +150,7 @@ namespace kagome::network {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(block_storage_);
+    BOOST_ASSERT(trie_direct_storage_);
 
     sync_method_ = app_config.syncMethod();
 
@@ -959,6 +965,21 @@ namespace kagome::network {
         state_sync_->peer, std::move(request), std::move(response_handler));
   }
 
+  outcome::result<void> updateDirectStorage(
+      const storage::trie::RootHash &root,
+      storage::trie::TrieBatch &trie,
+      storage::RocksDbSpace &direct_storage) {
+    OUTCOME_TRY(direct_storage.clear());
+    auto batch = direct_storage.batch();
+    for (auto cursor = trie.trieCursor(); cursor->isValid();) {
+      OUTCOME_TRY(batch->put(cursor->key().value(), cursor->value().value()));
+      OUTCOME_TRY(cursor->next());
+    }
+    OUTCOME_TRY(batch->put(storage::trie::kLastCommittedHashKey, root));
+    OUTCOME_TRY(batch->commit());
+    return outcome::success();
+  }
+
   outcome::result<void> SynchronizerImpl::syncState(
       std::unique_lock<std::mutex> &lock,
       outcome::result<StateResponse> &&_res) {
@@ -971,6 +992,9 @@ namespace kagome::network {
     }
     OUTCOME_TRY(trie_pruner_->addNewState(state_sync_flow_->root(),
                                           storage::trie::StateVersion::V0));
+    OUTCOME_TRY(trie, storage_->getEphemeralBatchAt(state_sync_flow_->root()));
+    OUTCOME_TRY(updateDirectStorage(
+        state_sync_flow_->root(), *trie, *trie_direct_storage_));
     auto block = state_sync_flow_->blockInfo();
     state_sync_flow_.reset();
     SL_INFO(log_, "State syncing block {} has finished.", block);
@@ -1674,7 +1698,7 @@ namespace kagome::network {
     };
     fetch(peer_id, std::move(request), "unsafe", std::move(cb2));
   }
-  
+
   void SynchronizerImpl::setHangTimer() {
     hang_timer_ = scheduler_->scheduleWithHandle(
         [WEAK_SELF] {

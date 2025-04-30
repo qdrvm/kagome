@@ -10,6 +10,7 @@
 
 #include "log/logger.hpp"
 #include "primitives/event_types.hpp"
+#include "storage/spaced_storage.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_factory.hpp"
 #include "storage/trie/serialization/codec.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
@@ -26,12 +27,14 @@ namespace kagome::storage::trie {
         const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+        std::shared_ptr<BufferStorage> direct_kv);
 
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createFromStorage(
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+        std::shared_ptr<BufferStorage> direct_kv);
 
     TrieStorageImpl(const TrieStorageImpl &) = delete;
     void operator=(const TrieStorageImpl &) = delete;
@@ -52,12 +55,16 @@ namespace kagome::storage::trie {
     TrieStorageImpl(
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
-        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+        std::shared_ptr<BufferStorage> direct_kv);
 
    private:
+    outcome::result<RootHash> getLastCommittedHash() const;
+
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
     std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
+    std::shared_ptr<BufferStorage> direct_kv_;
     log::Logger logger_;
   };
 

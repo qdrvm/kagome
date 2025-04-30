@@ -19,44 +19,70 @@ namespace kagome::storage::trie {
       const std::shared_ptr<PolkadotTrieFactory> &trie_factory,
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
-      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner) {
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+      std::shared_ptr<BufferStorage> direct_kv) {
     // will never be used, so content of the callback doesn't matter
     auto empty_trie = trie_factory->createEmpty();
     // ensure retrieval of empty trie succeeds
     OUTCOME_TRY(serializer->storeTrie(*empty_trie, StateVersion::V0));
-    return std::unique_ptr<TrieStorageImpl>(new TrieStorageImpl(
-        std::move(codec), std::move(serializer), std::move(state_pruner)));
+    return std::unique_ptr<TrieStorageImpl>(
+        new TrieStorageImpl(std::move(codec),
+                            std::move(serializer),
+                            std::move(state_pruner),
+                            std::move(direct_kv)));
   }
 
   outcome::result<std::unique_ptr<TrieStorageImpl>>
   TrieStorageImpl::createFromStorage(
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
-      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner) {
-    return std::unique_ptr<TrieStorageImpl>(new TrieStorageImpl(
-        std::move(codec), std::move(serializer), std::move(state_pruner)));
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+      std::shared_ptr<BufferStorage> direct_kv) {
+    return std::unique_ptr<TrieStorageImpl>(
+        new TrieStorageImpl(std::move(codec),
+                            std::move(serializer),
+                            std::move(state_pruner),
+                            std::move(direct_kv)));
   }
 
   TrieStorageImpl::TrieStorageImpl(
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
-      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner)
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+      std::shared_ptr<BufferStorage> direct_kv)
       : codec_{std::move(codec)},
         serializer_{std::move(serializer)},
         state_pruner_{std::move(state_pruner)},
+        direct_kv_{std::move(direct_kv)},
         logger_{log::createLogger("TrieStorage", "storage")} {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(state_pruner_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
+    BOOST_ASSERT(direct_kv_ != nullptr);
   }
 
   outcome::result<std::unique_ptr<TrieBatch>>
   TrieStorageImpl::getPersistentBatchAt(const RootHash &root,
                                         TrieChangesTrackerOpt changes_tracker) {
-    SL_DEBUG(logger_,
-             "Initialize persistent trie batch with root: {}",
-             root.toHex());
     OUTCOME_TRY(trie, serializer_->retrieveTrie(root, nullptr));
+    OUTCOME_TRY(last_hash, getLastCommittedHash());
+    if (root == last_hash) {
+      SL_DEBUG(logger_,
+               "Initialize persistent trie batch with root: {} at latest state "
+               "(direct storage is enabled)",
+               root.toHex());
+      return std::make_unique<PersistentTrieBatchImpl>(codec_,
+                                                       serializer_,
+                                                       changes_tracker,
+                                                       std::move(trie),
+                                                       state_pruner_,
+                                                       direct_kv_,
+                                                       TrieBatchBase::Fresh{});
+    }
+    SL_DEBUG(logger_,
+             "Initialize persistent trie batch with root: {} at an old state "
+             "(direct storage is disabled, the latest state is {})",
+             root, last_hash);
     return std::make_unique<PersistentTrieBatchImpl>(
         codec_, serializer_, changes_tracker, std::move(trie), state_pruner_);
   }
@@ -65,6 +91,23 @@ namespace kagome::storage::trie {
   TrieStorageImpl::getEphemeralBatchAt(const RootHash &root) const {
     SL_DEBUG(logger_, "Initialize ephemeral trie batch with root: {}", root);
     OUTCOME_TRY(trie, serializer_->retrieveTrie(root, nullptr));
+    OUTCOME_TRY(last_hash, getLastCommittedHash());
+    if (root == last_hash) {
+      SL_DEBUG(logger_,
+               "Initialize ephemeral trie batch with root: {} at latest state "
+               "(direct storage is enabled)",
+               root);
+      return std::make_unique<EphemeralTrieBatchImpl>(codec_,
+                                                      std::move(trie),
+                                                      serializer_,
+                                                      nullptr,
+                                                      direct_kv_,
+                                                      TrieBatchBase::Fresh{});
+    }
+    SL_DEBUG(logger_,
+             "Initialize ephemeral trie batch with root: {} at an old state "
+             "(direct storage is disabled, the latest state is {})",
+             root, last_hash);
     return std::make_unique<EphemeralTrieBatchImpl>(
         codec_, std::move(trie), serializer_, nullptr);
   }
@@ -77,6 +120,14 @@ namespace kagome::storage::trie {
     OUTCOME_TRY(trie, serializer_->retrieveTrie(root, on_node_loaded));
     return std::make_unique<EphemeralTrieBatchImpl>(
         codec_, std::move(trie), serializer_, on_node_loaded);
+  }
+
+  outcome::result<RootHash> TrieStorageImpl::getLastCommittedHash() const {
+    OUTCOME_TRY(last_hash, direct_kv_->tryGet(kLastCommittedHashKey));
+    if (!last_hash) {
+      return kEmptyRootHash;
+    }
+    return RootHash::fromSpan(*last_hash);
   }
 
 }  // namespace kagome::storage::trie

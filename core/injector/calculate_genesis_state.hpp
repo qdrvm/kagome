@@ -24,15 +24,20 @@ namespace kagome::injector {
       const crypto::Hasher &hasher,
       runtime::RuntimeInstancesPool &module_factory,
       storage::trie::TrieSerializer &trie_serializer,
+      storage::BufferStorage &direct_trie_storage,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_cache) {
-    auto trie_from = [](const application::GenesisRawData &kv) {
+    auto trie_from = [&direct_trie_storage](BufferView prefix,
+                        const application::GenesisRawData &kv)
+        -> outcome::result<std::shared_ptr<storage::trie::PolkadotTrieImpl>> {
       auto trie = storage::trie::PolkadotTrieImpl::createEmpty();
-      for (auto &[k, v] : kv) {
-        trie->put(k, common::BufferView{v}).value();
+      for (const auto &[key, val] : kv) {
+        OUTCOME_TRY(trie->put(Buffer{prefix}.put(key), val.view()));
+        OUTCOME_TRY(
+            direct_trie_storage.put(Buffer{prefix}.put(key), val.view()));
       }
       return trie;
     };
-    auto top_trie = trie_from(chain_spec.getGenesisTopSection());
+    OUTCOME_TRY(top_trie, trie_from({}, chain_spec.getGenesisTopSection()));
     OUTCOME_TRY(code, top_trie->get(storage::kRuntimeCodeKey));
 
     auto code_hash = hasher.blake2b_256(code);
@@ -59,21 +64,26 @@ namespace kagome::injector {
     }
     auto version = storage::trie::StateVersion{runtime_version->state_version};
     std::vector<std::shared_ptr<storage::trie::PolkadotTrie>> child_tries;
-    for (auto &[child, kv] : chain_spec.getGenesisChildrenDefaultSection()) {
-      child_tries.emplace_back(trie_from(kv));
+    for (const auto &[child, kv] :
+         chain_spec.getGenesisChildrenDefaultSection()) {
+      common::Buffer child_prefix;
+      child_prefix += storage::kChildStorageDefaultPrefix;
+      child_prefix += child;
+
+      OUTCOME_TRY(child_trie, trie_from(child_prefix, kv));
+      child_tries.emplace_back(child_trie);
       OUTCOME_TRY(root_and_batch,
                   trie_serializer.storeTrie(*child_tries.back(), version));
       OUTCOME_TRY(root_and_batch.second->commit());
 
-      common::Buffer child2;
-      child2 += storage::kChildStorageDefaultPrefix;
-      child2 += child;
-      OUTCOME_TRY(
-          top_trie->put(child2, common::BufferView{root_and_batch.first}));
+      OUTCOME_TRY(top_trie->put(child_prefix,
+                                common::BufferView{root_and_batch.first}));
     }
 
     OUTCOME_TRY(root_and_batch, trie_serializer.storeTrie(*top_trie, version));
     OUTCOME_TRY(root_and_batch.second->commit());
+    OUTCOME_TRY(direct_trie_storage.put(storage::trie::kLastCommittedHashKey,
+                                        root_and_batch.first));
     return root_and_batch.first;
   }
 }  // namespace kagome::injector

@@ -43,6 +43,26 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(state_pruner_ != nullptr);
   }
 
+  PersistentTrieBatchImpl::PersistentTrieBatchImpl(
+      std::shared_ptr<Codec> codec,
+      std::shared_ptr<TrieSerializer> serializer,
+      TrieChangesTrackerOpt changes,
+      std::shared_ptr<PolkadotTrie> trie,
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+      std::shared_ptr<BufferStorage> direct_kv_storage,
+      Fresh)
+      : TrieBatchBase{std::move(codec),
+                      std::move(serializer),
+                      std::move(trie),
+                      direct_kv_storage,
+                      Fresh{}},
+        changes_{std::move(changes)},
+        state_pruner_{std::move(state_pruner)} {
+    BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
+                 or not changes_.has_value());
+    BOOST_ASSERT(state_pruner_ != nullptr);
+  }
+
   outcome::result<RootHash> PersistentTrieBatchImpl::commit(
       StateVersion version) {
     OUTCOME_TRY(commitChildren(version));
@@ -54,6 +74,19 @@ namespace kagome::storage::trie {
     // batch must not be committed before pruner addNewState or pruner breaks
     // probably should enforce this more strictly in the API
     OUTCOME_TRY(batch->commit());
+    if (direct_kv_) {
+      auto batch = direct_kv_->storage->batch();
+      OUTCOME_TRY(batch->put(kLastCommittedHashKey, root));
+      for (const auto &[key, value] : direct_kv_->batch) {
+        if (value) {
+          OUTCOME_TRY(batch->put(key, value->view()));
+        } else {
+          OUTCOME_TRY(batch->remove(key));
+        }
+      }
+      OUTCOME_TRY(batch->commit());
+      SL_DEBUG(logger_, "Update latest state: {}", root);
+    }
     SL_TRACE_FUNC_CALL(logger_, root);
     return root;
   }
@@ -63,9 +96,16 @@ namespace kagome::storage::trie {
                                        std::optional<uint64_t> limit) {
     SL_TRACE_VOID_FUNC_CALL(logger_, prefix);
     return trie_->clearPrefix(
-        prefix, limit, [&](const auto &key, auto &&) -> outcome::result<void> {
+        prefix,
+        limit,
+        [&](const auto &key,
+            std::optional<common::Buffer> &&value) -> outcome::result<void> {
           if (changes_.has_value()) {
             changes_.value()->onRemove(key);
+          }
+          if (direct_kv_) {
+            direct_kv_->batch[key] =
+                std::forward<std::optional<common::Buffer>>(value);
           }
           return outcome::success();
         });
@@ -82,6 +122,9 @@ namespace kagome::storage::trie {
 
       changes_.value()->onPut(key, value_copy, is_new_entry);
     }
+    if (res and direct_kv_) {
+      direct_kv_->batch[key] = value_copy;
+    }
     return res;
   }
 
@@ -90,6 +133,9 @@ namespace kagome::storage::trie {
     if (changes_.has_value()) {
       SL_TRACE_VOID_FUNC_CALL(logger_, key);
       changes_.value()->onRemove(key);
+    }
+    if (direct_kv_) {
+      direct_kv_->batch[key].reset();
     }
     return outcome::success();
   }

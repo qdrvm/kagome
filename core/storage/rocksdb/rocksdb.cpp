@@ -347,7 +347,7 @@ namespace kagome::storage {
     return outcome::success();
   }
 
-  std::shared_ptr<BufferStorage> RocksDb::getSpace(Space space) {
+  std::shared_ptr<class RocksDbSpace> RocksDb::getRocksSpace(Space space) {
     if (spaces_.contains(space)) {
       return spaces_[space];
     }
@@ -366,7 +366,11 @@ namespace kagome::storage {
     return space_ptr;
   }
 
-  void RocksDb::dropColumn(kagome::storage::Space space) {
+  std::shared_ptr<BufferStorage> RocksDb::getSpace(Space space) {
+    return getRocksSpace(space);
+  }
+
+  outcome::result<void> RocksDb::dropColumn(kagome::storage::Space space) {
     auto space_name = spaceName(space);
     auto column_it = std::ranges::find_if(
         column_family_handles_,
@@ -374,18 +378,22 @@ namespace kagome::storage {
           return handle->GetName() == space_name;
         });
     if (column_family_handles_.end() == column_it) {
-      throw DatabaseError::INVALID_ARGUMENT;
+      return DatabaseError::INVALID_ARGUMENT;
     }
     auto &handle = *column_it;
-    auto e = [this](const rocksdb::Status &status) {
+    auto status_to_result =
+        [this](const rocksdb::Status &status) -> outcome::result<void> {
       if (!status.ok()) {
         logger_->error("DB operation failed: {}", status.ToString());
-        throw status_as_error(status);
+        return status_as_error(status);
       }
+      return outcome::success();
     };
-    e(db_->DropColumnFamily(handle));
-    e(db_->DestroyColumnFamilyHandle(handle));
-    e(db_->CreateColumnFamily({}, space_name, &handle));
+    OUTCOME_TRY(status_to_result(db_->DropColumnFamily(handle)));
+    OUTCOME_TRY(status_to_result(db_->DestroyColumnFamilyHandle(handle)));
+    OUTCOME_TRY(
+        status_to_result(db_->CreateColumnFamily({}, space_name, &handle)));
+    return outcome::success();
   }
 
   rocksdb::BlockBasedTableOptions RocksDb::tableOptionsConfiguration(
@@ -558,6 +566,15 @@ namespace kagome::storage {
     }
 
     return status_as_error(status);
+  }
+
+  outcome::result<void> RocksDbSpace::clear() {
+    auto rocks = storage_.lock();
+    if (!rocks) {
+      return DatabaseError::STORAGE_GONE;
+    }
+    OUTCOME_TRY(rocks->dropColumn(space_));
+    return outcome::success();
   }
 
   void RocksDbSpace::compact(const Buffer &first, const Buffer &last) {

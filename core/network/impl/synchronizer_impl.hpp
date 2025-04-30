@@ -28,7 +28,6 @@
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
 #include "primitives/event_types.hpp"
-#include "storage/spaced_storage.hpp"
 #include "telemetry/service.hpp"
 #include "utils/safe_object.hpp"
 
@@ -63,6 +62,11 @@ namespace kagome::network {
   class Beefy;
   class PeerManager;
 }  // namespace kagome::network
+
+namespace kagome::storage {
+  class SpacedStorage;
+  class RocksDbSpace;
+}
 
 namespace kagome::storage::trie {
   class TrieSerializer;
@@ -131,7 +135,8 @@ namespace kagome::network {
         std::shared_ptr<Beefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
         common::MainThreadPool &main_thread_pool,
-        std::shared_ptr<blockchain::BlockStorage> block_storage);
+        std::shared_ptr<blockchain::BlockStorage> block_storage,
+        std::shared_ptr<storage::SpacedStorage> db);
 
     /** @see AppStateManager::takeControl */
     bool start();
@@ -275,6 +280,7 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
     uint32_t max_parallel_downloads_;
     std::mt19937 random_gen_;
+    std::shared_ptr<storage::RocksDbSpace> trie_direct_storage_;
 
     application::SyncMethod sync_method_;
 

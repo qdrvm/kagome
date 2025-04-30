@@ -74,7 +74,7 @@ namespace kagome::runtime {
 
     KAGOME_PROFILE_START(module_retrieval)
     Item item;
-    OUTCOME_TRY(SAFE_UNIQUE(cache_)->outcome::result<void> {
+    auto res = SAFE_UNIQUE(cache_)->outcome::result<void> {
       if (auto r = cache_.get(state)) {
         item = r->get();
       } else {
@@ -96,7 +96,8 @@ namespace kagome::runtime {
         cache_.put(state, item);
       }
       return outcome::success();
-    });
+    };
+    OUTCOME_TRY(res);
     return item;
   }
 }  // namespace kagome::runtime

@@ -105,7 +105,7 @@ namespace kagome::network {
           pop_level = false;
           break;
         }
-        if (level.value_hash and not isKnown(*level.value_hash)) {
+        if ((level.value_hash != nullptr) and not isKnown(*level.value_hash)) {
           auto it = nodes.find(*level.value_hash);
           if (it == nodes.end()) {
             return outcome::success();

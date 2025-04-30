@@ -54,13 +54,14 @@ namespace kagome::storage {
         bool enable_migration = true);
 
     std::shared_ptr<BufferStorage> getSpace(Space space) override;
+    std::shared_ptr<class RocksDbSpace> getRocksSpace(Space space);
 
     /**
      * Implementation specific way to erase the whole space data.
      * Not exposed at SpacedStorage level as only used in pruner.
      * @param space - storage space identifier to clear
      */
-    void dropColumn(Space space);
+     outcome::result<void> dropColumn(Space space);
 
     /**
      * Prepare configuration structure
@@ -123,7 +124,7 @@ namespace kagome::storage {
 
     rocksdb::DBWithTTL *db_{};
     std::vector<ColumnFamilyHandlePtr> column_family_handles_;
-    boost::container::flat_map<Space, std::shared_ptr<BufferStorage>> spaces_;
+    boost::container::flat_map<Space, std::shared_ptr<class RocksDbSpace>> spaces_;
     rocksdb::ReadOptions ro_;
     rocksdb::WriteOptions wo_;
     log::Logger logger_;
@@ -155,6 +156,8 @@ namespace kagome::storage {
 
     outcome::result<void> remove(const BufferView &key) override;
 
+    outcome::result<void> clear();
+
     void compact(const Buffer &first, const Buffer &last);
 
     friend class RocksDbBatch;
@@ -166,6 +169,7 @@ namespace kagome::storage {
     std::weak_ptr<RocksDb> storage_;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const RocksDb::ColumnFamilyHandlePtr &column_;
+    Space space_;
     log::Logger logger_;
   };
 }  // namespace kagome::storage
