@@ -95,6 +95,7 @@ namespace kagome::parachain {
         bind_null<crypto::KeyStore>(),
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),
+        bind_null<LazySPtr<api::StateApi>>(),
         di::bind<runtime::CoreApiFactory>.to<runtime::CoreApiFactoryImpl>(),
 
         // bound by lambda because direct binding is failing: ctor gives
@@ -112,7 +113,8 @@ namespace kagome::parachain {
               injector.template create<std::shared_ptr<crypto::Hasher>>(),
               injector.template create<std::shared_ptr<crypto::KeyStore>>(),
               injector.template create<std::shared_ptr<offchain::OffchainPersistentStorage>>(),
-              injector.template create<std::shared_ptr<offchain::OffchainWorkerPool>>()
+              injector.template create<std::shared_ptr<offchain::OffchainWorkerPool>>(),
+              injector.template create<LazySPtr<api::StateApi>>()
           );
         }),
 

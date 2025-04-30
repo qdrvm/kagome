@@ -6,8 +6,8 @@
 
 #pragma once
 
+#include "api/service/state/state_api.hpp"
 #include "host_api/host_api.hpp"
-
 #include "host_api/impl/child_storage_extension.hpp"
 #include "host_api/impl/crypto_extension.hpp"
 #include "host_api/impl/elliptic_curves_extension.hpp"
@@ -16,6 +16,7 @@
 #include "host_api/impl/misc_extension.hpp"
 #include "host_api/impl/offchain_extension.hpp"
 #include "host_api/impl/storage_extension.hpp"
+#include "injector/lazy.hpp"
 #include "offchain/impl/offchain_persistent_storage.hpp"
 
 namespace kagome::runtime {
@@ -48,7 +49,8 @@ namespace kagome::host_api {
         std::optional<std::shared_ptr<crypto::KeyStore>> key_store,
         std::shared_ptr<offchain::OffchainPersistentStorage>
             offchain_persistent_storage,
-        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool);
+        std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
+        LazySPtr<api::StateApi> state_api);
 
     ~HostApiImpl() override = default;
 

@@ -83,7 +83,10 @@ namespace kagome::runtime {
 
   WabtOutcome<common::Buffer> instrumentCodeForCompilation(
       common::BufferView code, const RuntimeContext::ContextParams &config) {
-    OUTCOME_TRY(module, wabtDecode(code, config));
+    OUTCOME_TRY(module,
+                wabtDecode(code,
+                           WasmFeatures{.ext_bulk_memory =
+                                            config.wasm_ext_bulk_memory}));
     const auto &memory_config = config.memory_limits;
     if (memory_config.max_stack_values_num) {
       OUTCOME_TRY(instrumentWithStackLimiter(

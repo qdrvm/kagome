@@ -16,7 +16,7 @@ struct fmt::formatter<qtils::BytesIn> {
 
   constexpr auto parse(format_parse_context &ctx) {
     auto it = ctx.begin();
-    auto end = [&] { return it == ctx.end() or *it == '}'; };
+    auto end = [&] { return it == ctx.end() or * it == '}'; };
     if (end()) {
       return it;
     }
@@ -128,7 +128,8 @@ void test(std::string name, const kagome::runtime::ModuleFactory &factory) {
   };
   auto compile = [&](bool bulk) -> Instance {
     auto path = fmt::format("test-wasm-{}-{}", name, bulk);
-    auto context_params = kagome::runtime::RuntimeContext::ContextParams();
+    auto context_params =
+        kagome::runtime::RuntimeContext::ContextParams({}, {}, {});
     context_params.wasm_ext_bulk_memory = bulk;
     auto wat_path =
         kagome::filesystem::absolute(__FILE__).parent_path().string()

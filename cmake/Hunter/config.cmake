@@ -111,7 +111,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.35
+    VERSION 0.1.36
+    KEEP_PACKAGE_SOURCES
 )
 
 hunter_config(
@@ -145,14 +146,6 @@ hunter_config(
 hunter_config(
     binaryen
     VERSION 1.38.28-patch.3
-    CMAKE_ARGS
-      CMAKE_POLICY_VERSION_MINIMUM=3.5
-    KEEP_PACKAGE_SOURCES
-)
-
-hunter_config(
-    ZLIB
-    VERSION 1.2.11-p1
     CMAKE_ARGS
       CMAKE_POLICY_VERSION_MINIMUM=3.5
     KEEP_PACKAGE_SOURCES

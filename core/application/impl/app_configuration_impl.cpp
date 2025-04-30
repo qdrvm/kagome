@@ -11,6 +11,7 @@
 #include <regex>
 #include <string>
 
+#include <fmt/ranges.h>
 #include <fmt/std.h>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
@@ -38,236 +39,253 @@
 #include "utils/read_file.hpp"
 #include "utils/write_file.hpp"
 
-namespace {
-  namespace fs = kagome::filesystem;
-  using kagome::application::AppConfiguration;
-
-  template <typename T, typename Func>
-  void find_argument(boost::program_options::variables_map &vm,
-                     const char *name,
-                     Func &&f) {
-    assert(nullptr != name);
-    if (auto it = vm.find(name); it != vm.end()) {
-      if (it->second.defaulted()) {
-        return;
-      }
-      std::forward<Func>(f)(it->second.as<T>());
-    }
-  }
-
-  template <typename T>
-  std::optional<T> find_argument(boost::program_options::variables_map &vm,
-                                 const std::string &name) {
-    if (auto it = vm.find(name); it != vm.end()) {
-      if (!it->second.defaulted()) {
-        return it->second.as<T>();
-      }
-    }
-    return std::nullopt;
-  }
-
-  bool find_argument(boost::program_options::variables_map &vm,
-                     const std::string &name) {
-    if (auto it = vm.find(name); it != vm.end()) {
-      if (!it->second.defaulted()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  const std::string def_rpc_host = "0.0.0.0";
-  const std::string def_openmetrics_http_host = "0.0.0.0";
-  const uint16_t def_rpc_port = 9944;
-  const uint16_t def_openmetrics_http_port = 9615;
-  const uint32_t def_ws_max_connections = 500;
-  const uint16_t def_p2p_port = 30363;
-  const bool def_dev_mode = false;
-  const kagome::network::Roles def_roles{kagome::network::Roles::Full};
-  const auto def_sync_method = kagome::application::SyncMethod::Full;
-  const auto def_runtime_exec_method =
-      kagome::application::AppConfiguration::RuntimeExecutionMethod::Compile;
-  const auto def_runtime_interpreter =
-      kagome::application::AppConfiguration::RuntimeInterpreter::WasmEdge;
-  const auto def_purge_wavm_cache_ = false;
-  const auto def_offchain_worker_mode =
-      kagome::application::AppConfiguration::OffchainWorkerMode::WhenValidating;
-  const bool def_enable_offchain_indexing = false;
-  const std::optional<kagome::primitives::BlockId> def_block_to_recover =
-      std::nullopt;
-  const auto def_offchain_worker = "WhenValidating";
-  const uint32_t def_out_peers = 75;
-  const uint32_t def_in_peers = 75;
-  const uint32_t def_in_peers_light = 100;
-  const auto def_lucky_peers = 4;
-  const auto def_max_peers = 1000;
-  const uint32_t def_random_walk_interval = 15;
-  const auto def_full_sync = "Full";
-  const auto def_wasm_execution = "Interpreted";
-#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-  const auto def_wasm_interpreter = "WasmEdge";
-#else
-  const auto def_wasm_interpreter = "Binaryen";
-#endif
-  const uint32_t def_db_cache_size = 1024;
-  const uint32_t def_parachain_runtime_instance_cache_size = 100;
-  const uint32_t def_max_parallel_downloads = 5;
-
-  /**
-   * Generate once at run random node name if form of UUID
-   * @return UUID as string value
-   */
-  const std::string &randomNodeName() {
-    static std::string name;
-    if (name.empty()) {
-      auto uuid = boost::uuids::random_generator()();
-      name = boost::uuids::to_string(uuid);
-    }
-    auto max_len = kagome::application::AppConfiguration::kNodeNameMaxLength;
-    if (name.length() > max_len) {
-      name = name.substr(0, max_len);
-    }
-    return name;
-  }
-
-  std::optional<kagome::application::SyncMethod> str_to_sync_method(
-      std::string_view str) {
-    using SM = kagome::application::SyncMethod;
-    if (str == "Full") {
-      return SM::Full;
-    }
-    if (str == "Fast") {
-      return SM::Fast;
-    }
-    if (str == "FastWithoutState") {
-      return SM::FastWithoutState;
-    }
-    if (str == "Warp") {
-      return SM::Warp;
-    }
-    if (str == "Unsafe") {
-      return SM::Unsafe;
-    }
-    if (str == "Auto") {
-      return SM::Auto;
-    }
-    return std::nullopt;
-  }
-
-  std::optional<AppConfiguration::AllowUnsafeRpc> parseAllowUnsafeRpc(
-      std::string_view str) {
-    if (str == "unsafe") {
-      return AppConfiguration::AllowUnsafeRpc::kUnsafe;
-    }
-    if (str == "safe") {
-      return AppConfiguration::AllowUnsafeRpc::kSafe;
-    }
-    if (str == "auto") {
-      return AppConfiguration::AllowUnsafeRpc::kAuto;
-    }
-    return std::nullopt;
-  }
-
-  static constexpr std::array<std::string_view, 2> execution_methods{
-      "Interpreted", "Compiled"};
-
-  static const std::string execution_methods_str =
-      fmt::format("[{}]", fmt::join(execution_methods, ", "));
-
-  static constexpr std::array<std::string_view,
-                              1 + KAGOME_WASM_COMPILER_WASM_EDGE>
-      interpreters{
-#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
-          "WasmEdge",
-#endif
-          "Binaryen",
-      };
-
-  static const std::string interpreters_str =
-      fmt::format("[{}]", fmt::join(interpreters, ", "));
-
-  std::optional<kagome::application::AppConfiguration::RuntimeExecutionMethod>
-  str_to_runtime_exec_method(std::string_view str) {
-    using REM = kagome::application::AppConfiguration::RuntimeExecutionMethod;
-    if (str == "Interpreted") {
-      return REM::Interpret;
-    }
-    if (str == "Compiled") {
-      return REM::Compile;
-    }
-    return std::nullopt;
-  }
-
-  std::optional<kagome::application::AppConfiguration::RuntimeInterpreter>
-  str_to_runtime_interpreter(std::string_view str) {
-    using RI = kagome::application::AppConfiguration::RuntimeInterpreter;
-    if (str == "WasmEdge") {
-      return RI::WasmEdge;
-    }
-    if (str == "Binaryen") {
-      return RI::Binaryen;
-    }
-    return std::nullopt;
-  }
-
-  std::optional<kagome::application::AppConfiguration::OffchainWorkerMode>
-  str_to_offchain_worker_mode(std::string_view str) {
-    using Mode = kagome::application::AppConfiguration::OffchainWorkerMode;
-    if (str == "Always") {
-      return Mode::Always;
-    }
-    if (str == "Never") {
-      return Mode::Never;
-    }
-    if (str == "WhenValidating") {
-      return Mode::WhenValidating;
-    }
-    return std::nullopt;
-  }
-
-  std::optional<kagome::primitives::BlockId> str_to_recovery_state(
-      std::string_view str) {
-    auto res = kagome::primitives::BlockHash::fromHex(str);
-    if (res.has_value()) {
-      return {{res.value()}};
-    }
-
-    kagome::primitives::BlockNumber bn{};
-    auto result = std::from_chars(str.data(), str.data() + str.size(), bn);
-    if (result.ec != std::errc::invalid_argument && std::to_string(bn) == str) {
-      return {{bn}};
-    }
-
-    return std::nullopt;
-  }
-
-  auto &devAccounts() {
-    using Account =
-        std::tuple<const char *, std::string_view, std::string_view>;
-    static const std::array<Account, 8> accounts{
-        Account{"alice", "Alice", "//Alice"},
-        Account{"bob", "Bob", "//Bob"},
-        Account{"charlie", "Charlie", "//Charlie"},
-        Account{"dave", "Dave", "//Dave"},
-        Account{"eve", "Eve", "//Eve"},
-        Account{"ferdie", "Ferdie", "//Ferdie"},
-        Account{"one", "One", "//One"},
-        Account{"two", "Two", "//Two"},
-    };
-    return accounts;
-  }
-
-  inline bool chainspecExists(const fs::path &path) {
-    return kagome::assets::getEmbeddedChainspec(path.native())
-        or fs::exists(path);
-  }
-}  // namespace
-
 namespace kagome::application {
 
+  namespace {
+    namespace fs = filesystem;
+    using application::AppConfiguration;
+
+    template <typename T, typename Func>
+    void find_argument(boost::program_options::variables_map &vm,
+                       const char *name,
+                       Func &&f) {
+      assert(nullptr != name);
+      if (auto it = vm.find(name); it != vm.end()) {
+        if (it->second.defaulted()) {
+          return;
+        }
+        std::forward<Func>(f)(it->second.as<T>());
+      }
+    }
+
+    template <typename T>
+    std::optional<T> find_argument(boost::program_options::variables_map &vm,
+                                   const std::string &name) {
+      if (auto it = vm.find(name); it != vm.end()) {
+        if (!it->second.defaulted()) {
+          return it->second.as<T>();
+        }
+      }
+      return std::nullopt;
+    }
+
+    bool find_argument(boost::program_options::variables_map &vm,
+                       const std::string &name) {
+      if (auto it = vm.find(name); it != vm.end()) {
+        if (!it->second.defaulted()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    const std::string def_rpc_host = "0.0.0.0";
+    const std::string def_openmetrics_http_host = "0.0.0.0";
+    const uint16_t def_rpc_port = 9944;
+    const uint16_t def_openmetrics_http_port = 9615;
+    const uint32_t def_ws_max_connections = 500;
+    const uint16_t def_p2p_port = 30363;
+    const bool def_dev_mode = false;
+    const network::Roles def_roles{network::Roles::Full};
+    const auto def_sync_method = application::SyncMethod::Full;
+    const auto def_runtime_exec_method =
+        application::AppConfiguration::RuntimeExecutionMethod::Compile;
+    const auto def_runtime_interpreter =
+        application::AppConfiguration::RuntimeInterpreter::WasmEdge;
+    const auto def_purge_wavm_cache_ = false;
+    const auto def_offchain_worker_mode =
+        application::AppConfiguration::OffchainWorkerMode::WhenValidating;
+    const bool def_enable_offchain_indexing = false;
+    const std::optional<primitives::BlockId> def_block_to_recover =
+        std::nullopt;
+    const auto def_offchain_worker = "WhenValidating";
+    const uint32_t def_out_peers = 75;
+    const uint32_t def_in_peers = 75;
+    const uint32_t def_in_peers_light = 100;
+    const auto def_lucky_peers = 4;
+    const auto def_max_peers = 1000;
+    const uint32_t def_random_walk_interval = 15;
+    const auto def_full_sync = "Full";
+    const auto def_wasm_execution = "Interpreted";
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+    const auto def_wasm_interpreter = "WasmEdge";
+#else
+    const auto def_wasm_interpreter = "Binaryen";
+#endif
+    const uint32_t def_db_cache_size = 1024;
+    const uint32_t def_parachain_runtime_instance_cache_size = 100;
+    const uint32_t def_max_parallel_downloads = 5;
+
+    /**
+     * Generate once at run random node name if form of UUID
+     * @return UUID as string value
+     */
+    const std::string &randomNodeName() {
+      static std::string name;
+      if (name.empty()) {
+        auto uuid = boost::uuids::random_generator()();
+        name = boost::uuids::to_string(uuid);
+      }
+      auto max_len = application::AppConfiguration::kNodeNameMaxLength;
+      if (name.length() > max_len) {
+        name = name.substr(0, max_len);
+      }
+      return name;
+    }
+
+    std::optional<application::SyncMethod> str_to_sync_method(
+        std::string_view str) {
+      using SM = application::SyncMethod;
+      if (str == "Full") {
+        return SM::Full;
+      }
+      if (str == "Fast") {
+        return SM::Fast;
+      }
+      if (str == "FastWithoutState") {
+        return SM::FastWithoutState;
+      }
+      if (str == "Warp") {
+        return SM::Warp;
+      }
+      if (str == "Unsafe") {
+        return SM::Unsafe;
+      }
+      if (str == "Auto") {
+        return SM::Auto;
+      }
+      return std::nullopt;
+    }
+
+    std::optional<AppConfiguration::AllowUnsafeRpc> parseAllowUnsafeRpc(
+        std::string_view str) {
+      if (str == "unsafe") {
+        return AppConfiguration::AllowUnsafeRpc::kUnsafe;
+      }
+      if (str == "safe") {
+        return AppConfiguration::AllowUnsafeRpc::kSafe;
+      }
+      if (str == "auto") {
+        return AppConfiguration::AllowUnsafeRpc::kAuto;
+      }
+      return std::nullopt;
+    }
+
+    static constexpr std::array<std::string_view, 2> execution_methods{
+        "Interpreted", "Compiled"};
+
+    static const std::string execution_methods_str =
+        fmt::format("[{}]", fmt::join(execution_methods, ", "));
+
+    static constexpr std::array<std::string_view,
+                                1 + KAGOME_WASM_COMPILER_WASM_EDGE>
+        interpreters{
+#if KAGOME_WASM_COMPILER_WASM_EDGE == 1
+            "WasmEdge",
+#endif
+            "Binaryen"};
+
+    static const std::string interpreters_str =
+        fmt::format("[{}]", fmt::join(interpreters, ", "));
+
+    std::optional<application::AppConfiguration::RuntimeExecutionMethod>
+    str_to_runtime_exec_method(std::string_view str) {
+      using REM = application::AppConfiguration::RuntimeExecutionMethod;
+      if (str == "Interpreted") {
+        return REM::Interpret;
+      }
+      if (str == "Compiled") {
+        return REM::Compile;
+      }
+      return std::nullopt;
+    }
+
+    std::optional<application::AppConfiguration::RuntimeInterpreter>
+    str_to_runtime_interpreter(std::string_view str) {
+      using RI = application::AppConfiguration::RuntimeInterpreter;
+      if (str == "WasmEdge") {
+        return RI::WasmEdge;
+      }
+      if (str == "Binaryen") {
+        return RI::Binaryen;
+      }
+      return std::nullopt;
+    }
+
+    constexpr std::
+        array<std::pair<std::string_view, runtime::OptimizationLevel>, 3>
+            wasm_optimization_level_map{
+                std::pair{"0", runtime::OptimizationLevel::O0},
+                {"1", runtime::OptimizationLevel::O1},
+                {"2", runtime::OptimizationLevel::O2}};
+
+    std::optional<runtime::OptimizationLevel> str_to_optimization_level(
+        std::string_view str) {
+      const auto it = std::ranges::find(
+          wasm_optimization_level_map, str, [](const auto &pair) {
+            return pair.first;
+          });
+      if (it == wasm_optimization_level_map.end()) {
+        return std::nullopt;
+      }
+      return it->second;
+    }
+
+    std::optional<application::AppConfiguration::OffchainWorkerMode>
+    str_to_offchain_worker_mode(std::string_view str) {
+      using Mode = application::AppConfiguration::OffchainWorkerMode;
+      if (str == "Always") {
+        return Mode::Always;
+      }
+      if (str == "Never") {
+        return Mode::Never;
+      }
+      if (str == "WhenValidating") {
+        return Mode::WhenValidating;
+      }
+      return std::nullopt;
+    }
+
+    std::optional<primitives::BlockId> str_to_recovery_state(
+        std::string_view str) {
+      auto res = primitives::BlockHash::fromHex(str);
+      if (res.has_value()) {
+        return {{res.value()}};
+      }
+
+      primitives::BlockNumber bn{};
+      auto result = std::from_chars(str.data(), str.data() + str.size(), bn);
+      if (result.ec != std::errc::invalid_argument
+          && std::to_string(bn) == str) {
+        return {{bn}};
+      }
+
+      return std::nullopt;
+    }
+
+    auto &devAccounts() {
+      using Account =
+          std::tuple<const char *, std::string_view, std::string_view>;
+      static const std::array<Account, 8> accounts{
+          Account{"alice", "Alice", "//Alice"},
+          Account{"bob", "Bob", "//Bob"},
+          Account{"charlie", "Charlie", "//Charlie"},
+          Account{"dave", "Dave", "//Dave"},
+          Account{"eve", "Eve", "//Eve"},
+          Account{"ferdie", "Ferdie", "//Ferdie"},
+          Account{"one", "One", "//One"},
+          Account{"two", "Two", "//Two"},
+      };
+      return accounts;
+    }
+
+    inline bool chainspecExists(const fs::path &path) {
+      return assets::getEmbeddedChainspec(path.native()) or fs::exists(path);
+    }
+  }  // namespace
+
   AppConfigurationImpl::AppConfigurationImpl()
-      : logger_(kagome::log::createLogger("Configuration",
-                                          kagome::log::defaultGroupName)),
+      : logger_(log::createLogger("Configuration", log::defaultGroupName)),
         roles_(def_roles),
         save_node_key_(false),
         is_telemetry_enabled_(true),
@@ -295,24 +313,22 @@ namespace kagome::application {
         offchain_worker_mode_{def_offchain_worker_mode},
         enable_offchain_indexing_{def_enable_offchain_indexing},
         recovery_state_{def_block_to_recover},
-        db_cache_size_{def_db_cache_size},
-        state_pruning_depth_{} {}
+        db_cache_size_{def_db_cache_size} {}
 
   fs::path AppConfigurationImpl::chainSpecPath() const {
     return chain_spec_path_.native();
   }
 
-  kagome::filesystem::path AppConfigurationImpl::runtimeCacheDirPath() const {
-    return kagome::filesystem::temp_directory_path() / "kagome/runtimes-cache";
+  filesystem::path AppConfigurationImpl::runtimeCacheDirPath() const {
+    return filesystem::temp_directory_path() / "kagome/runtimes-cache";
   }
 
-  kagome::filesystem::path AppConfigurationImpl::runtimeCachePath(
+  filesystem::path AppConfigurationImpl::runtimeCachePath(
       std::string runtime_hash) const {
     return runtimeCacheDirPath() / runtime_hash;
   }
 
-  kagome::filesystem::path AppConfigurationImpl::chainPath(
-      std::string chain_id) const {
+  filesystem::path AppConfigurationImpl::chainPath(std::string chain_id) const {
     return base_path_ / "chains" / chain_id;
   }
 
@@ -443,7 +459,7 @@ namespace kagome::application {
     bool validator_mode = false;
     load_bool(val, "validator", validator_mode);
     if (validator_mode) {
-      roles_ = kagome::network::Roles::Authority;
+      roles_ = network::Roles::Authority;
     }
 
     load_ms(val, "log", logger_tuning_config_);
@@ -869,8 +885,10 @@ namespace kagome::application {
         "Disables spawn of child pvf check processes, thus they could not be aborted by deadline timer")
         ("pvf-max-workers", po::value<size_t>()->default_value(pvf_max_workers_),
         "Max PVF execution threads or processes.")
+        // O2 is temporarily removed as default because there is a runtime on Polkadot that compiles for an indefinite amount of time on O2
+        ("pvf-optimization-level", po::value<std::string>()->default_value("1"), "Optimization level for PVF runtime compilation")
         ("insecure-validator-i-know-what-i-do", po::bool_switch(), "Allows a validator to run insecurely outside of Secure Validator Mode.")
-        ("precompile-relay", po::bool_switch(), "precompile relay")
+        ("precompile-relay", po::bool_switch(), "Enter wasm precompilation mode, precompile relay chain runtimes. Useful for tests.")
         ("precompile-para", po::value<decltype(PrecompileWasmConfig::parachains)>()->multitoken(), "paths to wasm or chainspec files")
         ("unsafe-sync-to", po::value<BlockNumber>(), "unsafe sync to specified or earlier block")
         ;
@@ -963,14 +981,13 @@ namespace kagome::application {
 
         // Wipe base directory on demand
         if (vm.count("dev-with-wipe") > 0) {
-          kagome::filesystem::remove_all(dev_env_path);
+          filesystem::remove_all(dev_env_path);
         }
 
-        if (not kagome::filesystem::exists(chain_spec_path_)) {
+        if (not filesystem::exists(chain_spec_path_)) {
           mkdirs(chain_spec_path_.parent_path()).value();
 
-          writeFile(chain_spec_path_, kagome::assets::embedded_chainspec)
-              .value();
+          writeFile(chain_spec_path_, assets::embedded_chainspec).value();
 
           auto chain_spec = ChainSpecImpl::loadFrom(chain_spec_path_.native());
           auto path = keystorePath(chain_spec.value()->id());
@@ -993,7 +1010,7 @@ namespace kagome::application {
 
           mkdirs(path).value();
 
-          for (auto key_descr : kagome::assets::embedded_keys) {
+          for (auto key_descr : assets::embedded_keys) {
             writeFile(path / key_descr.first, key_descr.second).value();
           }
         }
@@ -1059,7 +1076,7 @@ namespace kagome::application {
 
     if (vm.end() != vm.find("tmp")) {
       auto unique_name = filesystem::unique_path();
-      base_path_ = (kagome::filesystem::temp_directory_path() / unique_name);
+      base_path_ = (filesystem::temp_directory_path() / unique_name);
     } else {
       find_argument<std::string>(
           vm, "base-path", [&](const std::string &val) { base_path_ = val; });
@@ -1439,7 +1456,7 @@ namespace kagome::application {
       purge_wavm_cache_ = true;
       if (fs::exists(runtimeCacheDirPath())) {
         std::error_code ec;
-        kagome::filesystem::remove_all(runtimeCacheDirPath(), ec);
+        filesystem::remove_all(runtimeCacheDirPath(), ec);
         if (ec) {
           SL_ERROR(logger_,
                    "Failed to purge cache in {} ['{}']",
@@ -1483,6 +1500,18 @@ namespace kagome::application {
 
     if (auto arg = find_argument<size_t>(vm, "pvf-max-workers")) {
       pvf_max_workers_ = *arg;
+    }
+
+    if (auto arg = find_argument<std::string>(vm, "pvf-optimization-level")) {
+      if (auto level = str_to_optimization_level(*arg); level.has_value()) {
+        pvf_optimization_level_ = *level;
+      } else {
+        SL_ERROR(
+            logger_,
+            "Invalid pvf-optimization-level provided. Valid options are: {}",
+            wasm_optimization_level_map | std::views::elements<0>);
+        return false;
+      }
     }
 
     if (find_argument(vm, "insecure-validator-i-know-what-i-do")) {
@@ -1612,7 +1641,6 @@ namespace kagome::application {
     if (unsafe_sync_to_) {
       sync_method_ = SyncMethod::Unsafe;
     }
-
     // if something wrong with config print help message
     if (not validate_config()) {
       std::cout << desc << '\n';

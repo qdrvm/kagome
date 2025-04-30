@@ -75,7 +75,7 @@ on:
         type: 'string'
       runtime_package_version:
         description: '(In) Custom runtime package version'
-        default: '20250323-0.14.1-3fbf6c6'
+        default: '20250429-0.14.1-3fbf6c6'
         required: false
         type: 'string'
 
@@ -104,7 +104,7 @@ env:
   # Configuration variables with proper defaults - no circular references
   BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
   TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || vars.CI_TESTER_TAG || '20250323' }}
-  RUNTIME_PACKAGE_VERSION: ${{ github.event.inputs.runtime_package_version || vars.CI_RUNTIME_PACKAGE_VERSION || '20250323-0.14.1-3fbf6c6' }}
+  RUNTIME_PACKAGE_VERSION: ${{ github.event.inputs.runtime_package_version || vars.CI_RUNTIME_PACKAGE_VERSION || '20250429-0.14.1-3fbf6c6' }}
   USE_CACHE: ${{ github.event.inputs.use_cache || 'true' }}
   CACHE_UPLOAD_ALLOWED: ${{ github.event.inputs.cache_upload_allowed || 'false' }}
   RUN_AMD64: ${{ github.event.inputs.run_amd64 || 'true' }}
@@ -219,7 +219,7 @@ jobs:
       use_cache: ${{ github.event.inputs.use_cache || 'true' }}
       builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
       zombie_tester_latest_tag: ${{ github.event.inputs.zombie_tester_latest_tag || vars.CI_TESTER_TAG || '20250323' }}
-      runtime_package_version: ${{ github.event.inputs.runtime_package_version || vars.CI_RUNTIME_PACKAGE_VERSION || '20250323-0.14.1-3fbf6c6' }}
+      runtime_package_version: ${{ github.event.inputs.runtime_package_version || vars.CI_RUNTIME_PACKAGE_VERSION || '20250429-0.14.1-3fbf6c6' }}
       run_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
       run_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
       skip_build: 'true'
