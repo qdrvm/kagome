@@ -202,6 +202,16 @@ namespace kagome::parachain {
 
   void PvfWorkers::findFree(Job &&job) {
     std::unique_lock lock(free_mutex_);
+
+    // Check if there are no free workers
+    if (free_.empty()) {
+      lock.unlock();
+      // Re-queue the job for later processing
+      queues_[job.kind].emplace_back(std::move(job));
+      metric_queue_size_.at(job.kind)->set(queues_[job.kind].size());
+      return;
+    }
+
     auto it = std::ranges::find_if(free_, [&](const Worker &worker) {
       return worker.code_params == job.code_params;
     });
