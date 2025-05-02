@@ -3608,6 +3608,11 @@ namespace kagome::parachain {
           // Now we need to skip over the extensions
           // Since we don't know the exact structure of extensions,
           // we'll search for the parachain module/call identifiers
+        } else {
+          SL_DEBUG(logger_,
+                   "Unsupported extrinsic version, extrinic data: {}",
+                   data);
+          continue;
         }
 
         if (is_v5_extrinsic) {
