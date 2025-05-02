@@ -3611,7 +3611,7 @@ namespace kagome::parachain {
         } else {
           SL_DEBUG(logger_,
                    "Unsupported extrinsic version, extrinic data: {}",
-                   data);
+                   data.toHex());
           continue;
         }
 
