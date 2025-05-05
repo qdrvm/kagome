@@ -201,17 +201,6 @@ namespace kagome::parachain {
   }
 
   void PvfWorkers::findFree(Job &&job) {
-    std::unique_lock lock(free_mutex_);
-
-    // Check if there are no free workers
-    if (free_.empty()) {
-      lock.unlock();
-      // Re-queue the job for later processing
-      queues_[job.kind].emplace_back(std::move(job));
-      metric_queue_size_.at(job.kind)->set(queues_[job.kind].size());
-      return;
-    }
-
     auto it = std::ranges::find_if(free_, [&](const Worker &worker) {
       return worker.code_params == job.code_params;
     });
@@ -220,7 +209,6 @@ namespace kagome::parachain {
     }
     auto worker = *it;
     free_.erase(it);
-    lock.unlock();
     writeCode(std::move(job), std::move(worker), std::make_shared<Used>(*this));
   }
 
@@ -269,9 +257,7 @@ namespace kagome::parachain {
           if (not r) {
             return;
           }
-          std::unique_lock lock(self->free_mutex_);
           self->free_.emplace_back(std::move(worker));
-          lock.unlock();
           self->dequeue();
         });
     auto cb = [cb_shared, timeout](outcome::result<Buffer> r) mutable {
@@ -295,6 +281,9 @@ namespace kagome::parachain {
   void PvfWorkers::dequeue() {
     for (auto &kind :
          {PvfExecTimeoutKind::Approval, PvfExecTimeoutKind::Backing}) {
+      if (free_.empty()) {
+        break;
+      }
       auto &queue = queues_[kind];
       if (queue.empty()) {
         continue;
