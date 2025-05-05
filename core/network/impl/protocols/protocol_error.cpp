@@ -23,6 +23,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(kagome::network, ProtocolError, e) {
       return "Handshake exchange failed";
     case E::NO_RESPONSE:
       return "No response arrived";
+    case E::TIMEOUT:
+      return "Timeout";
   }
   return "Unknown error (kagome::network::ProtocolError)";
 }
