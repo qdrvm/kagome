@@ -18,6 +18,7 @@ namespace kagome::network {
     GENESIS_NO_MATCH,
     HANDSHAKE_ERROR,
     NO_RESPONSE,
+    TIMEOUT,
   };
 
 }

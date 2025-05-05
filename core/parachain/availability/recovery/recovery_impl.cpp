@@ -48,7 +48,7 @@ namespace {
 
 namespace kagome::parachain {
   constexpr size_t kParallelRequests = 50;
-  constexpr size_t kMaxSizeOfDataToRecoverFromBackers = 1 << 20;  // 1Mb
+  constexpr size_t kMaxSizeOfDataToRecoverFromBackers = 4 * 1024 * 1024;
 
   RecoveryImpl::RecoveryImpl(
       std::shared_ptr<application::ChainSpec> chain_spec,
@@ -213,9 +213,10 @@ namespace kagome::parachain {
       SL_WARN(logger_, "Cannot retrieve our validator index");
     }
 
-    // Do recovery from backers strategy iff available
-    // date size can be calculated and less than limit
-    if (available_data_size < kMaxSizeOfDataToRecoverFromBackers) {
+    // Do recovery from backers strategy if available
+    // data size can be calculated and less than limit
+    if (available_data_size
+        and available_data_size.value() < kMaxSizeOfDataToRecoverFromBackers) {
       return full_from_bakers_recovery_prepare(candidate_hash);
     }
 
