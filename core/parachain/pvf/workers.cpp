@@ -140,7 +140,8 @@ namespace kagome::parachain {
 
   void PvfWorkers::execute(Job &&job) {
     REINVOKE(*main_pool_handler_, execute, std::move(job));
-    if (free_.empty()) {
+    auto free = findFree(job);
+    if (not free.has_value()) {
       if (used_ >= max_) {
         auto &queue = queues_[job.kind];
         queue.emplace_back(std::move(job));
@@ -197,20 +198,25 @@ namespace kagome::parachain {
       });
       return;
     }
-    findFree(std::move(job));
+    runJob(free.value(), std::move(job));
   }
 
-  void PvfWorkers::findFree(Job &&job) {
-    std::unique_lock lock(free_mutex_);
+  auto PvfWorkers::findFree(const Job &job) -> std::optional<Free::iterator> {
     auto it = std::ranges::find_if(free_, [&](const Worker &worker) {
       return worker.code_params == job.code_params;
     });
     if (it == free_.end()) {
       it = free_.begin();
     }
-    auto worker = *it;
-    free_.erase(it);
-    lock.unlock();
+    if (it == free_.end()) {
+      return std::nullopt;
+    }
+    return it;
+  }
+
+  void PvfWorkers::runJob(Free::iterator free_it, Job &&job) {
+    auto worker = *free_it;
+    free_.erase(free_it);
     writeCode(std::move(job), std::move(worker), std::make_shared<Used>(*this));
   }
 
@@ -259,9 +265,7 @@ namespace kagome::parachain {
           if (not r) {
             return;
           }
-          std::unique_lock lock(self->free_mutex_);
           self->free_.emplace_back(std::move(worker));
-          lock.unlock();
           self->dequeue();
         });
     auto cb = [cb_shared, timeout](outcome::result<Buffer> r) mutable {
@@ -289,10 +293,14 @@ namespace kagome::parachain {
       if (queue.empty()) {
         continue;
       }
+      auto free = findFree(queue.front());
+      if (not free.has_value()) {
+        break;
+      }
       auto job = std::move(queue.front());
       queue.pop_front();
       metric_queue_size_.at(kind)->set(queue.size());
-      findFree(std::move(job));
+      runJob(free.value(), std::move(job));
     }
   }
 }  // namespace kagome::parachain
