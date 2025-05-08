@@ -23,8 +23,6 @@ namespace kagome::runtime {
     using Result = outcome::result<Code>;
 
     virtual Result getCodeAt(const storage::trie::RootHash &state) const = 0;
-    virtual Result getPendingCodeAt(
-        const storage::trie::RootHash &state) const = 0;
   };
 
 }  // namespace kagome::runtime

@@ -204,7 +204,6 @@ namespace kagome::api {
     data["implVersion"] = makeValue(val.impl_version);
     data["transactionVersion"] = makeValue(val.transaction_version);
     data["stateVersion"] = makeValue(val.state_version);
-    data["systemVersion"] = makeValue(val.system_version);
 
     jArray apis;
     std::ranges::transform(

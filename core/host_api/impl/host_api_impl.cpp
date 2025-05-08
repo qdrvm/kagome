@@ -84,8 +84,7 @@ namespace kagome::host_api {
       std::optional<std::shared_ptr<crypto::KeyStore>> key_store,
       std::shared_ptr<offchain::OffchainPersistentStorage>
           offchain_persistent_storage,
-      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
-      LazySPtr<api::StateApi> state_api)
+      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
       : memory_provider_([&] {
           BOOST_ASSERT(memory_provider);
           return std::move(memory_provider);
@@ -109,8 +108,7 @@ namespace kagome::host_api {
                   memory_provider_,
                   storage_provider_,
                   std::move(core_provider)},
-        storage_ext_(
-            storage_provider_, memory_provider_, hasher, std::move(state_api)),
+        storage_ext_(storage_provider_, memory_provider_, hasher),
         child_storage_ext_(storage_provider_, memory_provider_),
         offchain_ext_(offchain_config,
                       memory_provider_,
