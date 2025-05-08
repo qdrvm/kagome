@@ -748,8 +748,8 @@ namespace kagome::parachain {
         peer_view_->getMyViewObservable(),
         network::PeerView::EventType::kViewUpdated,
         [WEAK_SELF](const network::ExView &event) {
-          WEAK_LOCK(self);
-          self->on_active_leaves_update(event);
+          // WEAK_LOCK(self);
+          // self->on_active_leaves_update(event);
         });
 
     remote_view_sub_ = primitives::events::subscribe(
