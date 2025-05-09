@@ -748,8 +748,8 @@ namespace kagome::parachain {
         peer_view_->getMyViewObservable(),
         network::PeerView::EventType::kViewUpdated,
         [WEAK_SELF](const network::ExView &event) {
-          WEAK_LOCK(self);
-          self->on_active_leaves_update(event);
+          // WEAK_LOCK(self);
+          // self->on_active_leaves_update(event);
         });
 
     remote_view_sub_ = primitives::events::subscribe(
@@ -2711,84 +2711,6 @@ namespace kagome::parachain {
   void ApprovalDistribution::onValidationProtocolMsg(
       const libp2p::peer::PeerId &peer_id,
       const network::VersionedValidatorProtocolMessage &message) {
-    REINVOKE(
-        *approval_thread_handler_, onValidationProtocolMsg, peer_id, message);
-
-    if (!parachain_processor_->canProcessParachains()) {
-      return;
-    }
-
-    auto m = [&]() -> std::optional<std::reference_wrapper<
-                       const network::vstaging::ApprovalDistributionMessage>> {
-      auto m =
-          if_type<const network::vstaging::ValidatorProtocolMessage>(message);
-      if (!m) {
-        SL_TRACE(logger_, "Received V1 message.(peer_id={})", peer_id);
-        return std::nullopt;
-      }
-
-      auto a = if_type<const network::vstaging::ApprovalDistributionMessage>(
-          m->get());
-      if (!a) {
-        return std::nullopt;
-      }
-
-      return a;
-    }();
-
-    if (!m) {
-      return;
-    }
-
-    visit_in_place(
-        m->get(),
-        [&](const network::vstaging::Assignments &assignments) {
-          SL_TRACE(logger_,
-                   "Received assignments.(peer_id={}, count={})",
-                   peer_id,
-                   assignments.assignments.size());
-          for (const auto &assignment : assignments.assignments) {
-            if (auto it = pending_known_.find(
-                    assignment.indirect_assignment_cert.block_hash);
-                it != pending_known_.end()) {
-              SL_TRACE(
-                  logger_,
-                  "Pending assignment.(block hash={}, validator={}, peer={})",
-                  assignment.indirect_assignment_cert.block_hash,
-                  assignment.indirect_assignment_cert.validator,
-                  peer_id);
-              it->second.emplace_back(peer_id, PendingMessage{assignment});
-              continue;
-            }
-
-            import_and_circulate_assignment(peer_id,
-                                            assignment.indirect_assignment_cert,
-                                            assignment.candidate_bitfield);
-          }
-        },
-        [&](const network::vstaging::Approvals &approvals) {
-          SL_TRACE(logger_,
-                   "Received approvals.(peer_id={}, count={})",
-                   peer_id,
-                   approvals.approvals.size());
-          for (const auto &approval_vote : approvals.approvals) {
-            if (auto it = pending_known_.find(
-                    approval_vote.payload.payload.block_hash);
-                it != pending_known_.end()) {
-              SL_TRACE(
-                  logger_,
-                  "Pending approval.(block hash={}, validator={}, peer={})",
-                  approval_vote.payload.payload.block_hash,
-                  approval_vote.payload.ix,
-                  peer_id);
-              it->second.emplace_back(peer_id, PendingMessage{approval_vote});
-              continue;
-            }
-
-            import_and_circulate_approval(peer_id, approval_vote);
-          }
-        },
-        [&](const auto &) { UNREACHABLE; });
   }
 
   void ApprovalDistribution::runDistributeAssignment(

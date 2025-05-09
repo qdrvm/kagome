@@ -22,8 +22,7 @@ namespace kagome::host_api {
       std::shared_ptr<crypto::KeyStore> key_store,
       std::shared_ptr<offchain::OffchainPersistentStorage>
           offchain_persistent_storage,
-      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool,
-      LazySPtr<api::StateApi> state_api)
+      std::shared_ptr<offchain::OffchainWorkerPool> offchain_worker_pool)
       : offchain_config_(offchain_config),
         ecdsa_provider_(std::move(ecdsa_provider)),
         ed25519_provider_(std::move(ed25519_provider)),
@@ -36,8 +35,7 @@ namespace kagome::host_api {
         // because boost.di doesn't like optional<shared_ptr>
         key_store_(key_store ? std::optional(key_store) : std::nullopt),
         offchain_persistent_storage_(std::move(offchain_persistent_storage)),
-        offchain_worker_pool_(std::move(offchain_worker_pool)),
-        state_api_(std::move(state_api)) {
+        offchain_worker_pool_(std::move(offchain_worker_pool)) {
     BOOST_ASSERT(ecdsa_provider_ != nullptr);
     BOOST_ASSERT(ed25519_provider_ != nullptr);
     BOOST_ASSERT(sr25519_provider_ != nullptr);
@@ -64,8 +62,7 @@ namespace kagome::host_api {
                                          hasher_,
                                          key_store_,
                                          offchain_persistent_storage_,
-                                         offchain_worker_pool_,
-                                         state_api_);
+                                         offchain_worker_pool_);
   }
 
 }  // namespace kagome::host_api
