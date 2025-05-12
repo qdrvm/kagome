@@ -98,15 +98,7 @@ namespace kagome::primitives {
     uint32_t transaction_version = 1u;
 
     /// Version of the state implementation used by this runtime.
-    /// This field is kept for backward compatibility. It always has the same
-    /// value as system_version.
     uint8_t state_version = 0u;
-
-    /// Version of the system implementation used by this runtime.
-    /// Originally named state_version, but renamed to system_version in newer
-    /// versions. Both fields are maintained with identical values for
-    /// compatibility.
-    uint8_t system_version = 0u;
 
     bool operator==(const Version &rhs) const = default;
 
@@ -154,13 +146,11 @@ namespace kagome::primitives {
       }
       if (core_version and *core_version >= 4) {
         try {
-          decode(v.system_version, decoder);
-          v.state_version = v.system_version;
+          decode(v.state_version, decoder);
         } catch (std::system_error &e) {
           return outcome::failure(e.code());
         }
       } else {
-        v.system_version = 0;
         v.state_version = 0;
       }
       return v;

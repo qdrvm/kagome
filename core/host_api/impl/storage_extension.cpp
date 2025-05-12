@@ -35,12 +35,10 @@ namespace kagome::host_api {
   StorageExtension::StorageExtension(
       std::shared_ptr<runtime::TrieStorageProvider> storage_provider,
       std::shared_ptr<const runtime::MemoryProvider> memory_provider,
-      std::shared_ptr<const crypto::Hasher> hasher,
-      LazySPtr<api::StateApi> state_api)
+      std::shared_ptr<const crypto::Hasher> hasher)
       : storage_provider_(std::move(storage_provider)),
         memory_provider_(std::move(memory_provider)),
         hasher_(std::move(hasher)),
-        state_api_(std::move(state_api)),
         logger_{log::createLogger("StorageExtension", "storage_extension")} {
     BOOST_ASSERT(storage_provider_ != nullptr);
     BOOST_ASSERT(memory_provider_ != nullptr);
@@ -128,31 +126,6 @@ namespace kagome::host_api {
     SL_TRACE_VOID_FUNC_CALL(logger_, key, value);
 
     auto batch = storage_provider_->getCurrentBatch();
-
-    // Special handling for runtime code updates based on system version
-    if (key == storage::kRuntimeCodeKey and state_api_.get()) {
-      uint8_t system_version = 0;
-
-      const auto runtime_version_res =
-          state_api_.get()->getRuntimeVersion(std::nullopt);
-      if (runtime_version_res.has_value()) {
-        system_version = runtime_version_res.value().system_version;
-      }
-
-      if (system_version >= 3) {
-        SL_INFO(logger_,
-                "Storing runtime code in :pending_code (system_version: {})",
-                system_version);
-        auto put_result = batch->put(storage::kPendingRuntimeCodeKey, value);
-        if (not put_result) {
-          logger_->error(
-              "ext_set_storage failed to store pending code, reason: {}",
-              put_result.error());
-        }
-        return;
-      }
-    }
-
     auto put_result = batch->put(key, value);
     if (not put_result) {
       logger_->error(
