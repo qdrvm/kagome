@@ -11,6 +11,7 @@
 #include "api/service/state/state_api.hpp"
 #include "application/app_configuration.hpp"
 #include "crypto/hasher.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
 #include "metrics/metrics.hpp"
 #include "metrics/registry.hpp"
@@ -27,7 +28,7 @@ namespace kagome::state_metrics {
    public:
     StateMetricsImpl(const application::AppConfiguration &app_config,
                      std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-                     std::shared_ptr<api::StateApi> state_api,
+                     LazySPtr<api::StateApi> state_api,
                      std::shared_ptr<metrics::Registry> registry,
                      std::shared_ptr<crypto::Hasher> hasher);
     ~StateMetricsImpl() override;
@@ -43,7 +44,7 @@ namespace kagome::state_metrics {
 
     primitives::AccountId validator_id_;
     std::shared_ptr<libp2p::basic::Scheduler> scheduler_;
-    std::shared_ptr<api::StateApi> state_api_;
+    LazySPtr<api::StateApi> state_api_;
     kagome::metrics::Gauge *active_era_number_;
     kagome::metrics::Gauge *era_points_;
     std::atomic_bool stop_signal_received_;

@@ -17,7 +17,7 @@ namespace kagome::state_metrics {
   StateMetricsImpl::StateMetricsImpl(
       const application::AppConfiguration &app_config,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler,
-      std::shared_ptr<api::StateApi> state_api,
+      LazySPtr<api::StateApi> state_api,
       std::shared_ptr<metrics::Registry> registry,
       std::shared_ptr<crypto::Hasher> hasher)
       : scheduler_{std::move(scheduler)},
@@ -25,7 +25,6 @@ namespace kagome::state_metrics {
         stop_signal_received_{false},
         logger_{log::createLogger("StateMetrics", "state_metrics")} {
     BOOST_ASSERT(scheduler_);
-    BOOST_ASSERT(state_api_);
     BOOST_ASSERT(registry);
     BOOST_ASSERT(hasher);
     auto validator_address_res = app_config.getValidatorAddress();
@@ -117,7 +116,11 @@ namespace kagome::state_metrics {
   }
 
   std::optional<uint32_t> StateMetricsImpl::getActiveEraIndex() {
-    auto data = state_api_->getStorage(active_era_storage_key_);
+    auto state_api = state_api_.get();
+    if (state_api == nullptr) {
+      return std::nullopt;
+    }
+    auto data = state_api->getStorage(active_era_storage_key_);
     if (not data) {
       SL_DEBUG(logger_,
                "Error while getting active era: {}",
@@ -163,7 +166,11 @@ namespace kagome::state_metrics {
   std::optional<uint32_t> StateMetricsImpl::getRewardPoints(
       uint32_t era_index) {
     const auto storage_key = generateRewardPointsKey(era_index);
-    const auto data = state_api_->getStorage(storage_key);
+    auto state_api = state_api_.get();
+    if (state_api == nullptr) {
+      return std::nullopt;
+    }
+    const auto data = state_api->getStorage(storage_key);
     if (not data) {
       SL_DEBUG(logger_,
                "Error while getting reward points for era {}: {}",

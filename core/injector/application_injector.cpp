@@ -387,7 +387,7 @@ namespace {
     return std::make_shared<state_metrics::StateMetricsImpl>(
         injector.template create<const application::AppConfiguration &>(),
         injector.template create<sptr<libp2p::basic::Scheduler>>(),
-        injector.template create<sptr<api::StateApi>>(),
+        injector.template create<LazySPtr<api::StateApi>>(),
         injector.template create<sptr<metrics::Registry>>(),
         injector.template create<sptr<crypto::Hasher>>());
   }
