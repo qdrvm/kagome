@@ -46,6 +46,7 @@ using libp2p::peer::PeerInfo;
 using libp2p::protocol::kademlia::KademliaMock;
 using testing::_;
 using testing::Return;
+using testing::ReturnRef;
 
 struct AddressPublisherTest : public testing::Test {
   static void SetUpTestCase() {
@@ -61,12 +62,16 @@ struct AddressPublisherTest : public testing::Test {
     libp2p_key_.publicKey.data.resize(Ed25519PublicKey::size());
     peer_info_.addresses.push_back(
         Multiaddress::create("/ip4/127.0.0.1").value());
+    EXPECT_CALL(*host_, getId()).WillOnce(Return(peer_info_.id));
+    EXPECT_CALL(*config_, publicAddresses())
+        .WillOnce(ReturnRef(peer_info_.addresses));
 
     EXPECT_CALL(*app_state_manager_, atLaunch(_));
     EXPECT_CALL(*key_marshaller_, marshal(libp2p_key_.publicKey))
         .WillOnce(Return(libp2p::crypto::ProtobufKey{{}}));
 
     publisher_ = std::make_shared<AddressPublisher>(authority_discovery_api_,
+                                                    *config_,
                                                     roles_,
                                                     app_state_manager_,
                                                     block_tree_,
@@ -117,7 +122,6 @@ struct AddressPublisherTest : public testing::Test {
  * @then success
  */
 TEST_F(AddressPublisherTest, Success) {
-  EXPECT_CALL(*host_, getPeerInfo()).WillOnce(Return(peer_info_));
   EXPECT_CALL(crypto_store_->sr25519(), getPublicKeys(_))
       .WillOnce(Return(std::vector{audi_key_}));
   EXPECT_CALL(crypto_store_->sr25519(), findKeypair(_, _))
