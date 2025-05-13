@@ -95,7 +95,7 @@ namespace kagome::parachain {
         bind_null<crypto::KeyStore>(),
         bind_null<offchain::OffchainPersistentStorage>(),
         bind_null<offchain::OffchainWorkerPool>(),
-        bind_null<LazySPtr<api::StateApi>>(),
+        bind_null<api::StateApi>(),
         di::bind<runtime::CoreApiFactory>.to<runtime::CoreApiFactoryImpl>(),
 
         // bound by lambda because direct binding is failing: ctor gives
