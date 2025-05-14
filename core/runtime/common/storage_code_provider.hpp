@@ -30,8 +30,7 @@ namespace kagome::runtime {
         std::shared_ptr<const storage::trie::TrieStorage> storage,
         std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
         std::shared_ptr<const CodeSubstituteBlockIds> code_substitutes,
-        std::shared_ptr<application::ChainSpec> chain_spec,
-        LazySPtr<api::StateApi> state_api);
+        std::shared_ptr<application::ChainSpec> chain_spec_);
 
     Result getCodeAt(const storage::trie::RootHash &state) const override;
     Result getPendingCodeAt(
@@ -42,7 +41,6 @@ namespace kagome::runtime {
     std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker_;
     std::shared_ptr<const CodeSubstituteBlockIds> known_code_substitutes_;
     std::shared_ptr<application::ChainSpec> chain_spec_;
-    LazySPtr<api::StateApi> state_api_;
     mutable Code cached_code_;
     mutable storage::trie::RootHash last_state_root_;
     log::Logger logger_;
