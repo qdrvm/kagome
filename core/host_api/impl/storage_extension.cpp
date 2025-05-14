@@ -130,26 +130,29 @@ namespace kagome::host_api {
     auto batch = storage_provider_->getCurrentBatch();
 
     // Special handling for runtime code updates based on system version
-    if (key == storage::kRuntimeCodeKey and state_api_.get()) {
-      uint8_t system_version = 0;
+    if (key == storage::kRuntimeCodeKey) {
+      auto state_api = state_api_.get();
+      if (state_api) {
+        uint8_t system_version = 0;
 
-      const auto runtime_version_res =
-          state_api_.get()->getRuntimeVersion(std::nullopt);
-      if (runtime_version_res.has_value()) {
-        system_version = runtime_version_res.value().system_version;
-      }
-
-      if (system_version >= 3) {
-        SL_INFO(logger_,
-                "Storing runtime code in :pending_code (system_version: {})",
-                system_version);
-        auto put_result = batch->put(storage::kPendingRuntimeCodeKey, value);
-        if (not put_result) {
-          logger_->error(
-              "ext_set_storage failed to store pending code, reason: {}",
-              put_result.error());
+        const auto runtime_version_res =
+            state_api->getRuntimeVersion(std::nullopt);
+        if (runtime_version_res.has_value()) {
+          system_version = runtime_version_res.value().system_version;
         }
-        return;
+
+        if (system_version >= 3) {
+          SL_INFO(logger_,
+                  "Storing runtime code in :pending_code (system_version: {})",
+                  system_version);
+          auto put_result = batch->put(storage::kPendingRuntimeCodeKey, value);
+          if (not put_result) {
+            logger_->error(
+                "ext_set_storage failed to store pending code, reason: {}",
+                put_result.error());
+          }
+          return;
+        }
       }
     }
 
