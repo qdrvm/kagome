@@ -27,7 +27,7 @@ std::vector<uint8_t> pbEncodeVec(const T &v) {
 
 namespace kagome::authority_discovery {
   constexpr std::chrono::seconds kIntervalInitial{2};
-  constexpr std::chrono::hours kIntervalMax{1};
+  constexpr std::chrono::minutes kIntervalMax{5};
 
   // TODO(kamilsa): #2351, remove this variable when resolved
   constexpr bool kAudiDisableTimestamp = true;
