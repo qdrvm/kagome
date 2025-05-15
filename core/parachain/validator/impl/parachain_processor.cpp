@@ -3507,13 +3507,13 @@ namespace kagome::parachain {
   std::optional<parachain::ParachainInherentData>
   ParachainProcessorImpl::extractParachainInherentData(
       const std::vector<primitives::Extrinsic> &block_body) const {
-    SL_TRACE(logger_,
+    SL_INFO(logger_,
              "Extracting parachain inherent data from {} extrinsics",
              block_body.size());
 
     for (size_t ex_idx = 0; ex_idx < block_body.size(); ++ex_idx) {
       const auto &extrinsic = block_body[ex_idx];
-      SL_TRACE(logger_,
+      SL_INFO(logger_,
                "Examining extrinsic #{} (size: {})",
                ex_idx,
                extrinsic.data.size());
@@ -3523,7 +3523,7 @@ namespace kagome::parachain {
           && extrinsic.data[0] == parachain_inherent_data_extrinsic_version
           && extrinsic.data[1] == parachain_inherent_data_call
           && extrinsic.data[2] == parachain_inherent_data_module) {
-        SL_TRACE(
+        SL_INFO(
             logger_,
             "Extrinsic #{} matches v4 format pattern, attempting to decode",
             ex_idx);
@@ -3534,7 +3534,7 @@ namespace kagome::parachain {
             scale::decode<parachain::ParachainInherentData>(buffer);
 
         if (decode_res) {
-          SL_TRACE(
+          SL_INFO(
               logger_,
               "Successfully decoded ParachainInherentData from v4 extrinsic "
               "#{} (bitfields: {}, candidates: {}, disputes: {})",
@@ -3545,7 +3545,7 @@ namespace kagome::parachain {
           return decode_res.value();
         }
 
-        SL_DEBUG(
+        SL_INFO(
             logger_,
             "Failed to decode ParachainInherentData from v4 extrinsic #{}: {}",
             ex_idx,
@@ -3557,7 +3557,7 @@ namespace kagome::parachain {
 
       // Version 5 extrinsic format check
       if (data.size() < 2) {
-        SL_TRACE(logger_,
+        SL_INFO(logger_,
                  "Extrinsic #{} too small for v5 format (size: {})",
                  ex_idx,
                  data.size());
@@ -3567,7 +3567,7 @@ namespace kagome::parachain {
       try {
         // First, we must skip the length prefix
         size_t pos = 0;
-        SL_TRACE(logger_,
+        SL_INFO(logger_,
                  "Extrinsic #{}: checking for v5 format, initial byte: 0x{:x}",
                  ex_idx,
                  data[pos]);
@@ -3576,31 +3576,31 @@ namespace kagome::parachain {
         uint8_t mode = data[pos] & 0b11;
         if (mode == 0b00) {
           // Single byte mode - value is in the upper 6 bits
-          SL_TRACE(logger_,
+          SL_INFO(logger_,
                    "Extrinsic #{}: single byte length prefix, advancing by 1",
                    ex_idx);
           pos += 1;
         } else if (mode == 0b01) {
           // Two byte mode
           if (pos + 2 > data.size()) {
-            SL_TRACE(logger_,
+            SL_INFO(logger_,
                      "Extrinsic #{}: two byte mode but not enough data",
                      ex_idx);
             continue;
           }
-          SL_TRACE(logger_,
+          SL_INFO(logger_,
                    "Extrinsic #{}: two byte length prefix, advancing by 2",
                    ex_idx);
           pos += 2;
         } else if (mode == 0b10) {
           // Four byte mode
           if (pos + 4 > data.size()) {
-            SL_TRACE(logger_,
+            SL_INFO(logger_,
                      "Extrinsic #{}: four byte mode but not enough data",
                      ex_idx);
             continue;
           }
-          SL_TRACE(logger_,
+          SL_INFO(logger_,
                    "Extrinsic #{}: four byte length prefix, advancing by 4",
                    ex_idx);
           pos += 4;
@@ -3609,14 +3609,14 @@ namespace kagome::parachain {
           // First byte tells us how many bytes to read (lower 6 bits + 4)
           uint8_t len = (data[pos] >> 2) + 4;
           if (pos + len > data.size()) {
-            SL_TRACE(logger_,
+            SL_INFO(logger_,
                      "Extrinsic #{}: variable length mode ({} bytes) but not "
                      "enough data",
                      ex_idx,
                      len);
             continue;
           }
-          SL_TRACE(
+          SL_INFO(
               logger_,
               "Extrinsic #{}: variable length prefix, advancing by {} bytes",
               ex_idx,
@@ -3626,7 +3626,7 @@ namespace kagome::parachain {
 
         // Make sure we have at least one more byte for the version
         if (pos >= data.size()) {
-          SL_TRACE(logger_,
+          SL_INFO(logger_,
                    "Extrinsic #{}: no bytes left after length prefix",
                    ex_idx);
           continue;
@@ -3637,33 +3637,35 @@ namespace kagome::parachain {
         uint8_t version = version_byte & v5_version_mask;
 
         if (version != 5) {
-          SL_TRACE(logger_,
+          SL_INFO(logger_,
                    "Extrinsic #{}: not a v5 extrinsic (version byte: 0x{:x}, "
-                   "parsed version: {})",
+                   "parsed version: {}, data: {})"
                    ex_idx,
                    version_byte,
-                   version);
+                   version,
+                   data.toHex());
           continue;  // Not a v5 extrinsic
         }
 
         bool is_signed = (version_byte & v5_signed_mask) != 0;
-        SL_TRACE(logger_,
+        SL_INFO(logger_,
                  "Extrinsic #{}: found extrinsic version 5 (signed: {}, "
-                 "version_byte: 0x{:x})",
+                 "version_byte: 0x{:x}, data: {})",
                  ex_idx,
                  is_signed ? "true" : "false",
-                 version_byte);
+                 version_byte,
+                 data.toHex());
 
         // Now handle the extrinsic based on its type
         if (version_byte == v5_bare_extrinsic) {
           // Bare extrinsic - next bytes should be the call directly
-          SL_TRACE(logger_,
+          SL_INFO(logger_,
                    "Extrinsic #{}: found v5 bare extrinsic, pos: {}",
                    ex_idx,
                    pos);
         } else if (version_byte == v5_general_extrinsic) {
           // General extrinsic - has extension data
-          SL_TRACE(logger_,
+          SL_INFO(logger_,
                    "Extrinsic #{}: found v5 general extrinsic, pos: {}",
                    ex_idx,
                    pos);
@@ -3674,7 +3676,7 @@ namespace kagome::parachain {
 
           // First, check if we have enough bytes
           if (pos >= data.size()) {
-            SL_TRACE(logger_,
+            SL_INFO(logger_,
                      "Extrinsic #{}: no bytes left after version byte",
                      ex_idx);
             continue;
@@ -3683,24 +3685,24 @@ namespace kagome::parachain {
           // We need to skip all the extension data
           // But we don't know exactly what's in the extensions
           // So we'll search for the parachain module/call identifiers
-          SL_TRACE(
+          SL_INFO(
               logger_,
               "Extrinsic #{}: searching for parachain identifiers after pos {}",
               ex_idx,
               pos);
         } else {
           // Not a recognized v5 format
-          SL_TRACE(
+          SL_INFO(
               logger_,
               "Extrinsic #{}: unrecognized v5 format (version_byte: 0x{:x})",
               ex_idx,
               version_byte);
-          SL_TRACE(logger_, "Extrinsic #{}: data: {}", ex_idx, data.toHex());
+          SL_INFO(logger_, "Extrinsic #{}: data: {}", ex_idx, data.toHex());
           continue;
         }
 
         // Search for parachain inherent data in the remaining bytes
-        SL_TRACE(logger_,
+        SL_INFO(logger_,
                  "Extrinsic #{}: searching for parachain identifiers in "
                  "remaining {} bytes",
                  ex_idx,
@@ -3710,7 +3712,7 @@ namespace kagome::parachain {
               && data[i + 1] == parachain_inherent_data_module) {
             // Found the call identifiers, move past them
             size_t data_pos = i + 2;
-            SL_TRACE(logger_,
+            SL_INFO(logger_,
                      "Extrinsic #{}: found parachain call identifiers at pos "
                      "{} (call: 0x{:x}, module: 0x{:x})",
                      ex_idx,
@@ -3719,7 +3721,7 @@ namespace kagome::parachain {
                      data[i + 1]);
 
             if (data_pos >= data.size()) {
-              SL_DEBUG(logger_,
+              SL_INFO(logger_,
                        "Extrinsic #{}: not enough data after call identifiers",
                        ex_idx);
               break;
@@ -3728,7 +3730,7 @@ namespace kagome::parachain {
             // Create a span of the remaining bytes and attempt to decode
             std::span<const uint8_t> buffer(&data[data_pos],
                                             data.size() - data_pos);
-            SL_TRACE(logger_,
+            SL_INFO(logger_,
                      "Extrinsic #{}: attempting to decode "
                      "ParachainInherentData from {} bytes at pos {}",
                      ex_idx,
@@ -3741,7 +3743,7 @@ namespace kagome::parachain {
               // Additional verification that this is actually a parachain
               // inherent data
               auto &result = decode_res.value();
-              SL_TRACE(logger_,
+              SL_INFO(logger_,
                        "Extrinsic #{}: decoded ParachainInherentData "
                        "(bitfields: {}, candidates: {}, disputes: {})",
                        ex_idx,
@@ -3751,20 +3753,20 @@ namespace kagome::parachain {
 
               if (!result.bitfields.empty() || !result.backed_candidates.empty()
                   || !result.disputes.empty()) {
-                SL_TRACE(logger_,
+                SL_INFO(logger_,
                          "Extrinsic #{}: validated ParachainInherentData "
                          "content at position {}",
                          ex_idx,
                          i);
                 return result;
               } else {
-                SL_TRACE(logger_,
+                SL_INFO(logger_,
                          "Extrinsic #{}: decoded ParachainInherentData is "
                          "empty, skipping",
                          ex_idx);
               }
             } else {
-              SL_DEBUG(logger_,
+              SL_INFO(logger_,
                        "Extrinsic #{}: found call identifiers but failed to "
                        "decode ParachainInherentData: {}",
                        ex_idx,
@@ -3772,18 +3774,18 @@ namespace kagome::parachain {
             }
           }
         }
-        SL_TRACE(logger_,
+        SL_INFO(logger_,
                  "Extrinsic #{}: no valid parachain inherent data found",
                  ex_idx);
       } catch (const std::exception &e) {
-        SL_DEBUG(logger_,
+        SL_INFO(logger_,
                  "Extrinsic #{}: exception while parsing: {}",
                  ex_idx,
                  e.what());
       }
     }
 
-    SL_DEBUG(logger_,
+    SL_INFO(logger_,
              "No ParachainInherentData found in any of the {} extrinsics",
              block_body.size());
     return std::nullopt;
