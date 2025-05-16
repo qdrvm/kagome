@@ -369,6 +369,7 @@ namespace {
         injector.template create<primitives::events::ExtrinsicSubscriptionEnginePtr>(),
         injector.template create<std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>(),
         injector.template create<std::shared_ptr<blockchain::JustificationStoragePolicy>>(),
+        injector.template create<sptr<storage::trie::TrieStorage>>(),
         injector.template create<sptr<storage::trie_pruner::TriePruner>>(),
         injector.template create<common::MainThreadPool &>());
     // clang-format on
@@ -857,7 +858,7 @@ namespace {
             bind_by_lambda<storage::trie::TrieStorage>([](const auto
                                                               &injector) {
                         auto storage = injector.template create<sptr<storage::SpacedStorage>>();
-                                           
+                        
                         return storage::trie::TrieStorageImpl::createEmpty(
                          injector.template create<
                              sptr<storage::trie::PolkadotTrieFactory>>(),

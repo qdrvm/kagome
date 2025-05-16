@@ -137,6 +137,7 @@ namespace kagome::storage {
 
     RocksDbSpace(std::weak_ptr<RocksDb> storage,
                  const RocksDb::ColumnFamilyHandlePtr &column,
+                 Space space,
                  log::Logger logger);
 
     std::unique_ptr<BufferBatch> batch() override;

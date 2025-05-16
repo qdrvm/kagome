@@ -360,8 +360,8 @@ namespace kagome::storage {
     if (column_family_handles_.end() == column) {
       throw DatabaseError::INVALID_ARGUMENT;
     }
-    auto space_ptr =
-        std::make_shared<RocksDbSpace>(weak_from_this(), *column, logger_);
+    auto space_ptr = std::make_shared<RocksDbSpace>(
+        weak_from_this(), *column, space, logger_);
     spaces_[space] = space_ptr;
     return space_ptr;
   }
@@ -457,9 +457,11 @@ namespace kagome::storage {
 
   RocksDbSpace::RocksDbSpace(std::weak_ptr<RocksDb> storage,
                              const RocksDb::ColumnFamilyHandlePtr &column,
+                             Space space,
                              log::Logger logger)
       : storage_{std::move(storage)},
         column_{column},
+        space_{space},
         logger_{std::move(logger)} {}
 
   std::unique_ptr<BufferBatch> RocksDbSpace::batch() {

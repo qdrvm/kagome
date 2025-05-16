@@ -137,18 +137,18 @@ namespace kagome::application {
     using namespace std::literals;
 
     static constexpr std::
-        array<std::pair<std::string_view, kagome::application::SyncMethod>, 6>
+        array<std::pair<std::string_view, application::SyncMethod>, 6>
             kSyncMethods{
-                std::pair{"Full"sv, kagome::application::SyncMethod::Full},
-                {"Fast"sv, kagome::application::SyncMethod::Fast},
+                std::pair{"Full"sv, application::SyncMethod::Full},
+                {"Fast"sv, application::SyncMethod::Fast},
                 {"FastWithoutState"sv,
-                 kagome::application::SyncMethod::FastWithoutState},
-                {"Warp"sv, kagome::application::SyncMethod::Warp},
-                {"Unsafe"sv, kagome::application::SyncMethod::Unsafe},
-                {"Auto"sv, kagome::application::SyncMethod::Auto},
+                 application::SyncMethod::FastWithoutState},
+                {"Warp"sv, application::SyncMethod::Warp},
+                {"Unsafe"sv, application::SyncMethod::Unsafe},
+                {"Auto"sv, application::SyncMethod::Auto},
             };
 
-    std::optional<kagome::application::SyncMethod> str_to_sync_method(
+    std::optional<application::SyncMethod> str_to_sync_method(
         std::string_view str) {
       for (auto &[method_name, method] : kSyncMethods) {
         if (str == method_name) {

@@ -70,6 +70,10 @@ namespace kagome::parachain {
                           const OnNodeLoaded &on_node_loaded) const override {
       return nullptr;
     }
+
+    virtual storage::BufferStorage &DEBUG_getDirectStorage() {
+      std::abort();
+    }
   };
 
   template <typename T>

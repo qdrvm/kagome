@@ -51,6 +51,10 @@ namespace kagome::storage::trie {
         const RootHash &root,
         const OnNodeLoaded &on_node_loaded) const override;
 
+    BufferStorage &DEBUG_getDirectStorage() override {
+      return *direct_kv_;
+    }
+
    protected:
     TrieStorageImpl(
         std::shared_ptr<Codec> codec,

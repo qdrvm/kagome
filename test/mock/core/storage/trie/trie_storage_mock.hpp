@@ -28,6 +28,8 @@ namespace kagome::storage::trie {
                 getProofReaderBatchAt,
                 (const RootHash &root, const OnNodeLoaded &on_node_loaded),
                 (const, override));
+
+    MOCK_METHOD(BufferStorage &, DEBUG_getDirectStorage, (), (override));
   };
 
 }  // namespace kagome::storage::trie

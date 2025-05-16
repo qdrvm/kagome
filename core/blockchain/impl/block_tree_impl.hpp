@@ -66,6 +66,7 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
+        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
         common::MainThreadPool &main_thread_pool);
 
@@ -177,6 +178,7 @@ namespace kagome::blockchain {
 
     struct BlockTreeData {
       std::shared_ptr<BlockStorage> storage_;
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
       std::unique_ptr<CachedTree> tree_;
       std::shared_ptr<crypto::Hasher> hasher_;
@@ -204,6 +206,7 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
+        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
         common::MainThreadPool &main_thread_pool);
 

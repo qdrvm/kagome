@@ -30,6 +30,7 @@
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "storage/trie/update_direct_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 #include "utils/sptr.hpp"
@@ -965,21 +966,6 @@ namespace kagome::network {
         state_sync_->peer, std::move(request), std::move(response_handler));
   }
 
-  outcome::result<void> updateDirectStorage(
-      const storage::trie::RootHash &root,
-      storage::trie::TrieBatch &trie,
-      storage::RocksDbSpace &direct_storage) {
-    OUTCOME_TRY(direct_storage.clear());
-    auto batch = direct_storage.batch();
-    for (auto cursor = trie.trieCursor(); cursor->isValid();) {
-      OUTCOME_TRY(batch->put(cursor->key().value(), cursor->value().value()));
-      OUTCOME_TRY(cursor->next());
-    }
-    OUTCOME_TRY(batch->put(storage::trie::kLastCommittedHashKey, root));
-    OUTCOME_TRY(batch->commit());
-    return outcome::success();
-  }
-
   outcome::result<void> SynchronizerImpl::syncState(
       std::unique_lock<std::mutex> &lock,
       outcome::result<StateResponse> &&_res) {
@@ -993,8 +979,9 @@ namespace kagome::network {
     OUTCOME_TRY(trie_pruner_->addNewState(state_sync_flow_->root(),
                                           storage::trie::StateVersion::V0));
     OUTCOME_TRY(trie, storage_->getEphemeralBatchAt(state_sync_flow_->root()));
-    OUTCOME_TRY(updateDirectStorage(
-        state_sync_flow_->root(), *trie, *trie_direct_storage_));
+    SL_DEBUG(log_, "New direct storage root: {}", state_sync_flow_->root());
+    OUTCOME_TRY(storage::trie::updateDirectStorage(
+        state_sync_flow_->root(), *trie, *trie_direct_storage_, log_));
     auto block = state_sync_flow_->blockInfo();
     state_sync_flow_.reset();
     SL_INFO(log_, "State syncing block {} has finished.", block);
