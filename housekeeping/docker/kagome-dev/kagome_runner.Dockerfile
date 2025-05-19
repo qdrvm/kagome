@@ -95,4 +95,5 @@ LABEL org.opencontainers.image.description="Kagome debug image"
 
 RUN install_packages \
         gdb \
-        gdbserver
+        gdbserver \
+        heaptrack
