@@ -31,6 +31,8 @@ namespace kagome::network {
    */
   class SyncProtocol : public virtual ProtocolBase {
    public:
+    using Cb = std::function<void(outcome::result<BlocksResponse>)>;
+
     /**
      * @brief Make async request to peer and return response in callback
      * @param peer_id of a peer to make request to
@@ -39,8 +41,7 @@ namespace kagome::network {
      */
     virtual void request(const PeerId &peer_id,
                          BlocksRequest block_request,
-                         std::function<void(outcome::result<BlocksResponse>)>
-                             &&response_handler) = 0;
+                         Cb &&response_handler) = 0;
   };
 
 }  // namespace kagome::network
