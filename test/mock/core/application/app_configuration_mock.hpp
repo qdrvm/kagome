@@ -141,6 +141,11 @@ namespace kagome::application {
 
     MOCK_METHOD(size_t, pvfMaxWorkers, (), (const, override));
 
+    MOCK_METHOD(runtime::OptimizationLevel,
+                pvfOptimizationLevel,
+                (),
+                (const, override));
+
     MOCK_METHOD(bool, disableSecureMode, (), (const, override));
 
     MOCK_METHOD(bool, enableDbMigration, (), (const, override));
@@ -206,6 +211,11 @@ namespace kagome::application {
                 (const, override));
 
     MOCK_METHOD(uint32_t, maxParallelDownloads, (), (const, override));
+
+    MOCK_METHOD(std::optional<BlockNumber>,
+                unsafeSyncTo,
+                (),
+                (const, override));
   };
 
 }  // namespace kagome::application

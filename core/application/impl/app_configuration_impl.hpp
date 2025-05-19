@@ -241,6 +241,9 @@ namespace kagome::application {
     std::optional<PrecompileWasmConfig> precompileWasm() const override {
       return precompile_wasm_;
     }
+    std::optional<BlockNumber> unsafeSyncTo() const override {
+      return unsafe_sync_to_;
+    }
 
     std::optional<std::string> getValidatorAddress() const override {
       return validator_address_ss58_;
@@ -248,6 +251,10 @@ namespace kagome::application {
 
     uint32_t maxParallelDownloads() const override {
       return max_parallel_downloads_;
+    }
+
+    runtime::OptimizationLevel pvfOptimizationLevel() const override {
+      return pvf_optimization_level_;
     }
 
    private:
@@ -391,10 +398,13 @@ namespace kagome::application {
     bool use_pvf_subprocess_{true};
     size_t pvf_max_workers_{
         std::max<size_t>(std::thread::hardware_concurrency(), 1)};
+    runtime::OptimizationLevel pvf_optimization_level_{
+        runtime::OptimizationLevel::O2};
     bool disable_secure_mode_{false};
     std::optional<PrecompileWasmConfig> precompile_wasm_;
     std::optional<std::string> validator_address_ss58_;
     uint32_t max_parallel_downloads_{};
+    std::optional<BlockNumber> unsafe_sync_to_;
   };
 
 }  // namespace kagome::application

@@ -1,43 +1,226 @@
-name: (Dummy) Test Main Workflow
+# github actions
+#
+# Copyright Quadrivium LLC
+# All Rights Reserved
+# SPDX-License-Identifier: Apache-2.0
+#
+
+name: Main Build Pipeline (New)
 
 on:
+  push:
+    branches: [ master ]
+    tags: [ '*' ]
+  pull_request:
   workflow_dispatch:
     inputs:
-      message:
-        description: 'Custom message to display'
+      build_type:
+        description: 'Build type for zombie tests'
         required: false
-        default: 'Hello World!'
-        type: 'string'
-      show_env:
-        description: 'Show environment information'
+        default: 'Release'
+        type: 'choice'
+        options:
+          - 'Debug'
+          - 'Release'
+          - 'RelWithDebInfo'
+      use_cache:
+        description: 'Use cache'
+        required: true
+        default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
+      cache_upload_allowed:
+        description: 'Force cache upload'
+        required: true
+        default: 'false'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
+      run_amd64:
+        description: 'Run tests on AMD64 architecture'
+        required: false
+        default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
+      run_arm64:
+        description: 'Run tests on ARM64 architecture'
         required: false
         default: 'false'
         type: 'choice'
         options:
           - 'true'
           - 'false'
+      run_zombie_tests:
+        description: 'Run zombie tests'
+        required: false
+        default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
+      builder_latest_tag:
+        description: '(In) Custom Builder tag'
+        default: '20250322'
+        required: false
+        type: 'string'
+      zombie_tester_latest_tag:
+        description: '(In) Custom Zombie Tester tag'
+        default: '20250323'
+        required: false
+        type: 'string'
+      runtime_package_version:
+        description: '(In) Custom runtime package version'
+        default: '20250429-0.14.1-3fbf6c6'
+        required: false
+        type: 'string'
+
+env:
+  # Standard env vars
+  BUILD_DIR: build
+  KAGOME_IN_DOCKER: 1
+  CTEST_OUTPUT_ON_FAILURE: 1
+  GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+  GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+  CACHE_VERSION: v01
+  CACHE_PATHS: |
+    ~/Library/Caches/pip
+    ~/.cargo
+    ~/.ccache
+    ~/.hunter
+    ~/.rustup
+  CACHE_PATH: ./build_docker_ci/cache
+  DOCKER_BUILD_DIR_NAME: build_docker_ci
+  DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
+  PROJECT_ID: ${{ secrets.GCP_PROJECT }}
+  DEFAULT_BUILD_TYPE: Release
+  GIT_REF_NAME: ${{ github.ref_name }}
+  IS_MAIN_OR_TAG: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')) }}
+
+  # Configuration variables with proper defaults - no circular references
+  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || vars.CI_TESTER_TAG || '20250323' }}
+  RUNTIME_PACKAGE_VERSION: ${{ github.event.inputs.runtime_package_version || vars.CI_RUNTIME_PACKAGE_VERSION || '20250429-0.14.1-3fbf6c6' }}
+  USE_CACHE: ${{ github.event.inputs.use_cache || 'true' }}
+  CACHE_UPLOAD_ALLOWED: ${{ github.event.inputs.cache_upload_allowed || 'false' }}
+  RUN_AMD64: ${{ github.event.inputs.run_amd64 || 'true' }}
+  RUN_ARM64: ${{ github.event.inputs.run_arm64 || 'false' }}
+  BUILD_TYPE: ${{ github.event.inputs.build_type || 'Release' }}
 
 jobs:
-  dummy-job:
+  diagnostic:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        
-      - name: Display message
-        run: echo "${{ github.event.inputs.message }}"
-        
-      - name: Show workflow information
+      - name: "Show context variables"
         run: |
-          echo "Running on branch: ${{ github.ref_name }}"
-          echo "Triggered by: ${{ github.actor }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Workflow run ID: ${{ github.run_id }}"
+          echo "=== GitHub Context ==="
+          echo "github.ref: ${{ github.ref }}"
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "Is PR: ${{ github.event_name == 'pull_request' }}"
           
-      - name: Show environment information
-        if: ${{ github.event.inputs.show_env == 'true' }}
-        run: |
-          echo "Current directory: $(pwd)"
-          echo "Current time: $(date)"
-          echo "Node.js version: $(node --version)"
-          echo "OS information: $(uname -a)"
+          echo "=== Configuration ==="
+          echo "Run AMD64: ${{ env.RUN_AMD64 }}"
+          echo "Run ARM64: ${{ env.RUN_ARM64 }}"
+          echo "Run Tidy: Always enabled"
+          echo "Run Sanitizers: Always enabled"
+          echo "Run Zombie Tests: ${{ github.event.inputs.run_zombie_tests != 'false' }}"
+          echo "Use Cache: ${{ env.USE_CACHE }}"
+          echo "Cache Upload Allowed: ${{ env.CACHE_UPLOAD_ALLOWED }}"
+          
+          echo "=== Version Tags ==="
+          echo "Builder tag: ${{ env.BUILDER_LATEST_TAG }}"
+          echo "Tester tag: ${{ env.TESTER_LATEST_TAG }}"
+          echo "Runtime package version: ${{ env.RUNTIME_PACKAGE_VERSION }}"
+          echo "Build Type for Zombie Tests: ${{ env.BUILD_TYPE }}"
+
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        options:
+          - name: "MacOS: Build Debug"
+            build_type: "Debug"
+            wasm_compiler: "WasmEdge"
+          - name: "MacOS: Build Release"
+            build_type: "Release"
+            wasm_compiler: "WasmEdge"
+          - name: "MacOS WAVM: Build Debug"
+            build_type: "Debug"
+            wasm_compiler: "WAVM"
+    name: "${{ matrix.options.name }}"
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v4
+      if: ${{ env.USE_CACHE == 'true' }}
+      with:
+        path: ${{ env.CACHE_PATHS }}
+        key: ${{ github.job }}-${{ env.CACHE_VERSION }}
+    - name: install
+      run: ./housekeeping/macos/dependency.sh
+      env:
+        KAGOME_MAC_CI: 1
+    - name: build
+      run: ./housekeeping/make_build.sh -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.options.build_type }} -DCLEAR_OBJS=ON -DCOVERAGE=OFF -DWASM_COMPILER=${{ matrix.options.wasm_compiler }} -DCMAKE_TOOLCHAIN_FILE=cmake/toolchain/cxx20.cmake
+      env:
+        KAGOME_IN_DOCKER: 0
+        KAGOME_MAC_CI: 1
+
+  tidy:
+    needs: [diagnostic]
+    if: success()
+    uses: ./.github/workflows/test-pipeline.yaml
+    with:
+      build_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
+      build_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
+      builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
+    secrets: inherit
+
+  sanitizers:
+    needs: [diagnostic]
+    if: success()
+    uses: ./.github/workflows/sanitizers.yaml
+    with:
+      build_tsan: "true"
+      build_asanubsan: "true"
+      build_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
+      build_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
+      use_cache: ${{ github.event.inputs.use_cache || 'true' }}
+      cache_upload_allowed: ${{ github.event.inputs.cache_upload_allowed || 'false' }}
+      builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
+    secrets: inherit
+
+  build:
+    needs: [diagnostic]
+    if: success()
+    uses: ./.github/workflows/build.yaml
+    with:
+      build_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
+      build_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
+      build_debug: true
+      build_release: true
+      build_relwithdebinfo: true
+      use_cache: ${{ github.event.inputs.use_cache || 'true' }}
+      cache_upload_allowed: ${{ github.event.inputs.cache_upload_allowed || 'false' }}
+      builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
+    secrets: inherit
+
+  zombie_tests:
+    needs: [build]
+    if: ${{ success() && needs.build.result == 'success' && (github.event.inputs.run_zombie_tests != 'false') }}
+    uses: ./.github/workflows/zombie-tests.yaml
+    with:
+      build_type: ${{ github.event.inputs.build_type || 'Release' }}
+      use_cache: ${{ github.event.inputs.use_cache || 'true' }}
+      builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || vars.CI_BUILDER_TAG || '20250322' }}
+      zombie_tester_latest_tag: ${{ github.event.inputs.zombie_tester_latest_tag || vars.CI_TESTER_TAG || '20250323' }}
+      runtime_package_version: ${{ github.event.inputs.runtime_package_version || vars.CI_RUNTIME_PACKAGE_VERSION || '20250429-0.14.1-3fbf6c6' }}
+      run_amd64: ${{ github.event.inputs.run_amd64 || 'true' }}
+      run_arm64: ${{ github.event.inputs.run_arm64 || 'false' }}
+      skip_build: 'true'
+    secrets: inherit

@@ -18,14 +18,6 @@ on:
           - Release
           - Debug
           - RelWithDebInfo
-      werror:
-        description: 'Enable -Werror'
-        required: true
-        default: 'OFF'
-        type: 'choice'
-        options:
-          - 'ON'
-          - 'OFF'
       use_cache:
         description: 'Use cache for build'
         required: true
@@ -35,43 +27,127 @@ on:
           - 'true'
           - 'false'
       builder_latest_tag:
-        description: 'Custom Builder tag'
-        default: 'latest'
+        description: '(In) Custom Kagome Builder tag'
+        default: '20250322' # Or 'latest'
         required: false
         type: 'string'
       zombie_tester_latest_tag:
-        description: 'Custom Zombie Tester tag'
-        default: 'latest'
+        description: '(In) Custom Zombie Tester tag'
+        default: '20250323' # Or 'latest'
         required: false
         type: 'string'
+      runtime_package_version:
+        description: '(In) Custom runtime package version'
+        default: '20250429-0.14.1-3fbf6c6'
+        required: true
+        type: 'string'
+      run_amd64:
+        description: 'Run tests on AMD64 architecture'
+        required: false
+        default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
+      run_arm64:
+        description: 'Run tests on ARM64 architecture'
+        required: false
+        default: 'true'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
+      skip_build:
+        description: 'Skip building packages (use when called from main pipeline)'
+        required: false
+        default: 'false'
+        type: 'choice'
+        options:
+          - 'true'
+          - 'false'
+
+  workflow_call:
+    inputs:
+      build_type:
+        type: string
+        default: 'Release'
+        required: false
+        description: 'Build type'
+      use_cache:
+        type: string
+        default: 'true'
+        required: false
+        description: 'Use cache for build'
+      builder_latest_tag:
+        type: string
+        default: '20250322' # Or 'latest'
+        required: false
+        description: 'Custom Kagome Builder tag'
+      zombie_tester_latest_tag:
+        type: string
+        default: '20250323' # Or 'latest'
+        required: false
+        description: 'Custom Zombie Tester tag'
+      runtime_package_version:
+        type: string
+        default: '20250429-0.14.1-3fbf6c6'
+        required: false
+        description: 'Custom runtime package version'
+      run_amd64:
+        type: string
+        default: 'true'
+        required: false
+        description: 'Run tests on AMD64 architecture'
+      run_arm64:
+        type: string
+        default: 'true'
+        required: false
+        description: 'Run tests on ARM64 architecture'
+      skip_build:
+        type: string
+        default: 'false'
+        required: false
+        description: 'Skip building packages (use when called from main pipeline)'
+    secrets:
+      GCP_SERVICE_ACCOUNT_KEY:
+        required: true
+      GCP_REGISTRY:
+        required: true
+      GCP_PROJECT:
+        required: true
 
 env:
   DOCKER_REGISTRY_PATH: ${{ secrets.GCP_REGISTRY }}/${{ secrets.GCP_PROJECT }}/kagome-dev/
   PROJECT_ID: ${{ secrets.GCP_PROJECT }}
-  BUILD_DIR: build
   CTEST_OUTPUT_ON_FAILURE: 1
   CI: true
 
-  CACHE_VERSION: v01
-  CACHE_PATH: ./build/cache
-  USE_CACHE: ${{ github.event.inputs.use_cache || 'true' }}
-  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || 'latest' }}
-  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || 'latest' }}
+  BUILDER_LATEST_TAG: ${{ github.event.inputs.builder_latest_tag || inputs.builder_latest_tag || '20250322' }} # Or 'latest'
+  TESTER_LATEST_TAG: ${{ github.event.inputs.zombie_tester_latest_tag || inputs.zombie_tester_latest_tag || '20250323' }} # Or 'latest'
+  RUNTIME_PACKAGE_VERSION_NO_ARCH: ${{ github.event.inputs.runtime_package_version || inputs.runtime_package_version || '20250429-0.14.1-3fbf6c6' }}
+
+  CACHE_PATH: ./build_docker_ci/cache
+  USE_CACHE: ${{ github.event.inputs.use_cache || inputs.use_cache || 'true' }}
+  RUN_AMD64: ${{ github.event.inputs.run_amd64 || inputs.run_amd64 || 'true' }}
+  RUN_ARM64: ${{ github.event.inputs.run_arm64 || inputs.run_arm64 || 'true' }}
+  SKIP_BUILD: ${{ github.event.inputs.skip_build || inputs.skip_build || 'false' }}
+  BUILD_TYPE: ${{ github.event.inputs.build_type || inputs.build_type || 'Release' }}
 
 jobs:
-  kagome_dev_docker_build:
-    runs-on: [ actions-runner-controller ]
-    timeout-minutes: 180
-
+  check_package_exists:
+    runs-on: ubuntu-latest
+    outputs:
+      package_exists: ${{ steps.check.outputs.exists }}
+      skip_build: ${{ steps.skip_check.outputs.skip_build }}
     steps:
-      - name: "Checkout repository"
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: "Get master branch"
-        if: github.ref != 'refs/heads/master'
-        run: git fetch origin master:master || true
+      - name: "Set skip build output"
+        id: skip_check
+        run: |
+          SKIP_BUILD="${{ github.event.inputs.skip_build || inputs.skip_build || 'false' }}"
+          echo "Setting skip_build to $SKIP_BUILD"
+          echo "skip_build=$SKIP_BUILD" >> $GITHUB_OUTPUT
 
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
@@ -81,145 +157,150 @@ jobs:
       - name: "Set up Cloud SDK"
         uses: 'google-github-actions/setup-gcloud@v2'
 
-      - name: "Configure Docker for GCR"
-        run: |
-          gcloud auth configure-docker --quiet
-          gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
-
       - name: "Get commit version"
         working-directory: ./housekeeping/docker/kagome-dev
-        run: make get_versions
+        run: make configure
 
-      - name: "Check package version"
+      - name: "Check package existence"
+        id: check
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
-          ARTIFACTS_REPO=$(grep '^ARTIFACTS_REPO ?=' Makefile | sed 's/ARTIFACTS_REPO ?= //')
-          REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
-          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          PACKAGE_VERSION="$(date +'%y.%m.%d')-${SHORT_COMMIT_HASH}-${{ github.event.inputs.build_type }}"
-          echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
-          echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_ENV
-          echo "short_commit_hash=${SHORT_COMMIT_HASH}" >> $GITHUB_ENV
-          gcloud config set artifacts/repository $ARTIFACTS_REPO
-          gcloud config set artifacts/location $REGION
-          PACKAGE_EXIST=$(gcloud artifacts versions list --package=kagome-dev --format=json | jq -e ".[] | select(.name | endswith(\"${PACKAGE_VERSION}\"))" > /dev/null && echo "True" || echo "False")
-          echo "package_exist=${PACKAGE_EXIST}" >> $GITHUB_ENV
-
-      - name: "Cache dependencies"
-        if: ${{ env.package_exist == 'False' && env.USE_CACHE == 'true' }}
-        id: cache-restore
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.CACHE_PATH }}
-          key: ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}-${{ env.short_commit_hash }}
-          restore-keys: |
-              ${{ github.job }}-${{ env.CACHE_VERSION }}-${{ github.event.inputs.build_type }}-
-
-      - name: "Build target"
-        if: env.package_exist == 'False'
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: make kagome_dev_docker_build \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
-          GITHUB_HUNTER_USERNAME=${{ secrets.HUNTER_USERNAME }} \
-          GITHUB_HUNTER_TOKEN=${{ secrets.HUNTER_TOKEN }} \
-          BUILD_TYPE=${{ github.event.inputs.build_type }} \
-          BUILDER_IMAGE_TAG=${{ env.BUILDER_LATEST_TAG }} \
-          WERROR=${{ github.event.inputs.werror }}
-
-      - name: "Push Kagome APT Package"
-        if: env.package_exist == 'False'
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: |
-          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          make upload_apt_package \
-          BUILD_TYPE=${{ github.event.inputs.build_type }}
-
-      - name: Set up Docker Buildx
-        if: env.package_exist == 'False'
-        uses: docker/setup-buildx-action@v3.6.1
-
-      - name: "Build Docker Image"
-        if: env.package_exist == 'False'
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: make kagome_image_build \
-          KAGOME_PACKAGE_VERSION=${{ env.package_version }} \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
-          BUILD_TYPE=${{ github.event.inputs.build_type }}
-
-      - name: "Push Docker Image"
-        if: env.package_exist == 'False'
-        working-directory: ./housekeeping/docker/kagome-dev
-        run: make kagome_image_push \
-          DOCKER_REGISTRY_PATH=${DOCKER_REGISTRY_PATH} \
-          BUILD_TYPE=${{ github.event.inputs.build_type }}
-
-      - name: "Always Save Cache"
-        id: cache-save
-        if: always() && (steps.cache-restore.outputs.cache-hit != 'true' || env.package_exist != 'True')
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ env.CACHE_PATH }}
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+          # If skip_build is true, we'll treat the package as existing
+          if [ "${{ steps.skip_check.outputs.skip_build }}" == "true" ]; then
+            echo "Skip build flag is set, assuming package exists"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            exists=$(make kagome_package_check_version)
+            echo "Package check result: $exists"
+            echo "exists=$exists" >> $GITHUB_OUTPUT
+          fi
           
-      - name: "Versions Info"
-        if: always()
-        run: |
-          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
-          echo "Kagome Images: "
-          cat /tmp/docker_image.env || true
-          cat /tmp/dockerhub_image.env || true
+          # Debug output
+          echo "skip_build: ${{ steps.skip_check.outputs.skip_build }}"
+          echo "package_exists: ${{ steps.check.outputs.exists }}"
+  
+  kagome_dev_docker_build:
+    needs: [ check_package_exists ]
+    if: needs.check_package_exists.outputs.package_exists == 'false' && needs.check_package_exists.outputs.skip_build != 'true'
+    uses: ./.github/workflows/build.yaml
+    with:
+      build_debug: ${{ github.event.inputs.build_type == 'Debug' || inputs.build_type == 'Debug' }}
+      build_release: ${{ github.event.inputs.build_type == 'Release' || inputs.build_type == 'Release' }}
+      build_relwithdebinfo: ${{ github.event.inputs.build_type == 'RelWithDebInfo' || inputs.build_type == 'RelWithDebInfo' }}
+      build_amd64: ${{ github.event.inputs.run_amd64 || inputs.run_amd64 || 'true' }}
+      build_arm64: ${{ github.event.inputs.run_arm64 || inputs.run_arm64 || 'true' }}
+      use_cache: ${{ github.event.inputs.use_cache || inputs.use_cache || 'true' }}
+      cache_upload_allowed: false
 
+      builder_latest_tag: ${{ github.event.inputs.builder_latest_tag || inputs.builder_latest_tag || '20250322' }} # Or 'latest'
+    secrets: inherit
 
-  Zombie-Tests:
+  setup_matrix:
     runs-on: ubuntu-latest
+    needs: [check_package_exists]
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      platforms: ${{ steps.extract-platforms.outputs.platforms }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        
+      - name: "Debug environment variables"
+        run: |
+          echo "RUN_AMD64: ${{ env.RUN_AMD64 }}"
+          echo "RUN_ARM64: ${{ env.RUN_ARM64 }}"
+          echo "SKIP_BUILD: ${{ env.SKIP_BUILD }}"
+          echo "skip_build output: ${{ needs.check_package_exists.outputs.skip_build }}"
+          echo "package_exists output: ${{ needs.check_package_exists.outputs.package_exists }}"
+
+      - name: "Generate matrix"
+        id: matrix
+        uses: ./.github/actions/matrix
+        with:
+          run_amd64: ${{ env.RUN_AMD64 }}
+          run_arm64: ${{ env.RUN_ARM64 }}
+          amd64_runner: '"actions-runner-controller"'
+          arm64_runner: '["self-hosted","qdrvm-arm64"]'
+      
+      - name: "Extract platforms for cartesian product"
+        id: extract-platforms
+        run: |
+          platforms=$(echo '${{ steps.matrix.outputs.matrix }}' | jq -c '.include | map({platform: .platform, runs_on: .runs_on})')
+          echo "platforms=$platforms" >> $GITHUB_OUTPUT
+          
+      - name: "Debug matrix outputs"
+        run: |
+          echo "Matrix output: ${{ steps.matrix.outputs.matrix }}"
+          echo "Platforms output: ${{ steps.extract-platforms.outputs.platforms }}"
+
+  zombie_tests:
     timeout-minutes: 60
-    needs: [kagome_dev_docker_build]
+    needs: [check_package_exists, setup_matrix, kagome_dev_docker_build]
+    if: >
+      always() && 
+      needs.setup_matrix.result == 'success' && 
+      (needs.check_package_exists.outputs.package_exists == 'true' || 
+       needs.check_package_exists.outputs.skip_build == 'true' || 
+       needs.kagome_dev_docker_build.result == 'success')
+    name: "${{ matrix.platform_config.platform == 'linux/amd64' && 'AMD64' || 'ARM64' }} - ${{ matrix.scenario.name }}"
     strategy:
       fail-fast: false
       matrix:
-        options:
-          - name: "PVF preparation & execution time"
-            test: "test-polkadot-functional-0001-parachains-pvf"
-#          - name: "Disputes initiation, conclusion and lag"
-#            test: "test-polkadot-functional-0002-parachains-disputes"
-          - name: "BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute"
-            test: "test-polkadot-functional-0003-beefy-and-mmr"
-#          - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
-#            test: "test-polkadot-functional-0004-parachains-garbage-candidate"
-#          - name: "Past-session dispute slashing"
-#            test: "test-polkadot-functional-0005-parachains-disputes-past-session"
-#          - name: "Test if parachains make progress with most of approvals being tranch0"
-#            test: "test-polkadot-functional-0006-parachains-max-tranche0"
-          - name: "Test if disputes triggered on finalized blocks within scope always end as valid"
-            test: "test-polkadot-functional-0007-dispute-freshly-finalized"
-          - name: "Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded"
-            test: "test-polkadot-functional-0008-dispute-old-finalized"
-          - name: "Approval voting coalescing does not lag finality"
-            test: "test-polkadot-functional-0009-approval-voting-coalescing"
-#          - name: "Test validator disabling effects"
-#            test: "test-polkadot-functional-0010-validator-disabling"
-          - name: "Test we are producing blocks at 6 seconds clip"
-            test: "test-polkadot-functional-0011-async-backing-6-seconds-rate"
-          - name: "Systematic chunk recovery is used if the chunk mapping feature is enabled."
-            test: "test-polkadot-functional-0013-systematic-chunk-recovery"
-          - name: "Warp sync from polkadot node"
-            test: "test-custom-0001-validators-warp-sync"
+        platform_config: ${{ fromJSON(needs.setup_matrix.outputs.platforms) }}
+        scenario: [
+          { name: "0001 PVF preparation & execution time", test: "test-polkadot-functional-0001-parachains-pvf" },
+          { name: "0003 BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute", test: "test-polkadot-functional-0003-beefy-and-mmr" },
+          { name: "0007 Test if disputes triggered on finalized blocks within scope always end as valid", test: "test-polkadot-functional-0007-dispute-freshly-finalized" },
+          { name: "0008 Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded", test: "test-polkadot-functional-0008-dispute-old-finalized" },
+          { name: "0009 Approval voting coalescing does not lag finality", test: "test-polkadot-functional-0009-approval-voting-coalescing" },
+          { name: "0011 Test we are producing blocks at 6 seconds clip", test: "test-polkadot-functional-0011-async-backing-6-seconds-rate" },
+          { name: "0013 Systematic chunk recovery is used if the chunk mapping feature is enabled.", test: "test-polkadot-functional-0013-systematic-chunk-recovery" },
+          { name: "c0001 Warp sync from polkadot node", test: "test-custom-0001-validators-warp-sync" }
+          ]
+        # temporarily disabled some tests
+        #  - name: "Disputes initiation, conclusion and lag"
+        #    test: "test-polkadot-functional-0002-parachains-disputes"
+        #  - name: "Dispute finality lag when 1/3 of parachain validators always attempt to include an invalid block"
+        #    test: "test-polkadot-functional-0004-parachains-garbage-candidate"
+        #  - name: "Past-session dispute slashing"
+        #    test: "test-polkadot-functional-0005-parachains-disputes-past-session"
+        #  - name: "Test if parachains make progress with most of approvals being tranch0"
+        #    test: "test-polkadot-functional-0006-parachains-max-tranche0"
+        #  - name: "Test validator disabling effects"
+        #    test: "test-polkadot-functional-0010-validator-disabling"
+
+    runs-on: ${{ matrix.platform_config.runs_on }}
+    
+    env:
+      PLATFORM: ${{ matrix.platform_config.platform }}
+      ARCH: ${{ matrix.platform_config.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+
     steps:
+      - name: "Check for workflow cancellation"
+        id: check_cancel
+        run: |
+          # This checks if the workflow has been canceled
+          if [ "$GITHUB_ACTION_STATE" == "cancelled" ]; then
+            echo "Workflow was cancelled, exiting early"
+            exit 1
+          fi
+        continue-on-error: true
+
       - name: "Checkout repository"
         uses: actions/checkout@v4
 
-      - name: Create and enable swap
-        run: |
-          free -h
-          df -h
-          sudo fallocate -l 4G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          sudo swapon --show
-          free -h
-          df -h
-        
+#      - name: Create and enable swap
+#        run: |
+#          free -h
+#          df -h
+#          sudo fallocate -l 4G /swapfile
+#          sudo chmod 600 /swapfile
+#          sudo mkswap /swapfile
+#          sudo swapon /swapfile
+#          sudo swapon --show
+#          free -h
+#          df -h
+
       - name: "Authenticate with Google Cloud"
         uses: 'google-github-actions/auth@v2'
         with:
@@ -233,52 +314,40 @@ jobs:
           gcloud auth configure-docker --quiet
           gcloud auth configure-docker ${{ secrets.GCP_REGISTRY }} --quiet
         
-      - name: "Get commit version"
+      - name: "Configure Zombietests Makefile"
+        working-directory: ./zombienet/docker
+        run: make configure
+
+      - name: "Configure Kagome Makefile"
         working-directory: ./housekeeping/docker/kagome-dev
-        run: make get_versions
-        
-      - name: "Get Package Version"
+        run: make configure
+
+      - name: "Get package version"
+        id: get_version
         working-directory: ./housekeeping/docker/kagome-dev
         run: |
-          ARTIFACTS_REPO=$(grep '^ARTIFACTS_REPO ?=' Makefile | sed 's/ARTIFACTS_REPO ?= //')
-          REGION=$(grep '^REGION ?=' Makefile | sed 's/REGION ?= //')
-          SHORT_COMMIT_HASH=$(grep 'short_commit_hash:' commit_hash.txt | cut -d ' ' -f 2)
-          PACKAGE_VERSION="$(date +'%y.%m.%d')-${SHORT_COMMIT_HASH}-${{ github.event.inputs.build_type }}"
-          echo "PACKAGE_VERSION=${PACKAGE_VERSION}"
-          echo "package_version=${PACKAGE_VERSION}" >> $GITHUB_ENV
-          
-      - name: "Get Zombie Tester Version"
-        run: |
-          ZOMBIE_TESTER_IMAGE=${DOCKER_REGISTRY_PATH}zombie_tester:${{ env.TESTER_LATEST_TAG }}
-          echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}"
-          echo "zombie_tester_image=${ZOMBIE_TESTER_IMAGE}" >> $GITHUB_ENV
-        
+          version=$(make kagome_get_package_version_no_arch)-${{ env.ARCH }}
+          echo "kagome_package_version=$version" >> $GITHUB_ENV
+          echo "Using package version: $version"
+
       - name: "Run test"
         working-directory: ./zombienet/docker
         run: |
-          make ${{ matrix.options.test }} \
-            ZOMBIE_TESTER_IMAGE=${{ env.zombie_tester_image }} \
-            KAGOME_PACKAGE_VERSION=${{ env.package_version }}
-          free -h
-          df -h
+          make ${{ matrix.scenario.test }} \
+            KAGOME_PACKAGE_VERSION=${{ env.kagome_package_version }}
         
       - name: "Upload test logs as artifact"
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logs-${{ matrix.options.test }}
+          name: logs-${{ env.ARCH }}-${{ matrix.scenario.test }}
           path: /tmp/test_logs
+
+      - name: "Clean Logs"
+        if: always()
+        run: rm -rf /tmp/test_logs
 
       - name: "Versions Info"
         if: always()
         run: |
-          echo "Kagome Package Version: kagome-dev ${{ env.package_version }}"
-          echo "Zombie Tester Image: ${{ env.zombie_tester_image }}"
-          echo "Zombie Tests Versions: "
-          cat /tmp/versions.env || true
-
-      - name: "Show system info"
-        if: always()
-        run: |
-          free -h
-          df -h
+          make get_versions_zombietests || true

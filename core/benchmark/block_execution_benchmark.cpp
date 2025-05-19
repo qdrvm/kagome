@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <numeric>
 
-#include <fmt/chrono.h>
 #include <qtils/test/outcome.hpp>
 
 #include "blockchain/block_tree.hpp"
@@ -272,7 +271,7 @@ namespace kagome::benchmark {
         SL_VERBOSE(logger_,
                    "Block #{}, {} ns",
                    blocks[block_i].header.number,
-                   duration_ns);
+                   duration_ns.count());
       }
       duration_stat_it++;
     }

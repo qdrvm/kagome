@@ -50,4 +50,12 @@ namespace kagome::runtime {
     }
     return cached_code_;
   }
+
+  RuntimeCodeProvider::Result StorageCodeProvider::getPendingCodeAt(
+      const storage::trie::RootHash &state) const {
+    OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state));
+    OUTCOME_TRY(code, batch->get(storage::kPendingRuntimeCodeKey));
+    return std::make_shared<common::Buffer>(std::move(code));
+  }
+
 }  // namespace kagome::runtime

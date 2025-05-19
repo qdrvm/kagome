@@ -14,6 +14,7 @@
 #include "crypto/hasher.hpp"
 #include "host_api/host_api_factory.hpp"
 #include "log/formatters/filepath.hpp"
+#include "log/formatters/optional.hpp"
 #include "log/trace_macros.hpp"
 #include "runtime/common/trie_storage_provider_impl.hpp"
 #include "runtime/memory_provider.hpp"
@@ -53,7 +54,7 @@ namespace kagome::runtime::wasm_edge {
 
   static const auto kMemoryName = WasmEdge_StringCreateByCString("memory");
 
-  static const class final : public std::error_category {
+  static const class WasmEdgeErrCategory final : public std::error_category {
    public:
     const char *name() const noexcept override {
       return "WasmEdge";
@@ -113,6 +114,21 @@ namespace kagome::runtime::wasm_edge {
                                        WasmEdge_Proposal_BulkMemoryOperations);
     }
     WasmEdge_ConfigureRemoveProposal(ctx_raw, WasmEdge_Proposal_ReferenceTypes);
+
+    enum WasmEdge_CompilerOptimizationLevel level {};
+    switch (config.optimization_level) {
+      case OptimizationLevel::O0:
+        level = WasmEdge_CompilerOptimizationLevel_O0;
+        break;
+      case OptimizationLevel::O1:
+        level = WasmEdge_CompilerOptimizationLevel_O1;
+        break;
+      case OptimizationLevel::O2:
+        level = WasmEdge_CompilerOptimizationLevel_O2;
+        break;
+    }
+    WasmEdge_ConfigureCompilerSetOptimizationLevel(ctx_raw, level);
+
     return ctx;
   }
 
@@ -409,11 +425,17 @@ namespace kagome::runtime::wasm_edge {
 
     OUTCOME_TRY(configure_ctx, configureCtx(config));
     auto configure_ctx_raw = configure_ctx.raw();
-    WasmEdge_ConfigureCompilerSetOptimizationLevel(
-        configure_ctx_raw, WasmEdge_CompilerOptimizationLevel_O3);
 
     CompilerContext compiler = WasmEdge_CompilerCreate(configure_ctx_raw);
     SL_INFO(log_, "Start compiling wasm module {}", path_compiled);
+    auto [memory_limits, bulk_memory, opt_level] = config;
+    SL_VERBOSE(log_,
+               "Compile options: max stack values: {}, bulk memory: {}, "
+               "optimization: {}",
+               memory_limits.max_stack_values_num,
+               bulk_memory,
+               to_string(opt_level));
+
     // Multiple processes can write to same cache file concurrently,
     // write to tmp file first to avoid conflict.
     OUTCOME_TRY(tmp, TmpFile::make(path_compiled));

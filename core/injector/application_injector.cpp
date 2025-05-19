@@ -602,7 +602,7 @@ namespace {
     parachain::PvfImpl::Config pvf_config{
         .precompile_modules = config->shouldPrecompileParachainModules(),
         .precompile_threads_num = config->parachainPrecompilationThreadNum(),
-    };
+        .opt_level = config->pvfOptimizationLevel()};
 #if KAGOME_WASM_COMPILER_WASM_EDGE == 1
     runtime::wasm_edge::ModuleFactoryImpl::Config wasmedge_config{
         config->runtimeExecMethod()
@@ -899,6 +899,8 @@ namespace {
             di::bind<consensus::grandpa::AuthorityManager>.template to<consensus::grandpa::AuthorityManagerImpl>(),
             di::bind<network::PeerManager>.template to<network::PeerManagerImpl>(),
             di::bind<network::Router>.template to<network::RouterLibp2p>(),
+            di::bind<network::ReqCollationProtocol>.template to<network::ReqCollationProtocolImpl>(),
+            di::bind<network::ReqPovProtocol>.template to<network::ReqPovProtocolImpl>(),
             di::bind<consensus::BlockHeaderAppender>.template to<consensus::BlockHeaderAppenderImpl>(),
             di::bind<consensus::BlockExecutor>.template to<consensus::BlockExecutorImpl>(),
             di::bind<consensus::grandpa::Grandpa>.template to<consensus::grandpa::GrandpaImpl>(),
@@ -996,7 +998,7 @@ namespace kagome::injector {
   KagomeNodeInjector::KagomeNodeInjector(
       sptr<application::AppConfiguration> app_config)
       : pimpl_{std::make_unique<KagomeNodeInjectorImpl>(
-          makeKagomeNodeInjector(std::move(app_config)))} {}
+            makeKagomeNodeInjector(std::move(app_config)))} {}
 
   sptr<application::AppConfiguration> KagomeNodeInjector::injectAppConfig() {
     return pimpl_->injector_

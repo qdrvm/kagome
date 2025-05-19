@@ -9,7 +9,6 @@
 #include <deque>
 #include <filesystem>
 #include <list>
-#include <mutex>
 
 #include "metrics/metrics.hpp"
 #include "parachain/pvf/pvf_worker_types.hpp"
@@ -65,13 +64,18 @@ namespace kagome::parachain {
     struct Used {
       Used(PvfWorkers &self);
       Used(const Used &) = delete;
+      Used(Used &&) = delete;
       void operator=(const Used &) = delete;
+      void operator=(Used &&) = delete;
       ~Used();
 
       std::weak_ptr<PvfWorkers> weak_self;
     };
 
-    void findFree(Job &&job);
+    using Free = std::list<Worker>;
+
+    std::optional<Free::iterator> findFree(const Job &job);
+    void runJob(Free::iterator free_it, Job &&job);
     void writeCode(Job &&job, Worker &&worker, std::shared_ptr<Used> &&used);
     void call(Job &&job, Worker &&worker, std::shared_ptr<Used> &&used);
     void dequeue();
@@ -82,8 +86,7 @@ namespace kagome::parachain {
     std::filesystem::path exe_;
     size_t max_;
     PvfWorkerInputConfig worker_config_;
-    std::list<Worker> free_;
-    mutable std::mutex free_mutex_;  // Mutex for protecting free_ list
+    Free free_;
     size_t used_ = 0;
     std::unordered_map<PvfExecTimeoutKind, std::deque<Job>> queues_;
 

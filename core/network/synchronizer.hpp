@@ -13,7 +13,15 @@
 #include "primitives/block_header.hpp"
 #include "primitives/common.hpp"
 
+namespace kagome::consensus::grandpa {
+  struct GrandpaJustification;
+}  // namespace kagome::consensus::grandpa
+
 namespace kagome::network {
+  using consensus::grandpa::GrandpaJustification;
+  using libp2p::PeerId;
+  using primitives::BlockHeader;
+  using primitives::BlockNumber;
 
   class Synchronizer {
    public:
@@ -69,6 +77,14 @@ namespace kagome::network {
     virtual void syncState(const libp2p::peer::PeerId &peer_id,
                            const primitives::BlockInfo &block,
                            SyncResultHandler &&handler) = 0;
+
+    using UnsafeOk = std::pair<BlockHeader, GrandpaJustification>;
+    using UnsafeRes = std::variant<BlockNumber, UnsafeOk>;
+    using UnsafeCb = std::function<void(UnsafeRes)>;
+    /// Fetch headers back from `max` until block with justification for grandpa
+    /// scheduled change.
+    /// @returns justification or next number to use as `max`
+    virtual void unsafe(PeerId peer_id, BlockNumber max, UnsafeCb cb) = 0;
   };
 
 }  // namespace kagome::network

@@ -12,6 +12,7 @@
 #include "application/app_state_manager.hpp"
 #include "blockchain/block_tree.hpp"
 #include "common/visitor.hpp"
+#include "consensus/timeline/timeline.hpp"
 #include "log/profiling_logger.hpp"
 #include "metrics/histogram_timer.hpp"
 #include "parachain/candidate_descriptor_v2.hpp"
@@ -22,6 +23,7 @@
 #include "parachain/pvf/pvf_worker_types.hpp"
 #include "parachain/pvf/session_params.hpp"
 #include "parachain/pvf/workers.hpp"
+#include "primitives/event_types.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
 #include "runtime/common/runtime_instances_pool.hpp"
 #include "runtime/common/uncompress_code_if_needed.hpp"
@@ -154,7 +156,10 @@ namespace kagome::parachain {
       std::shared_ptr<runtime::RuntimeContextFactory> ctx_factory,
       PvfThreadPool &pvf_thread_pool,
       std::shared_ptr<application::AppStateManager> app_state_manager,
-      std::shared_ptr<application::AppConfiguration> app_configuration)
+      std::shared_ptr<application::AppConfiguration> app_configuration,
+      std::shared_ptr<primitives::events::SyncStateSubscriptionEngine>
+          sync_state_sub_engine,
+      LazySPtr<const consensus::Timeline> timeline)
       : config_{config},
         workers_{std::move(workers)},
         hasher_{std::move(hasher)},
@@ -166,12 +171,16 @@ namespace kagome::parachain {
         log_{log::createLogger("PVF Executor", "pvf_executor")},
         pvf_pool_{std::move(pvf_pool)},
         precompiler_{std::make_shared<ModulePrecompiler>(
-            ModulePrecompiler::Config{config_.precompile_threads_num},
+            ModulePrecompiler::Config{
+                .precompile_threads_num = config_.precompile_threads_num,
+                .opt_level = config_.opt_level},
             parachain_api_,
             pvf_pool_,
             hasher_)},
         pvf_thread_handler_{pvf_thread_pool.handler(*app_state_manager)},
-        app_configuration_{std::move(app_configuration)} {
+        app_configuration_{std::move(app_configuration)},
+        sync_state_sub_engine_{std::move(sync_state_sub_engine)},
+        timeline_{timeline} {
     app_state_manager->takeControl(*this);
     constexpr std::array<std::string_view, 4> engines{
         "kBinaryen",
@@ -183,6 +192,7 @@ namespace kagome::parachain {
             "pvf runtime engine {}",
             // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             engines[fmt::underlying(pvf_runtime_engine(*app_configuration_))]);
+    BOOST_ASSERT(sync_state_sub_engine_ != nullptr);
   }
 
   PvfImpl::~PvfImpl() {
@@ -194,17 +204,33 @@ namespace kagome::parachain {
 
   bool PvfImpl::prepare() {
     if (config_.precompile_modules) {
-      precompiler_thread_ =
-          std::make_unique<std::thread>([self = shared_from_this()]() {
-            soralog::util::setThreadName("pvf_compile");
-            auto res = self->precompiler_->precompileModulesAt(
-                self->block_tree_->getLastFinalized().hash);
-            if (!res) {
-              SL_ERROR(self->log_,
-                       "Parachain module precompilation failed: {}",
-                       res.error());
-            }
-          });
+      auto precompiler_bootstrap = [](std::shared_ptr<PvfImpl> self) {
+        self->precompiler_thread_ = std::make_unique<std::thread>([self]() {
+          soralog::util::setThreadName("pvf_compile");
+          SL_DEBUG(self->log_, "Node is synchronized, start precompilation");
+          auto res = self->precompiler_->precompileModulesAt(
+              self->block_tree_->getLastFinalized().hash);
+          if (!res) {
+            SL_ERROR(self->log_,
+                     "Parachain module precompilation failed: {}",
+                     res.error());
+          }
+        });
+      };
+      BOOST_ASSERT(timeline_.get() != nullptr);
+      if (timeline_.get()->wasSynchronized()) {
+        precompiler_bootstrap(shared_from_this());
+      } else {
+        SL_DEBUG(log_, "Node is not synchronized, delay precompilation");
+        sync_state_sub_ = primitives::events::onSync(
+            sync_state_sub_engine_,
+            [weak = weak_from_this(), precompiler_bootstrap]() {
+              BOOST_ASSERT(weak.lock());
+              if (auto self = weak.lock()) {
+                precompiler_bootstrap(self);
+              }
+            });
+      }
     }
     return true;
   }
@@ -353,7 +379,9 @@ namespace kagome::parachain {
                          runtime::PvfExecTimeoutKind timeout_kind,
                          WasmCb cb) const {
     CB_TRY(auto executor_params,
-           sessionParams(*parachain_api_, receipt.descriptor.relay_parent));
+           sessionParams(*parachain_api_,
+                         receipt.descriptor.relay_parent,
+                         config_.opt_level));
     const auto &context_params = executor_params.context_params;
 
     constexpr auto name = "validate_block";
@@ -376,7 +404,8 @@ namespace kagome::parachain {
       CB_TRY(auto ctx, runtime::RuntimeContextFactory::stateless(instance));
       KAGOME_PROFILE_END(single_process_runtime_instantitation);
       KAGOME_PROFILE_START_L(log_, single_process_runtime_call);
-      return cb(executor_->call<ValidationResult>(ctx, name, params));
+      cb(executor_->call<ValidationResult>(ctx, name, params));
+      return;
     }
     kagome::parachain::PvfWorkerInputCodeParams code_params{
         .path = pvf_pool_->getCachePath(code_hash, context_params),
@@ -387,7 +416,8 @@ namespace kagome::parachain {
         .cb =
             [cb{std::move(cb)}](outcome::result<common::Buffer> r) {
               if (r.has_error()) {
-                return cb(r.error());
+                cb(r.error());
+                return;
               }
               cb(scale::decode<ValidationResult>(r.value()));
             },

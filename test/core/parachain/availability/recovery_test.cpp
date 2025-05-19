@@ -675,7 +675,7 @@ TEST_F(RecoveryTest, FailureHandling) {
 }
 
 TEST_F(RecoveryTest, LargeScaleRecovery) {
-  prepareAvailableData(2 << 20);  // 2Mb
+  prepareAvailableData(8 * 1024 * 1024);  // 8Mb
 
   std::optional<GroupIndex> backing_group = 0;   // any non nullopt value
   std::optional<CoreIndex> core = std::nullopt;  // value doesn't matter

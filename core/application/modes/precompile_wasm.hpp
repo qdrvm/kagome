@@ -49,5 +49,6 @@ namespace kagome::application::mode {
     std::shared_ptr<runtime::ParachainHost> parachain_api_;
     std::shared_ptr<crypto::Hasher> hasher_;
     std::shared_ptr<parachain::PvfPool> module_factory_;
+    runtime::OptimizationLevel opt_level_;
   };
 }  // namespace kagome::application::mode

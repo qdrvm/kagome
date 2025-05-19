@@ -125,7 +125,7 @@ namespace kagome::parachain {
             .log_params = app_config.log(),
             .force_disable_secure_mode = app_config.disableSecureMode(),
             .secure_mode_support = secure_mode_support,
-        } {
+            .opt_level = app_config.pvfOptimizationLevel()} {
     metrics_registry_->registerGaugeFamily(kMetricQueueSize, "pvf queue size");
     std::unordered_map<PvfExecTimeoutKind, std::string> kind_name{
         {PvfExecTimeoutKind::Approval, "Approval"},
@@ -140,7 +140,8 @@ namespace kagome::parachain {
 
   void PvfWorkers::execute(Job &&job) {
     REINVOKE(*main_pool_handler_, execute, std::move(job));
-    if (free_.empty()) {
+    auto free = findFree(job);
+    if (not free.has_value()) {
       if (used_ >= max_) {
         auto &queue = queues_[job.kind];
         queue.emplace_back(std::move(job));
@@ -158,7 +159,8 @@ namespace kagome::parachain {
       std::error_code ec;
       std::filesystem::remove(unix_socket_path, ec);
       if (ec) {
-        return job.cb(ec);
+        job.cb(ec);
+        return;
       }
       auto acceptor = std::make_shared<unix::acceptor>(
           *io_context_, unix_socket_path.native());
@@ -176,7 +178,8 @@ namespace kagome::parachain {
         std::filesystem::remove(unix_socket_path, ec2);
         WEAK_LOCK(self);
         if (ec) {
-          return job.cb(ec);
+          job.cb(ec);
+          return;
         }
         process->socket = std::move(socket);
         process->writeScale(
@@ -185,29 +188,35 @@ namespace kagome::parachain {
                 outcome::result<void> r) mutable {
               WEAK_LOCK(self);
               if (not r) {
-                return job.cb(r.error());
+                job.cb(r.error());
+                return;
               }
               self->writeCode(std::move(job),
-                              {.process = std::move(process)},
+                              {.process = std::move(process), .code_params{}},
                               std::move(used));
             });
       });
       return;
     }
-    findFree(std::move(job));
+    runJob(free.value(), std::move(job));
   }
 
-  void PvfWorkers::findFree(Job &&job) {
-    std::unique_lock lock(free_mutex_);
+  auto PvfWorkers::findFree(const Job &job) -> std::optional<Free::iterator> {
     auto it = std::ranges::find_if(free_, [&](const Worker &worker) {
       return worker.code_params == job.code_params;
     });
     if (it == free_.end()) {
       it = free_.begin();
     }
-    auto worker = *it;
-    free_.erase(it);
-    lock.unlock();
+    if (it == free_.end()) {
+      return std::nullopt;
+    }
+    return it;
+  }
+
+  void PvfWorkers::runJob(Free::iterator free_it, Job &&job) {
+    auto worker = *free_it;
+    free_.erase(free_it);
     writeCode(std::move(job), std::move(worker), std::make_shared<Used>(*this));
   }
 
@@ -237,7 +246,8 @@ namespace kagome::parachain {
             outcome::result<void> r) mutable {
           WEAK_LOCK(self);
           if (not r) {
-            return job.cb(r.error());
+            job.cb(r.error());
+            return;
           }
           self->call(std::move(job), std::move(worker), std::move(used));
         });
@@ -255,9 +265,7 @@ namespace kagome::parachain {
           if (not r) {
             return;
           }
-          std::unique_lock lock(self->free_mutex_);
           self->free_.emplace_back(std::move(worker));
-          lock.unlock();
           self->dequeue();
         });
     auto cb = [cb_shared, timeout](outcome::result<Buffer> r) mutable {
@@ -271,7 +279,8 @@ namespace kagome::parachain {
     worker.process->writeScale(PvfWorkerInput{job.args},
                                [cb](outcome::result<void> r) mutable {
                                  if (not r) {
-                                   return cb(r.error());
+                                   cb(r.error());
+                                   return;
                                  }
                                });
     worker.process->read(std::move(cb));
@@ -284,10 +293,14 @@ namespace kagome::parachain {
       if (queue.empty()) {
         continue;
       }
+      auto free = findFree(queue.front());
+      if (not free.has_value()) {
+        break;
+      }
       auto job = std::move(queue.front());
       queue.pop_front();
       metric_queue_size_.at(kind)->set(queue.size());
-      findFree(std::move(job));
+      runJob(free.value(), std::move(job));
     }
   }
 }  // namespace kagome::parachain

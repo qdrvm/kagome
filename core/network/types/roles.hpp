@@ -26,16 +26,16 @@ namespace kagome::network {
 
     // https://github.com/paritytech/polkadot-sdk/blob/6c3219ebe9231a0305f53c7b33cb558d46058062/substrate/client/network/common/src/role.rs#L101
     bool isFull() const {
-      return (value_ & Full) or (value_ & Authority);
+      return (value_ & (Full | Authority)) != 0;
     }
 
     bool isAuthority() const {
-      return value_ & Authority;
+      return (value_ & Authority) != 0;
     }
 
     // https://github.com/paritytech/polkadot-sdk/blob/6c3219ebe9231a0305f53c7b33cb558d46058062/substrate/client/network/common/src/role.rs#L111
     bool isLight() const {
-      return not(value_ & Full);
+      return not isFull();
     }
 
     uint8_t value() const {

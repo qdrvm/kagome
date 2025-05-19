@@ -34,6 +34,7 @@ namespace kagome::parachain {
     std::vector<std::string> log_params;
     bool force_disable_secure_mode;
     SecureModeSupport secure_mode_support;
+    runtime::OptimizationLevel opt_level;
   };
 
   struct PvfWorkerInputCodeParams {

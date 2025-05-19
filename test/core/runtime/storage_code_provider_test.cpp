@@ -10,12 +10,14 @@
 
 #include <qtils/test/outcome.hpp>
 
+#include "mock/core/api/service/state/state_api_mock.hpp"
 #include "mock/core/application/chain_spec_mock.hpp"
 #include "mock/core/runtime/runtime_upgrade_tracker_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
+#include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
 
