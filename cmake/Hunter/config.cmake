@@ -42,12 +42,6 @@ hunter_config(
       USE_RTTI=ON
 )
 
-hunter_config(
-    BoringSSL
-    URL  https://github.com/qdrvm/boringssl/archive/bc72a3fa91d52d6c1db45c24efd863d180c7d98c.zip
-    SHA1 64b281459365194c7d1f561b075c25138e122926
-)
-
 if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
   hunter_config(
       fmt
@@ -138,7 +132,10 @@ endif()
 
 hunter_config(
     BoringSSL
-    VERSION qdrvm1
+    #TODO: remove URL & SHA1 override once https://github.com/qdrvm/boringssl/tree/fix/remove-werror is merged
+    URL  https://github.com/qdrvm/boringssl/archive/bc72a3fa91d52d6c1db45c24efd863d180c7d98c.zip
+    SHA1 64b281459365194c7d1f561b075c25138e122926
+    # VERSION qdrvm1
     CMAKE_ARGS
       CMAKE_C_FLAGS=${BORINGSSL_C_FLAGS}
       CMAKE_CXX_FLAGS=${BORINGSSL_CXX_FLAGS}
