@@ -36,8 +36,12 @@
 #include "parachain/pvf/pvf.hpp"
 #include "parachain/validator/backed_candidates_source.hpp"
 #include "parachain/validator/backing_implicit_view.hpp"
+#include "parachain/validator/blocked_collation_id.hpp"
+#include "parachain/validator/claim_queue_state.hpp"
 #include "parachain/validator/collations.hpp"
+#include "parachain/validator/fetched_collation_hash.hpp"
 #include "parachain/validator/i_parachain_processor.hpp"
+#include "parachain/validator/optional_hash.hpp"
 #include "parachain/validator/parachain_storage.hpp"
 #include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
 #include "parachain/validator/signer.hpp"
@@ -95,30 +99,12 @@ namespace kagome::dispute {
 namespace kagome::parachain {
   using libp2p::PeerId;
 
-  struct BlockedCollationId {
-    /// Para id.
-    ParachainId para_id;
-    /// Hash of the parent head data.
-    Hash parent_head_data_hash;
+  // BlockedCollationId is now defined in blocked_collation_id.hpp
 
-    BlockedCollationId(ParachainId pid, const Hash &h)
-        : para_id(pid), parent_head_data_hash(h) {}
-    auto operator<=>(const BlockedCollationId &) const = default;
-    bool operator==(const BlockedCollationId &) const = default;
-  };
+  // Forward declaration of ValidatorSide
+  class ValidatorSide;
+
 }  // namespace kagome::parachain
-
-template <>
-struct std::hash<kagome::parachain::BlockedCollationId> {
-  size_t operator()(const kagome::parachain::BlockedCollationId &value) const {
-    using Hash = kagome::parachain::Hash;
-    using ParachainId = kagome::parachain::ParachainId;
-
-    size_t result = std::hash<ParachainId>()(value.para_id);
-    boost::hash_combine(result, std::hash<Hash>()(value.parent_head_data_hash));
-    return result;
-  }
-};
 
 namespace kagome::parachain {
 
@@ -815,14 +801,7 @@ namespace kagome::parachain {
                          PendingCollationEq>
           collation_requests_cancel_handles;
 
-      struct {
-        std::unordered_map<Hash, ProspectiveParachainsModeOpt> active_leaves;
-        std::unordered_map<network::FetchedCollation, network::CollationEvent>
-            fetched_candidates;
-        std::unordered_map<BlockedCollationId,
-                           std::vector<network::PendingCollationFetch>>
-            blocked_from_seconding;
-      } validator_side;
+      std::shared_ptr<ValidatorSide> validator_side;
     } our_current_state_;
     std::unordered_map<primitives::BlockHash, RelayParentState>
         state_by_relay_parent_to_check_;
