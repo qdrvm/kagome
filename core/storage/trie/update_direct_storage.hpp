@@ -9,12 +9,12 @@
 #include "log/logger.hpp"
 #include "outcome/outcome.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
-#include "storage/trie/trie_batches.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 
 namespace kagome::storage::trie {
 
   inline outcome::result<void> updateDirectStorage(const trie::RootHash &root,
-                                                   trie::TrieBatch &trie,
+                                                   trie::PolkadotTrie &trie,
                                                    RocksDbSpace &direct_storage,
                                                    log::Logger &log) {
     OUTCOME_TRY(direct_storage.clear());

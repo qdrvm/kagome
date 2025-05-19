@@ -27,6 +27,7 @@
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
@@ -978,7 +979,22 @@ namespace kagome::network {
     }
     OUTCOME_TRY(trie_pruner_->addNewState(state_sync_flow_->root(),
                                           storage::trie::StateVersion::V0));
-    OUTCOME_TRY(trie, storage_->getEphemeralBatchAt(state_sync_flow_->root()));
+    auto root = state_sync_flow_->nodes().at(Buffer{state_sync_flow_->root()});
+    storage::trie::PolkadotCodec codec{crypto::blake2b};
+    OUTCOME_TRY(root_node, codec.decodeNode(root));
+    auto trie = storage::trie::PolkadotTrieImpl::create(
+        root_node,
+        storage::trie::PolkadotTrieImpl::RetrieveFunctions{
+            [this, &codec](const storage::trie::DummyNode &node) {
+              if (auto hash = node.db_key.asHash()) {
+                auto enc = state_sync_flow_->nodes().at(node.db_key.asBuffer());
+                return codec.decodeNode(enc);
+              }
+              return codec.decodeNode(node.db_key.asBuffer());
+            },
+            [this](const common::Hash256 &value_hash) {
+              return state_sync_flow_->nodes().at(Buffer{value_hash});
+            }});
     SL_DEBUG(log_, "New direct storage root: {}", state_sync_flow_->root());
     OUTCOME_TRY(storage::trie::updateDirectStorage(
         state_sync_flow_->root(), *trie, *trie_direct_storage_, log_));

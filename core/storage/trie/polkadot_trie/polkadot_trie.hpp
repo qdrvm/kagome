@@ -44,12 +44,12 @@ namespace kagome::storage::trie {
           : retrieve_node{std::move(retrieve_node)},
             retrieve_value{std::move(retrieve_value)} {}
 
-      inline static outcome::result<NodePtr> defaultNodeRetrieve(
+      static outcome::result<NodePtr> defaultNodeRetrieve(
           const DummyNode &node) {
         return nullptr;
       }
 
-      inline static outcome::result<std::optional<common::Buffer>>
+      static outcome::result<std::optional<common::Buffer>>
       defaultValueRetrieve(const common::Hash256 &) {
         return TrieError::VALUE_RETRIEVE_NOT_PROVIDED;
       }

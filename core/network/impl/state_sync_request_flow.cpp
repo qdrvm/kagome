@@ -121,6 +121,7 @@ namespace kagome::network {
           if (it == nodes.end()) {
             return outcome::success();
           }
+          nodes_.emplace(std::pair{it->first, it->second.first});
           OUTCOME_TRY(node_db_->put(it->first, std::move(it->second.first)));
           ++count;
           known_.emplace(it->first);
@@ -138,6 +139,7 @@ namespace kagome::network {
         }
         if (level.branch_end) {
           auto &t = level.stack.back().t;
+          nodes_.emplace(std::pair{t.hash, t.encoded});
           OUTCOME_TRY(node_db_->put(t.hash, std::move(t.encoded)));
           ++count;
           known_.emplace(t.hash);

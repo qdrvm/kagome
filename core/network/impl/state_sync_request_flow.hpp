@@ -46,6 +46,10 @@ namespace kagome::network {
       return block_.state_root;
     }
 
+    auto &nodes() const {
+      return nodes_;
+    }
+
     bool complete() const {
       return done_;
     }
@@ -58,6 +62,7 @@ namespace kagome::network {
     bool isKnown(const common::Hash256 &hash);
 
     std::shared_ptr<storage::trie::TrieStorageBackend> node_db_;
+    std::unordered_map<Buffer, Buffer> nodes_;
 
     primitives::BlockInfo block_info_;
     primitives::BlockHeader block_;
