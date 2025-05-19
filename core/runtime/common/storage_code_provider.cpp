@@ -19,13 +19,11 @@ namespace kagome::runtime {
       std::shared_ptr<RuntimeUpgradeTracker> runtime_upgrade_tracker,
       std::shared_ptr<const primitives::CodeSubstituteBlockIds>
           code_substitutes,
-      std::shared_ptr<application::ChainSpec> chain_spec,
-      LazySPtr<api::StateApi> state_api)
+      std::shared_ptr<application::ChainSpec> chain_spec)
       : storage_{std::move(storage)},
         runtime_upgrade_tracker_{std::move(runtime_upgrade_tracker)},
         known_code_substitutes_{std::move(code_substitutes)},
         chain_spec_{std::move(chain_spec)},
-        state_api_{std::move(state_api)},
         logger_{log::createLogger("StorageCodeProvider", "runtime")} {
     BOOST_ASSERT(storage_ != nullptr);
     BOOST_ASSERT(runtime_upgrade_tracker_ != nullptr);
