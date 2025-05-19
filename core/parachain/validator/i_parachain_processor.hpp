@@ -82,8 +82,8 @@ namespace kagome::parachain {
             &&prospective_candidate) = 0;
 
     virtual void onIncomingCollator(const libp2p::peer::PeerId &peer_id,
-                                    network::CollatorPublicKey pubkey,
-                                    network::ParachainId para_id) = 0;
+                                    parachain::CollatorPublicKey pubkey,
+                                    parachain::ParachainId para_id) = 0;
 
     virtual outcome::result<void> canProcessParachains() const = 0;
 

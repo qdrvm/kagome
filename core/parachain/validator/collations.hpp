@@ -13,10 +13,13 @@
 #include <unordered_set>
 
 #include "crypto/type_hasher.hpp"
+#include "libp2p/peer/peer_id.hpp"
 #include "log/logger.hpp"
 #include "network/types/collator_messages.hpp"
 #include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/types.hpp"
+#include "parachain/validator/optional_hash.hpp"
+#include "primitives/common.hpp"
 #include "runtime/runtime_api/parachain_host_types.hpp"
 
 namespace kagome::parachain {
@@ -182,6 +185,44 @@ namespace kagome::parachain {
       }
       return seconded_count < 1;
     }
+
+    /// Add a collation to the waiting queue
+    void queueCollation(const PendingCollation &collation,
+                        const CollatorId &collator_id);
+
+    /// Remove a collation from the waiting queue
+    void removeCollation(const PendingCollation &collation,
+                         const CollatorId &collator_id);
+
+    /// Get number of queued collations for a parachain
+    size_t numQueuedForPara(const primitives::BlockHash &relay_parent,
+                            const parachain::ParachainId &para_id) const;
+
+    /// Get pending collation by collator ID and candidate hash
+    std::optional<std::reference_wrapper<const PendingCollation>>
+    getPendingCollation(
+        const CollatorId &collator_id,
+        const std::optional<CandidateHash> &candidate_hash) const;
+
+    /// Remove a pending collation
+    void removePendingCollation(const PendingCollation &collation,
+                                const CollatorId &collator_id);
+
+    /// Get all claimed paras in the queue
+    std::vector<parachain::ParachainId> getAllClaimedParas(
+        const primitives::BlockHash &relay_parent) const;
+
+   private:
+    // Map of collator ID -> candidate hash -> collation
+    std::unordered_map<
+        CollatorId,
+        std::unordered_map<std::optional<CandidateHash>, PendingCollation>>
+        waiting_collations_;
+
+    // Map of relay parent -> para id -> count of queued collations
+    std::unordered_map<primitives::BlockHash,
+                       std::unordered_map<parachain::ParachainId, size_t>>
+        para_counts_;
   };
 
   struct HypotheticalCandidateComplete {
