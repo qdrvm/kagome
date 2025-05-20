@@ -145,9 +145,10 @@ hunter_config(
 
 hunter_config(
     binaryen
-    VERSION 1.38.28-patch.3
+    VERSION 1.38.28-patch.4
     CMAKE_ARGS
       CMAKE_POLICY_VERSION_MINIMUM=3.5
+      BUILD_STATIC_LIB=ON
     KEEP_PACKAGE_SOURCES
 )
 

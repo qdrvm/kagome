@@ -13,6 +13,7 @@
 #include <qtils/test/outcome.hpp>
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/types/state_request.hpp"
 #include "storage/in_memory/in_memory_spaced_storage.hpp"
@@ -56,7 +57,11 @@ std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
       .WillByDefault(Return(outcome::success()));
 
   return kagome::storage::trie::TrieStorageImpl::createEmpty(
-             trie_factory, codec, serializer, state_pruner)
+             trie_factory,
+             codec,
+             serializer,
+             state_pruner,
+             std::make_shared<BufferStorageMock>())
       .value();
 }
 
