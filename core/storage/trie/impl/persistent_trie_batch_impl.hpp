@@ -35,6 +35,16 @@ namespace kagome::storage::trie {
         TrieChangesTrackerOpt changes,
         std::shared_ptr<PolkadotTrie> trie,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
+
+    PersistentTrieBatchImpl(
+        std::shared_ptr<Codec> codec,
+        std::shared_ptr<TrieSerializer> serializer,
+        TrieChangesTrackerOpt changes,
+        std::shared_ptr<PolkadotTrie> trie,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+        std::shared_ptr<BufferStorage> direct_kv_storage,
+        Fresh);
+
     ~PersistentTrieBatchImpl() override = default;
 
     outcome::result<RootHash> commit(StateVersion version) override;

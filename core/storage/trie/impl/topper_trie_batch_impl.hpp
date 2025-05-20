@@ -48,7 +48,7 @@ namespace kagome::storage::trie {
     outcome::result<std::optional<std::shared_ptr<TrieBatch>>> createChildBatch(
         common::BufferView path) override;
 
-    outcome::result<void> apply(storage::BufferStorage &map);
+    outcome::result<void> apply(face::Writeable<Buffer, Buffer> &map);
 
    private:
     std::map<Buffer, std::optional<Buffer>> cache_;

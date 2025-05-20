@@ -109,14 +109,14 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::writeBack() {
-    if (auto p = parent_.lock()) {
-      return apply(*p);
+    if (auto parent = parent_.lock()) {
+      return apply(*parent);
     }
     return Error::PARENT_EXPIRED;
   }
 
   outcome::result<void> TopperTrieBatchImpl::apply(
-      storage::BufferStorage &map) {
+      face::Writeable<Buffer, Buffer> &map) {
     for (auto &[k, v] : cache_) {
       if (v) {
         OUTCOME_TRY(map.put(k, BufferView{*v}));

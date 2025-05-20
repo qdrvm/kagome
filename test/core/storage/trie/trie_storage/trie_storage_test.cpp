@@ -11,6 +11,7 @@
 #include <qtils/test/outcome.hpp>
 
 #include "filesystem/common.hpp"
+#include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"
@@ -65,9 +66,13 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
                 testing::A<const kagome::storage::trie::PolkadotTrie &>(), _))
         .WillByDefault(Return(outcome::success()));
 
-    auto storage =
-        TrieStorageImpl::createEmpty(factory, codec, serializer, state_pruner)
-            .value();
+    auto storage = TrieStorageImpl::createEmpty(
+                       factory,
+                       codec,
+                       serializer,
+                       state_pruner,
+                       std::make_shared<kagome::storage::BufferStorageMock>())
+                       .value();
 
     auto batch =
         storage
@@ -84,9 +89,12 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
   auto serializer = std::make_shared<TrieSerializerImpl>(
       factory, codec, std::make_shared<TrieStorageBackendImpl>(new_rocks_db));
   auto state_pruner = std::make_shared<TriePrunerMock>();
-  auto storage =
-      TrieStorageImpl::createFromStorage(codec, serializer, state_pruner)
-          .value();
+  auto storage = TrieStorageImpl::createFromStorage(
+                     codec,
+                     serializer,
+                     state_pruner,
+                     std::make_shared<kagome::storage::BufferStorageMock>())
+                     .value();
   auto batch = storage->getPersistentBatchAt(root, std::nullopt).value();
   ASSERT_OUTCOME_SUCCESS(v1, batch->get("123"_buf));
   ASSERT_EQ(v1, "abc"_buf);

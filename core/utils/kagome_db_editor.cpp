@@ -259,7 +259,7 @@ Example:
       try {
         storage =
             storage::RocksDb::create(args[DB_PATH], rocksdb::Options()).value();
-        storage->dropColumn(storage::Space::kBlockBody);
+        storage->dropColumn(storage::Space::kBlockBody).value();
         buffer_storage = storage->getSpace(storage::Space::kDefault);
       } catch (std::system_error &e) {
         log->error("{}", e.what());
@@ -388,7 +388,8 @@ Example:
               injector.template create<sptr<Codec>>(),
               injector.template create<sptr<TrieSerializer>>(),
               injector
-                  .template create<sptr<storage::trie_pruner::TriePruner>>())
+                  .template create<sptr<storage::trie_pruner::TriePruner>>(),
+              storage->getSpace(storage::Space::kTrieDirectKV))
               .value();
 
       if (COMPACT == cmd) {

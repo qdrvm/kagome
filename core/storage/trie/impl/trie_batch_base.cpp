@@ -6,10 +6,9 @@
 
 #include "storage/trie/impl/trie_batch_base.hpp"
 
+#include "storage/database_error.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_cursor_impl.hpp"
-
-#include <iostream>
 
 namespace kagome::storage::trie {
 
@@ -24,13 +23,43 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(trie_ != nullptr);
   }
 
+  TrieBatchBase::TrieBatchBase(std::shared_ptr<Codec> codec,
+                               std::shared_ptr<TrieSerializer> serializer,
+                               std::shared_ptr<PolkadotTrie> trie,
+                               std::shared_ptr<BufferStorage> direct_kv_storage,
+                               Fresh)
+      : TrieBatchBase(codec, serializer, trie) {
+    BOOST_ASSERT(direct_kv_storage != nullptr);
+    direct_kv_ = {.storage = direct_kv_storage};
+  }
+
   outcome::result<BufferOrView> TrieBatchBase::get(
       const BufferView &key) const {
+    if (direct_kv_) {
+      if (auto it = direct_kv_->batch.find(key);
+          it != direct_kv_->batch.end()) {
+        if (it->second) {
+          return BufferOrView{it->second->view()};
+        }
+        return DatabaseError::NOT_FOUND;
+      }
+      return direct_kv_->storage->get(key);
+    }
     return trie_->get(key);
   }
 
   outcome::result<std::optional<BufferOrView>> TrieBatchBase::tryGet(
       const BufferView &key) const {
+    if (direct_kv_) {
+      if (auto it = direct_kv_->batch.find(key);
+          it != direct_kv_->batch.end()) {
+        if (it->second) {
+          return BufferOrView{it->second->view()};
+        }
+        return std::nullopt;
+      }
+      return direct_kv_->storage->tryGet(key);
+    }
     return trie_->tryGet(key);
   }
 
@@ -39,6 +68,16 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<bool> TrieBatchBase::contains(const BufferView &key) const {
+    if (direct_kv_) {
+      if (auto it = direct_kv_->batch.find(key);
+          it != direct_kv_->batch.end()) {
+        if (it->second) {
+          return true;
+        }
+        return false;
+      }
+      return direct_kv_->storage->contains(key);
+    }
     return trie_->contains(key);
   }
 

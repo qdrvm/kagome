@@ -14,14 +14,20 @@
 
 namespace kagome::parachain {
 
+  struct PeerStatement {
+    network::CompactStatement compact_statement;
+    network::ValidatorIndex validator_index;
+  };
+
+}  // namespace kagome::parachain
+
+// SCALE_TIE_HASH_STD(kagome::parachain::PeerStatement);
+
+namespace kagome::parachain {
+
   /// knowledge that a peer has about goings-on in a relay parent.
   struct PeerRelayParentKnowledge {
     using CandidateHash = network::CandidateHash;
-    struct PeerStatement {
-      network::CompactStatement compact_statement;
-      network::ValidatorIndex validator_index;
-    };
-
     std::unordered_set<CandidateHash>
         sent_candidates;  /// candidates that the peer is aware of because we
                           /// sent statements to it. This indicates that we can

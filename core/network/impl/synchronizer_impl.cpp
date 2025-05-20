@@ -26,9 +26,13 @@
 #include "network/warp/protocol.hpp"
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/rocksdb/rocksdb.hpp"
+#include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
+#include "storage/trie/update_direct_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 #include "utils/sptr.hpp"
@@ -112,7 +116,8 @@ namespace kagome::network {
       std::shared_ptr<Beefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
       common::MainThreadPool &main_thread_pool,
-      std::shared_ptr<blockchain::BlockStorage> block_storage)
+      std::shared_ptr<blockchain::BlockStorage> block_storage,
+      std::shared_ptr<storage::SpacedStorage> db)
       : log_(log::createLogger("Synchronizer", "synchronizer")),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
@@ -132,7 +137,10 @@ namespace kagome::network {
             poolHandlerReadyMake(app_state_manager, main_thread_pool)},
         block_storage_{std::move(block_storage)},
         max_parallel_downloads_{app_config.maxParallelDownloads()},
-        random_gen_{std::random_device{}()} {
+        random_gen_{std::random_device{}()},
+        trie_direct_storage_{
+            reinterpret_cast<storage::RocksDb &>(*db).getRocksSpace(
+                storage::Space::kTrieDirectKV)} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);
@@ -145,6 +153,7 @@ namespace kagome::network {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(block_storage_);
+    BOOST_ASSERT(trie_direct_storage_);
 
     sync_method_ = app_config.syncMethod();
 
@@ -971,6 +980,39 @@ namespace kagome::network {
     }
     OUTCOME_TRY(trie_pruner_->addNewState(state_sync_flow_->root(),
                                           storage::trie::StateVersion::V0));
+    auto root = state_sync_flow_->nodes().at(Buffer{state_sync_flow_->root()});
+    storage::trie::PolkadotCodec codec{crypto::blake2b};
+    OUTCOME_TRY(root_node, codec.decodeNode(root));
+    auto trie = storage::trie::PolkadotTrieImpl::create(
+        root_node,
+        storage::trie::PolkadotTrieImpl::RetrieveFunctions{
+            [this, &codec](const storage::trie::DummyNode &node) {
+              if (auto hash = node.db_key.asHash()) {
+                if (auto it =
+                        state_sync_flow_->nodes().find(node.db_key.asBuffer());
+                    it != state_sync_flow_->nodes().end()) {
+                  auto enc = it->second;
+                  return codec.decodeNode(enc);
+                } else {
+                  if (trie_node_db_->contains(node.db_key.asBuffer())) {
+                    throw std::runtime_error{
+                        std::format("Node DB has {}, in memory db doesn't",
+                                    node.db_key.asBuffer().toHex())};
+                  } else {
+                    throw std::runtime_error{std::format(
+                        "Node DB doesn't {}, neither does in memory db",
+                        node.db_key.asBuffer().toHex())};
+                  }
+                }
+              }
+              return codec.decodeNode(node.db_key.asBuffer());
+            },
+            [this](const common::Hash256 &value_hash) {
+              return state_sync_flow_->nodes().at(Buffer{value_hash});
+            }});
+    SL_DEBUG(log_, "New direct storage root: {}", state_sync_flow_->root());
+    OUTCOME_TRY(storage::trie::updateDirectStorage(
+        state_sync_flow_->root(), *trie, *trie_direct_storage_, log_));
     auto block = state_sync_flow_->blockInfo();
     state_sync_flow_.reset();
     SL_INFO(log_, "State syncing block {} has finished.", block);
@@ -1674,7 +1716,7 @@ namespace kagome::network {
     };
     fetch(peer_id, std::move(request), "unsafe", std::move(cb2));
   }
-  
+
   void SynchronizerImpl::setHangTimer() {
     hang_timer_ = scheduler_->scheduleWithHandle(
         [WEAK_SELF] {

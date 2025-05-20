@@ -5,6 +5,7 @@
  */
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <libp2p/common/final_action.hpp>
 
 #include "crypto/blake2/blake2b.h"
 #include "network/impl/state_sync_request_flow.hpp"
@@ -97,6 +98,16 @@ namespace kagome::network {
         OUTCOME_TRY(push(it));
       }
       auto pop_level = true;
+      size_t count{};
+      auto start = std::chrono::steady_clock::now();
+      libp2p::common::FinalAction print_count = [this, &count, start] {
+        auto now = std::chrono::steady_clock::now();
+        log_->debug(
+            "Inserted {} entries to node DB as part of state sync in {} ms",
+            count,
+            std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
+                .count());
+      };
       while (not level.stack.empty()) {
         auto child = level.value_child;
         if (child and not isKnown(*child)) {
@@ -105,12 +116,16 @@ namespace kagome::network {
           pop_level = false;
           break;
         }
-        if (level.value_hash and not isKnown(*level.value_hash)) {
+        if (level.value_hash != nullptr and not isKnown(*level.value_hash)) {
           auto it = nodes.find(*level.value_hash);
           if (it == nodes.end()) {
             return outcome::success();
           }
+          auto [_, inserted] =
+              nodes_.emplace(std::pair{it->first, it->second.first});
+          BOOST_VERIFY(inserted);
           OUTCOME_TRY(node_db_->put(it->first, std::move(it->second.first)));
+          ++count;
           known_.emplace(it->first);
         }
         for (level.branchInit(); not level.branch_end; level.branchNext()) {
@@ -126,7 +141,10 @@ namespace kagome::network {
         }
         if (level.branch_end) {
           auto &t = level.stack.back().t;
+          auto [_, inserted] = nodes_.emplace(std::pair{t.hash, t.encoded});
+          BOOST_VERIFY(inserted);
           OUTCOME_TRY(node_db_->put(t.hash, std::move(t.encoded)));
+          ++count;
           known_.emplace(t.hash);
           level.pop();
           if (not level.stack.empty()) {
@@ -149,9 +167,11 @@ namespace kagome::network {
     if (known_.find(hash) != known_.end()) {
       return true;
     }
-    if (auto node_res = node_db_->contains(hash),
-        value_res = node_db_->contains(hash);
-        (node_res and node_res.value()) or (value_res and value_res.value())) {
+    auto node_res = node_db_->contains(hash);
+    auto in_mem_node = nodes_.contains(common::BufferView{hash});
+    // if something's in the database, we still need to put into in memory
+    // storage
+    if (node_res.value() and in_mem_node) {
       known_.emplace(hash);
       return true;
     }

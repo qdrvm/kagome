@@ -24,6 +24,7 @@ namespace kagome::storage {
     kBeefyJustification,
     kAvaliabilityStorage,
     kAudiPeers,
+    kTrieDirectKV,
 
     kTotal
   };

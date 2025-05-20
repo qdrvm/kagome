@@ -21,6 +21,14 @@ namespace kagome::storage::trie {
                            std::shared_ptr<PolkadotTrie> trie,
                            std::shared_ptr<TrieSerializer> serializer,
                            TrieSerializer::OnNodeLoaded on_child_node_loaded);
+
+    EphemeralTrieBatchImpl(std::shared_ptr<Codec> codec,
+                           std::shared_ptr<PolkadotTrie> trie,
+                           std::shared_ptr<TrieSerializer> serializer,
+                           TrieSerializer::OnNodeLoaded on_child_node_loaded,
+                           std::shared_ptr<BufferStorage> direct_kv_storage,
+                           Fresh);
+
     ~EphemeralTrieBatchImpl() override = default;
 
     outcome::result<std::tuple<bool, uint32_t>> clearPrefix(

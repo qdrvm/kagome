@@ -20,6 +20,22 @@ namespace kagome::storage::trie {
     // on_child_node_loaded_ can be zero
   }
 
+  EphemeralTrieBatchImpl::EphemeralTrieBatchImpl(
+      std::shared_ptr<Codec> codec,
+      std::shared_ptr<PolkadotTrie> trie,
+      std::shared_ptr<TrieSerializer> serializer,
+      TrieSerializer::OnNodeLoaded on_child_node_loaded,
+      std::shared_ptr<BufferStorage> direct_kv_storage,
+      Fresh)
+      : TrieBatchBase{std::move(codec),
+                      std::move(serializer),
+                      std::move(trie),
+                      direct_kv_storage,
+                      Fresh{}},
+        on_child_node_loaded_{std::move(on_child_node_loaded)} {
+    // on_child_node_loaded_ can be zero
+  }
+
   outcome::result<std::tuple<bool, uint32_t>>
   EphemeralTrieBatchImpl::clearPrefix(const BufferView &prefix,
                                       std::optional<uint64_t> limit) {
