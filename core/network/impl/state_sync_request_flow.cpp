@@ -116,12 +116,14 @@ namespace kagome::network {
           pop_level = false;
           break;
         }
-        if ((level.value_hash != nullptr) and not isKnown(*level.value_hash)) {
+        if (level.value_hash != nullptr and not isKnown(*level.value_hash)) {
           auto it = nodes.find(*level.value_hash);
           if (it == nodes.end()) {
             return outcome::success();
           }
-          nodes_.emplace(std::pair{it->first, it->second.first});
+          auto [_, inserted] =
+              nodes_.emplace(std::pair{it->first, it->second.first});
+          BOOST_VERIFY(inserted);
           OUTCOME_TRY(node_db_->put(it->first, std::move(it->second.first)));
           ++count;
           known_.emplace(it->first);
@@ -139,7 +141,8 @@ namespace kagome::network {
         }
         if (level.branch_end) {
           auto &t = level.stack.back().t;
-          nodes_.emplace(std::pair{t.hash, t.encoded});
+          auto [_, inserted] = nodes_.emplace(std::pair{t.hash, t.encoded});
+          BOOST_VERIFY(inserted);
           OUTCOME_TRY(node_db_->put(t.hash, std::move(t.encoded)));
           ++count;
           known_.emplace(t.hash);
@@ -164,9 +167,11 @@ namespace kagome::network {
     if (known_.find(hash) != known_.end()) {
       return true;
     }
-    if (auto node_res = node_db_->contains(hash),
-        value_res = node_db_->contains(hash);
-        (node_res and node_res.value()) or (value_res and value_res.value())) {
+    auto node_res = node_db_->contains(hash);
+    auto in_mem_node = nodes_.contains(common::BufferView{hash});
+    // if something's in the database, we still need to put into in memory
+    // storage
+    if (node_res.value() and in_mem_node) {
       known_.emplace(hash);
       return true;
     }

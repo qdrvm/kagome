@@ -31,6 +31,7 @@
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
+#include "storage/trie/trie_storage_backend.hpp"
 #include "storage/trie/update_direct_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 #include "utils/pool_handler_ready_make.hpp"
@@ -987,8 +988,22 @@ namespace kagome::network {
         storage::trie::PolkadotTrieImpl::RetrieveFunctions{
             [this, &codec](const storage::trie::DummyNode &node) {
               if (auto hash = node.db_key.asHash()) {
-                auto enc = state_sync_flow_->nodes().at(node.db_key.asBuffer());
-                return codec.decodeNode(enc);
+                if (auto it =
+                        state_sync_flow_->nodes().find(node.db_key.asBuffer());
+                    it != state_sync_flow_->nodes().end()) {
+                  auto enc = it->second;
+                  return codec.decodeNode(enc);
+                } else {
+                  if (trie_node_db_->contains(node.db_key.asBuffer())) {
+                    throw std::runtime_error{
+                        std::format("Node DB has {}, in memory db doesn't",
+                                    node.db_key.asBuffer().toHex())};
+                  } else {
+                    throw std::runtime_error{std::format(
+                        "Node DB doesn't {}, neither does in memory db",
+                        node.db_key.asBuffer().toHex())};
+                  }
+                }
               }
               return codec.decodeNode(node.db_key.asBuffer());
             },
