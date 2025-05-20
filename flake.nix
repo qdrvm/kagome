@@ -1,14 +1,12 @@
 {
   description = "A Nix-flake for building Kagome";
 
-  inputs.nixpkgs.url = "https://github.com/NixOS/nixpkgs/archive/270dace49bc95a7f88ad187969179ff0d2ba20ed.tar.gz";
-  inputs.oldnixpkgs.url = "https://github.com/NixOS/nixpkgs/archive/c6c17387f7dd5332bec72bb9e76df434ac6b2bff.tar.gz";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/master";
 
   outputs =
     {
       self,
       nixpkgs,
-      oldnixpkgs,
     }:
     let
       supportedSystems = [
@@ -23,13 +21,12 @@
           system:
           f {
             pkgs = import nixpkgs { inherit system; };
-            oldpkgs = import oldnixpkgs { inherit system; };
           }
         );
     in
     {
       devShells = forEachSupportedSystem (
-        { pkgs, oldpkgs }:
+        { pkgs }:
         {
           default =
             pkgs.mkShell.override
@@ -40,7 +37,7 @@
               {
                 packages = with pkgs; [
                   clang-tools
-                  oldpkgs.cmake
+                  cmake
                   libseccomp
                   ncurses.dev
                   python3
