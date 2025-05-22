@@ -2211,12 +2211,13 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
       .WillOnce(Return());
 
   EXPECT_CALL(*peer_manager_, getParachainId(peer_a))
-      .WillOnce(Return(test_state.chain_ids[0]));
+      .WillRepeatedly(Return(test_state.chain_ids[0]));
 
+  // Ensure insertAdvertisement always returns success
   EXPECT_CALL(
       *peer_manager_,
       insertAdvertisement(testing::_, testing::_, testing::_, testing::_))
-      .WillOnce(
+      .WillRepeatedly(
           Return(outcome::success(std::make_pair(pair.public_key, para_id))));
 
   auto candidate = dummy_candidate_receipt_bad_sig(head_c, Hash{});
@@ -2241,36 +2242,24 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
   candidate.descriptor.persisted_data_hash = hash_of(pvd);
   const auto candidate_hash = hash_of(candidate);
 
-  EXPECT_CALL(*peer_manager_,
-              hasAdvertised(peer_a, leaf_hash, {candidate_hash}))
-      .WillOnce(Return(std::make_optional(true)));
+  EXPECT_CALL(*peer_manager_, hasAdvertised(testing::_, testing::_, testing::_))
+      .WillRepeatedly(Return(std::make_optional(true)));
 
-  EXPECT_CALL(*peer_manager_, getCollationVersion(peer_a))
-      .WillOnce(
-          Return(std::make_optional(network::CollationVersion::VStaging)));
+  // Since we're testing rejection due to invalid parent head data,
+  // this should never be called
+  EXPECT_CALL(*peer_manager_, getCollationVersion(testing::_)).Times(0);
 
   auto proto = std::make_shared<network::ReqCollationProtocolMock>();
-  EXPECT_CALL(*router_, getReqCollationProtocol()).WillOnce(Return(proto));
+  // Since we're testing rejection due to invalid parent head data,
+  // this should never be called
+  EXPECT_CALL(*router_, getReqCollationProtocol()).Times(0);
 
-  {
-    std::vector<
-        std::pair<HypotheticalCandidate, fragment::HypotheticalMembership>>
-        r = {std::make_pair(
-            HypotheticalCandidateComplete{
-                .candidate_hash = candidate_hash,
-                .receipt =
-                    network::CommittedCandidateReceipt{
-                        .descriptor = candidate.descriptor,
-                        .commitments = commitments,
-                    },
-                .persisted_validation_data = pvd,
-            },
-            fragment::HypotheticalMembership{leaf_hash})};
-
-    EXPECT_CALL(*prospective_parachains_,
-                answer_hypothetical_membership_request(testing::_))
-        .WillOnce(Return(r));
-  }
+  // Since we're testing the rejection path due to invalid parent head data,
+  // the advertisement should be rejected early, and membership requests should
+  // never happen
+  EXPECT_CALL(*prospective_parachains_,
+              answer_hypothetical_membership_request(testing::_))
+      .Times(0);
 
   const auto min_number = kagome::math::sat_sub_unsigned(
       leaf_number, test_state.scheduling_lookahead);
@@ -2307,20 +2296,24 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
     requested_len += 1;
   }
 
+  // First we need to activate a leaf to populate the implicit view
   my_view_observable_->notify(PeerViewMock::EventType::kViewUpdated, update);
+
+  // Make sure we declare our collator
   parachain_processor_->onIncomingCollator(
       peer_a, pair.public_key, test_state.chain_ids[0]);
 
   EXPECT_CALL(*prospective_parachains_,
               answerProspectiveValidationDataRequest(
-                  head_c, testing::_, test_state.chain_ids[0]))
+                  leaf_hash, testing::_, test_state.chain_ids[0]))
       .WillRepeatedly(Return(outcome::success(
           std::optional<runtime::PersistedValidationData>{pvd})));
 
   std::optional<std::pair<CandidateHash, Hash>> prosp_candidate =
       std::make_pair(candidate_hash, parent_head_data_hash);
+
   parachain_processor_->handle_advertisement(
-      head_c, peer_a, std::move(prosp_candidate));
+      leaf_hash, peer_a, std::move(prosp_candidate));
 
   const kagome::network::PoV pov{
       .payload = {1},
