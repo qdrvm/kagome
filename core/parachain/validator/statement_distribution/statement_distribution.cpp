@@ -1759,11 +1759,11 @@ namespace kagome::parachain::statement_distribution {
     }
   }
 
-  void StatementDistribution::request_hypotetical_membership(
+  void StatementDistribution::request_hypothetical_membership(
       std::vector<HypotheticalCandidate> hypotheticals,
       std::optional<Hash> active_leaf) {
     REINVOKE(*main_pool_handler,
-             request_hypotetical_membership,
+             request_hypothetical_membership,
              std::move(hypotheticals),
              active_leaf);
 
@@ -1793,7 +1793,7 @@ namespace kagome::parachain::statement_distribution {
     auto active_leaf =
         utils::map(active_leaf_hash,
                    [](const auto &ref_hash) -> Hash { return ref_hash.get(); });
-    request_hypotetical_membership(std::move(hypotheticals), active_leaf);
+    request_hypothetical_membership(std::move(hypotheticals), active_leaf);
   }
 
   void StatementDistribution::provide_candidate_to_grid(

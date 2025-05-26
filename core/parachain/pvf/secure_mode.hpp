@@ -34,7 +34,7 @@ namespace kagome::parachain {
     return e.message();
   }
 
-  /// Changes the filessystem root directory for the current process to
+  /// Changes the filesystem root directory for the current process to
   /// worker_dir
   SecureModeOutcome<void> changeRoot(const std::filesystem::path &worker_dir);
   /// Prohibits network-related system calls
