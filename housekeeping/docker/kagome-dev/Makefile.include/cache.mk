@@ -26,6 +26,7 @@ cache_upload:
 		echo "Preparing cache archive..."; \
 		cd $(WORKING_DIR); \
 		$(call measure_time,tar cf - \
+			--exclude="$(DOCKER_BUILD_DIR_NAME)/core/application" \
 			--exclude="$(DOCKER_BUILD_DIR_NAME)/node/kagome" \
 			--exclude="$(DOCKER_BUILD_DIR_NAME)/kagome_binary" \
 			--exclude="$(DOCKER_BUILD_DIR_NAME)/pkg" \
@@ -52,6 +53,8 @@ cache_get:
 		echo "Extracting cache archive..." && \
 		$(call measure_time,zstd -d "$(CACHE_ARCHIVE)" --stdout | tar xf -) && \
 		rm -f "$(CACHE_ARCHIVE)" && \
+		echo "Cleaning up cache..." && \
+		rm -rf $(WORKING_DIR)/$(DOCKER_BUILD_DIR_NAME)/core/application && \
 		echo "Cache downloaded and extracted successfully"; \
 	else \
 		echo "No suitable $(BUILD_TYPE) cache found"; \
