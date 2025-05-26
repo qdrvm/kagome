@@ -2210,15 +2210,6 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
               setCollating(peer_a, pair.public_key, test_state.chain_ids[0]))
       .WillOnce(Return());
 
-  EXPECT_CALL(*peer_manager_, getParachainId(peer_a))
-      .WillOnce(Return(test_state.chain_ids[0]));
-
-  EXPECT_CALL(
-      *peer_manager_,
-      insertAdvertisement(testing::_, testing::_, testing::_, testing::_))
-      .WillOnce(
-          Return(outcome::success(std::make_pair(pair.public_key, para_id))));
-
   auto candidate = dummy_candidate_receipt_bad_sig(head_c, Hash{});
   candidate.descriptor.para_id = test_state.chain_ids[0];
   runtime::CandidateCommitments commitments{
