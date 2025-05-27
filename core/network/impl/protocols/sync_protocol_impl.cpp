@@ -394,19 +394,12 @@ namespace kagome::network {
              protocolName(),
              stream->remotePeerId().value());
 
-    read_writer->read<BlocksResponse>([weak_stream{std::weak_ptr(stream)},
+    read_writer->read<BlocksResponse>([stream,
                                        wp{weak_from_this()},
                                        response_handler =
                                            std::move(response_handler)](
                                           auto &&block_response_res) mutable {
       auto self = wp.lock();
-      auto stream = weak_stream.lock();
-
-      if (not stream or stream->isClosed()) {
-        response_handler(ProtocolError::GONE);
-        return;
-      }
-
       if (not self) {
         stream->reset();
         response_handler(ProtocolError::GONE);
