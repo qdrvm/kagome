@@ -431,11 +431,18 @@ namespace kagome::network {
             }
 
             if (read_result.has_error()) {
-              SL_DEBUG(self->base_.logger(),
-                       "Error at read from outgoing {} stream with {}: {}",
-                       self->protocolName(),
-                       stream->remotePeerId().value(),
-                       read_result.error());
+              auto peer_id_res = stream->remotePeerId();
+              if (peer_id_res.has_value()) {
+                SL_DEBUG(self->base_.logger(),
+                         "Message content",
+                         self->protocolName(),
+                         peer_id_res.value());
+              } else {
+                SL_DEBUG(self->base_.logger(),
+                         "Message content with unavailable peer ID: {}",
+                         self->protocolName(),
+                         peer_id_res.error().message());
+              }
 
               cb(read_result.as_failure(), nullptr);
               self->base_.closeStream(std::move(wptr), std::move(stream));
