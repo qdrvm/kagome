@@ -111,7 +111,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    VERSION 0.1.36
+    URL https://github.com/libp2p/cpp-libp2p/archive/8ed9108a34963f4fc2d786c57950382729d0e51d.tar.gz
+    SHA1 352cc99cf2b6f30fb4e04c52813e3db90e8de6b7
     KEEP_PACKAGE_SOURCES
 )
 
