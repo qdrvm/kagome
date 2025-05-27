@@ -55,7 +55,7 @@ namespace kagome::network::notifications {
                const StreamAndProtocol &info);
 
     size_t protocol_group;
-    std::shared_ptr<Stream> stream;
+    std::weak_ptr<Stream> stream;
     std::shared_ptr<MessageReadWriterUvarint> framing;
   };
 

@@ -22,7 +22,8 @@ namespace kagome::network::notifications {
 
   // TODO(turuslan): #2359, remove when `YamuxStream::readSome` returns error
   inline bool isClosed(const StreamInfoClose &stream) {
-    return stream.stream->isClosed();
+    auto stream_ptr = stream.stream.lock();
+    return !stream_ptr || stream_ptr->isClosed();
   }
 
   StreamInfo::StreamInfo(const ProtocolsGroups &protocols_groups,
@@ -42,8 +43,10 @@ namespace kagome::network::notifications {
       : StreamInfo{std::move(info)} {}
 
   StreamInfoClose::~StreamInfoClose() {
-    if (stream && !stream->isClosed()) {
-      stream->reset();
+    if (auto stream_ptr = stream.lock()) {
+      if (!stream_ptr->isClosed()) {
+        stream_ptr->reset();
+      }
     }
   }
 
@@ -264,8 +267,15 @@ namespace kagome::network::notifications {
                         std::move(*r.value()),
                         StreamInfoClose{std::move(stream)});
     };
+
+    // Lock the weak_ptr to get a shared_ptr for handshakeRaw
+    auto stream_ptr = stream.stream.lock();
+    if (!stream_ptr) {
+      return;  // Stream is already gone
+    }
+
     handshakeRaw(
-        stream.stream, stream.framing, controller->handshake(), std::move(cb));
+        stream_ptr, stream.framing, controller->handshake(), std::move(cb));
   }
 
   void Protocol::onHandshake(const PeerId &peer_id,
@@ -286,13 +296,16 @@ namespace kagome::network::notifications {
         return;
       }
       auto buffer = std::make_shared<Buffer>(1);
-      stream.stream->read(
-          *buffer,
-          buffer->size(),
-          [WEAK_SELF, peer_id, buffer](outcome::result<size_t>) {
-            WEAK_LOCK(self);
-            self->onError(peer_id, true);
-          });
+      // Lock the weak_ptr to get a shared_ptr before use
+      if (auto stream_ptr = stream.stream.lock()) {
+        stream_ptr->read(
+            *buffer,
+            buffer->size(),
+            [WEAK_SELF, peer_id, buffer](outcome::result<size_t>) {
+              WEAK_LOCK(self);
+              self->onError(peer_id, true);
+            });
+      }
       *peer = PeerOutOpen{std::move(stream)};
     } else {
       if (not shouldAccept(peer_id)) {
