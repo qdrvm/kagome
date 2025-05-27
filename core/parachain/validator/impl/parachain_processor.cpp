@@ -6,8 +6,6 @@
 
 #include "parachain/validator/parachain_processor.hpp"
 
-#include "parachain/validator/validator_side.hpp"  // Direct inclusion of validator_side.hpp
-
 #include <utility>
 
 #include <boost/algorithm/string/join.hpp>
@@ -20,6 +18,7 @@
 #include "authority_discovery/query/query.hpp"
 #include "common/type_traits.hpp"
 #include "parachain/validator/collations.hpp"
+#include "parachain/validator/i_validator_side.hpp"
 #include "parachain/validator/signer.hpp"
 
 #include <array>
@@ -248,7 +247,8 @@ namespace kagome::parachain {
       std::shared_ptr<blockchain::BlockTree> block_tree,
       LazySPtr<consensus::SlotsUtil> slots_util,
       std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
-      std::shared_ptr<statement_distribution::IStatementDistribution> sd)
+      std::shared_ptr<statement_distribution::IStatementDistribution> sd,
+      std::shared_ptr<parachain::ValidatorSide> validator_side)
       : ParachainStorageImpl(std::move(av_store)),
         pm_(std::move(pm)),
         crypto_provider_(std::move(crypto_provider)),
@@ -289,6 +289,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(prospective_parachains_);
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(statement_distribution);
+    BOOST_ASSERT(validator_side);
     app_state_manager.takeControl(*this);
 
     our_current_state_.implicit_view.emplace(
@@ -296,7 +297,7 @@ namespace kagome::parachain {
     BOOST_ASSERT(our_current_state_.implicit_view);
 
     // Initialize the validator side component
-    our_current_state_.validator_side = std::make_shared<ValidatorSide>();
+    our_current_state_.validator_side = std::move(validator_side);
 
     metrics_registry_->registerGaugeFamily(
         kIsParachainValidator,
@@ -469,7 +470,7 @@ namespace kagome::parachain {
     }
 
     const auto current_leaves =
-        our_current_state_.validator_side->active_leaves;
+        our_current_state_.validator_side->activeLeaves();
     std::unordered_map<Hash, ProspectiveParachainsModeOpt> removed;
     for (const auto &[h, m] : current_leaves) {
       if (!event.view.contains(h)) {
@@ -491,12 +492,12 @@ namespace kagome::parachain {
     for (const auto &leaf : added) {
       const auto mode =
           prospective_parachains_->prospectiveParachainsMode(leaf);
-      our_current_state_.validator_side->active_leaves[leaf] =
+      our_current_state_.validator_side->activeLeaves()[leaf] =
           mode.value_or(ProspectiveParachainsMode{});
     }
 
     for (const auto &[removed, mode] : removed) {
-      our_current_state_.validator_side->active_leaves.erase(removed);
+      our_current_state_.validator_side->activeLeaves().erase(removed);
       const std::vector<Hash> pruned =
           mode ? std::move(pruned_h) : std::vector<Hash>{removed};
 
@@ -549,7 +550,7 @@ namespace kagome::parachain {
     std::unordered_map<Hash, ProspectiveParachainsModeOpt>
         active_leaves_converted;
     for (const auto &[hash, state] :
-         our_current_state_.validator_side->active_leaves) {
+         our_current_state_.validator_side->activeLeaves()) {
       // Convert boost::variant to std::optional
       if (auto *mode_ptr = boost::get<ProspectiveParachainsMode>(&state)) {
         active_leaves_converted[hash] = *mode_ptr;
@@ -2800,7 +2801,7 @@ namespace kagome::parachain {
     std::unordered_map<Hash, std::optional<ProspectiveParachainsMode>>
         active_leaves_converted;
     for (const auto &[hash, mode_variant] :
-         our_current_state_.validator_side->active_leaves) {
+         our_current_state_.validator_side->activeLeaves()) {
       if (auto *mode_ptr =
               boost::get<ProspectiveParachainsMode>(&mode_variant)) {
         active_leaves_converted[hash] = *mode_ptr;
@@ -3117,7 +3118,7 @@ namespace kagome::parachain {
              our_current_state_.state_by_relay_parent.size(),
              our_current_state_.per_leaf.size(),
              our_current_state_.per_candidate.size(),
-             our_current_state_.validator_side->active_leaves.size(),
+             our_current_state_.validator_side->activeLeaves().size(),
              our_current_state_.collation_requests_cancel_handles.size(),
              our_current_state_.validator_side->fetchedCandidates().size());
     if (our_current_state_.implicit_view) {

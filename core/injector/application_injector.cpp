@@ -165,6 +165,7 @@
 #include "parachain/pvf/pvf_thread_pool.hpp"
 #include "parachain/pvf/workers.hpp"
 #include "parachain/validator/impl/parachain_observer_impl.hpp"
+#include "parachain/validator/impl/validator_side.hpp"
 #include "parachain/validator/parachain_processor.hpp"
 #include "parachain/validator/statement_distribution/i_statement_distribution.hpp"
 #include "parachain/validator/statement_distribution/statement_distribution.hpp"
@@ -809,6 +810,7 @@ namespace {
             di::bind<parachain::IProspectiveParachains>.template to<parachain::ProspectiveParachains>(),
             di::bind<parachain::BackedCandidatesSource>.template to<parachain::ThreadedParachainProcessorImpl>(),
             di::bind<parachain::ParachainStorage>.template to<parachain::ThreadedParachainProcessorImpl>(),
+            di::bind<parachain::ValidatorSide>.template to<parachain::ValidatorSideImpl>(),
             di::bind<parachain::ParachainProcessor>.template to<parachain::ThreadedParachainProcessorImpl>(),
             di::bind<parachain::IPvfPrecheck>.template to<parachain::PvfPrecheck>(),
             di::bind<network::CanDisconnect>.template to<parachain::statement_distribution::StatementDistribution>(),

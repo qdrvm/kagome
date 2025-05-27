@@ -41,6 +41,7 @@
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/fetched_collation_hash.hpp"
 #include "parachain/validator/i_parachain_processor.hpp"
+#include "parachain/validator/i_validator_side.hpp"
 #include "parachain/validator/optional_hash.hpp"
 #include "parachain/validator/parachain_storage.hpp"
 #include "parachain/validator/prospective_parachains/prospective_parachains.hpp"
@@ -98,12 +99,6 @@ namespace kagome::dispute {
 
 namespace kagome::parachain {
   using libp2p::PeerId;
-
-  // BlockedCollationId is now defined in blocked_collation_id.hpp
-
-  // Forward declaration of ValidatorSide
-  class ValidatorSide;
-
 }  // namespace kagome::parachain
 
 namespace kagome::parachain {
@@ -125,7 +120,6 @@ namespace kagome::parachain {
         log::createLogger("ParachainProcessorEmpty", "parachain");
     std::shared_ptr<statement_distribution::IStatementDistribution>
         statement_distribution_;
-
     void process_vstaging_statement(
         const libp2p::peer::PeerId &peer_id,
         const network::vstaging::StatementDistributionMessage &msg);
@@ -214,7 +208,8 @@ namespace kagome::parachain {
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<statement_distribution::IStatementDistribution>
-            statement_distribution);
+            statement_distribution,
+        std::shared_ptr<ValidatorSide> validator_side);
     ~ParachainProcessorImpl() = default;
 
     /**
@@ -889,7 +884,8 @@ namespace kagome::parachain {
         LazySPtr<consensus::SlotsUtil> slots_util,
         std::shared_ptr<consensus::babe::BabeConfigRepository> babe_config_repo,
         std::shared_ptr<statement_distribution::IStatementDistribution>
-            statement_distribution)
+            statement_distribution,
+        std::shared_ptr<parachain::ValidatorSide> validator_side)
         : ParachainProcessorImpl(std::move(pm),
                                  std::move(crypto_provider),
                                  std::move(router),
@@ -912,7 +908,8 @@ namespace kagome::parachain {
                                  std::move(block_tree),
                                  slots_util,
                                  std::move(babe_config_repo),
-                                 std::move(statement_distribution)),
+                                 std::move(statement_distribution),
+                                 std::move(validator_side)),
           main_pool_handler_{main_thread_pool.handler(app_state_manager)} {}
 
     void onValidationProtocolMsg(

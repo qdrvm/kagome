@@ -38,6 +38,7 @@
 #include "mock/core/parachain/pvf_precheck_mock.hpp"
 #include "mock/core/parachain/signer_factory_mock.hpp"
 #include "mock/core/parachain/statement_distribution_mock.hpp"
+#include "mock/core/parachain/validator_side.hpp"
 #include "mock/core/runtime/parachain_host_mock.hpp"
 #include "parachain/availability/chunks.hpp"
 #include "parachain/availability/proof.hpp"
@@ -73,6 +74,9 @@ using kagome::network::PeerManagerMock;
 using kagome::network::PeerViewMock;
 using kagome::network::Router;
 using kagome::network::RouterMock;
+using kagome::parachain::ValidatorSideMock;
+using FetchedCandidatesMap =
+    kagome::parachain::ValidatorSide::FetchedCandidatesMap;
 using kagome::primitives::events::ChainSubscriptionEngine;
 using kagome::primitives::events::SyncStateSubscriptionEngine;
 using kagome::primitives::events::SyncStateSubscriptionEnginePtr;
@@ -109,6 +113,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
     statement_distribution_ =
         std::make_shared<statement_distribution::StatementDistributionMock>();
     signer_ = std::make_shared<ValidatorSignerMock>();
+    validator_side_ = std::make_shared<ValidatorSideMock>();
 
     my_view_observable_ =
         std::make_shared<PeerViewMock::MyViewSubscriptionEngine>();
@@ -137,7 +142,8 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         block_tree_,
         testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
         babe_config_repo_,
-        statement_distribution_);
+        statement_distribution_,
+        validator_side_);
 
     EXPECT_CALL(*peer_view_, getMyViewObservable())
         .WillRepeatedly(Return(my_view_observable_));
@@ -148,6 +154,18 @@ class BackingTest : public ProspectiveParachainsTestHarness {
         .WillRepeatedly(Return(network::Roles(0xff)));
     EXPECT_CALL(*prospective_parachains_, getBlockTree())
         .WillRepeatedly(Return(block_tree_));
+
+    // Set up the activeLeaves mock to return an empty map by default
+    static std::unordered_map<Hash, ActiveLeafState> empty_active_leaves;
+    EXPECT_CALL(*validator_side_, activeLeaves())
+        .WillRepeatedly(testing::ReturnRef(empty_active_leaves));
+
+    // Set up the fetchedCandidates mock to return empty maps by default
+    static FetchedCandidatesMap empty_fetched_candidates;
+    EXPECT_CALL(*validator_side_, fetchedCandidates())
+        .WillRepeatedly(testing::ReturnRef(empty_fetched_candidates));
+    EXPECT_CALL(testing::Const(*validator_side_), fetchedCandidates())
+        .WillRepeatedly(testing::ReturnRef(empty_fetched_candidates));
 
     app_state_manager.start();
   }
@@ -186,6 +204,7 @@ class BackingTest : public ProspectiveParachainsTestHarness {
       statement_distribution_;
   std::shared_ptr<ParachainProcessorImpl> parachain_processor_;
   std::shared_ptr<ValidatorSignerMock> signer_;
+  std::shared_ptr<ValidatorSideMock> validator_side_;
 
   PeerViewMock::MyViewSubscriptionEnginePtr my_view_observable_;
 
@@ -2089,6 +2108,10 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
 
   const auto para_id = test_state.chain_ids[0];
 
+  // Set up validator_side_ expectations
+  EXPECT_CALL(*validator_side_, updateActiveLeaves(testing::_, testing::_))
+      .WillRepeatedly(Return());
+
   sync_state_observable_->notify(
       kagome::primitives::events::SyncStateEventType::kSyncState,
       kagome::primitives::events::SyncStateEventParams::SYNCHRONIZED);
@@ -2206,6 +2229,25 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
           "12D3KooWE77U4m1d5mJxmU61AEsXewKjKnG7LiW2UQEPFnS6FXhv")
           .value();
 
+  // Set up validator_side_ expectations
+  EXPECT_CALL(*validator_side_, updateActiveLeaves(testing::_, testing::_))
+      .WillRepeatedly(Return());
+
+  // Set up expectations for collation processing
+  EXPECT_CALL(*validator_side_,
+              canProcessAdvertisement(testing::_, testing::_, testing::_))
+      .WillRepeatedly(Return(true));
+
+  EXPECT_CALL(*validator_side_, getNextCollationToFetch(testing::_, testing::_))
+      .WillRepeatedly(Return(std::make_optional(
+          std::make_pair(pair.public_key, std::optional<CandidateHash>{}))));
+
+  EXPECT_CALL(*validator_side_, registerCollationFetch(testing::_, testing::_))
+      .WillRepeatedly(Return());
+
+  EXPECT_CALL(*validator_side_, completeCollationFetch(testing::_, testing::_))
+      .WillRepeatedly(Return());
+
   EXPECT_CALL(*peer_manager_,
               setCollating(peer_a, pair.public_key, test_state.chain_ids[0]))
       .WillOnce(Return());
@@ -2234,14 +2276,15 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
 
   EXPECT_CALL(*peer_manager_,
               hasAdvertised(peer_a, leaf_hash, {candidate_hash}))
-      .WillOnce(Return(std::make_optional(true)));
+      .WillRepeatedly(Return(std::make_optional(true)));
 
   EXPECT_CALL(*peer_manager_, getCollationVersion(peer_a))
-      .WillOnce(
+      .WillRepeatedly(
           Return(std::make_optional(network::CollationVersion::VStaging)));
 
   auto proto = std::make_shared<network::ReqCollationProtocolMock>();
-  EXPECT_CALL(*router_, getReqCollationProtocol()).WillOnce(Return(proto));
+  EXPECT_CALL(*router_, getReqCollationProtocol())
+      .WillRepeatedly(Return(proto));
 
   {
     std::vector<
@@ -2260,7 +2303,7 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
 
     EXPECT_CALL(*prospective_parachains_,
                 answer_hypothetical_membership_request(testing::_))
-        .WillOnce(Return(r));
+        .WillRepeatedly(Return(r));
   }
 
   const auto min_number = kagome::math::sat_sub_unsigned(
@@ -2310,6 +2353,15 @@ TEST_F(BackingTest, sanity_check_invalid_parent_head_data) {
 
   std::optional<std::pair<CandidateHash, Hash>> prosp_candidate =
       std::make_pair(candidate_hash, parent_head_data_hash);
+
+  // Add additional expectations that might be needed for advertisement
+  // processing
+  EXPECT_CALL(*validator_side_, addFetchedCandidate(testing::_, testing::_))
+      .WillRepeatedly(Return());
+
+  EXPECT_CALL(*validator_side_, removeFetchedCandidate(testing::_))
+      .WillRepeatedly(Return());
+
   parachain_processor_->handle_advertisement(
       head_c, peer_a, std::move(prosp_candidate));
 

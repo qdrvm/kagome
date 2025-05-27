@@ -13,6 +13,7 @@
 #include "parachain/validator/claim_queue_state.hpp"
 #include "parachain/validator/collations.hpp"
 #include "parachain/validator/fetched_collation_hash.hpp"
+#include "parachain/validator/i_validator_side.hpp"
 #include "primitives/common.hpp"
 
 namespace kagome::network {
@@ -23,20 +24,6 @@ namespace kagome::network {
 }  // namespace kagome::network
 
 namespace kagome::parachain {
-
-  // Forward declarations
-  struct BlockedCollationId;
-
-  // Custom hash function for FetchedCollation
-  struct FetchedCollationHasher {
-    size_t operator()(const network::FetchedCollation &value) const {
-      size_t h1 = std::hash<primitives::BlockHash>{}(value.relay_parent);
-      size_t h2 = std::hash<parachain::ParachainId>{}(value.para_id);
-      size_t h3 = std::hash<primitives::BlockHash>{}(value.candidate_hash);
-      return h1 ^ (h2 << 1) ^ (h3 << 2);
-    }
-  };
-
   /**
    * @brief Handles the validator-side logic of the collator protocol
    *
@@ -44,7 +31,7 @@ namespace kagome::parachain {
    * protocol, particularly focusing on ensuring fair collation fetching across
    * parachains.
    */
-  class ValidatorSide {
+  class ValidatorSideImpl : public ValidatorSide {
    public:
     using RelayHash = primitives::BlockHash;
     using CandidateHash = primitives::BlockHash;
@@ -58,8 +45,8 @@ namespace kagome::parachain {
                                                     network::CollationEvent,
                                                     FetchedCollationHasher>;
 
-    ValidatorSide();
-    ~ValidatorSide() = default;
+    ValidatorSideImpl();
+    ~ValidatorSideImpl() override = default;
 
     /**
      * @brief Update active leaves and ensure fairness
@@ -69,7 +56,7 @@ namespace kagome::parachain {
      */
     void updateActiveLeaves(
         const std::unordered_map<Hash, ActiveLeafState> &active_leaves,
-        const ImplicitView &implicit_view);
+        const ImplicitView &implicit_view) override;
 
     /**
      * @brief Check if an advertisement can be processed based on claim queue
@@ -83,7 +70,7 @@ namespace kagome::parachain {
     bool canProcessAdvertisement(
         const RelayHash &relay_parent,
         const ParachainId &para_id,
-        const runtime::ClaimQueueSnapshot &claim_queue);
+        const runtime::ClaimQueueSnapshot &claim_queue) override;
 
     /**
      * @brief Register a collation as being fetched
@@ -92,7 +79,7 @@ namespace kagome::parachain {
      * @param para_id The parachain ID
      */
     void registerCollationFetch(const RelayHash &relay_parent,
-                                const ParachainId &para_id);
+                                const ParachainId &para_id) override;
 
     /**
      * @brief Complete a collation fetch
@@ -101,7 +88,7 @@ namespace kagome::parachain {
      * @param para_id The parachain ID
      */
     void completeCollationFetch(const RelayHash &relay_parent,
-                                const ParachainId &para_id);
+                                const ParachainId &para_id) override;
 
     /**
      * @brief Get the next collation to fetch based on fair allocation
@@ -116,52 +103,51 @@ namespace kagome::parachain {
     getNextCollationToFetch(
         const RelayHash &relay_parent,
         const std::pair<kagome::crypto::Sr25519PublicKey,
-                        std::optional<CandidateHash>> &previous_fetch);
+                        std::optional<CandidateHash>> &previous_fetch) override;
 
     /**
      * @brief Add a new fetched candidate
      */
     void addFetchedCandidate(const network::FetchedCollation &collation,
-                             const network::CollationEvent &event);
+                             const network::CollationEvent &event) override;
 
     /**
      * @brief Remove a fetched candidate
      */
-    void removeFetchedCandidate(const network::FetchedCollation &collation);
+    void removeFetchedCandidate(
+        const network::FetchedCollation &collation) override;
 
     /**
      * @brief Block a collation from seconding
      */
     void blockFromSeconding(const BlockedCollationId &id,
-                            network::PendingCollationFetch &&fetch);
+                            network::PendingCollationFetch &&fetch) override;
 
     /**
      * @brief Get and remove blocked collations for a given ID
      */
     std::vector<network::PendingCollationFetch> takeBlockedCollations(
-        const BlockedCollationId &id);
+        const BlockedCollationId &id) override;
 
     /**
      * @brief Check if there are any blocked collations for a given ID
      */
-    bool hasBlockedCollations(const BlockedCollationId &id) const;
+    bool hasBlockedCollations(const BlockedCollationId &id) const override;
 
     /**
      * @brief Access fetched candidates
      */
-    const FetchedCandidatesMap &fetchedCandidates() const {
-      return *fetched_candidates_;
-    }
+    const FetchedCandidatesMap &fetchedCandidates() const override;
 
     /**
      * @brief Access fetched candidates for modification
      */
-    FetchedCandidatesMap &fetchedCandidates() {
-      return *fetched_candidates_;
-    }
+    FetchedCandidatesMap &fetchedCandidates() override;
 
-    // Active leaves with active leaf state - made public for direct access
-    std::unordered_map<Hash, ActiveLeafState> active_leaves;
+    /**
+     * @brief Access active leaves for modification
+     */
+    std::unordered_map<Hash, ActiveLeafState> &activeLeaves() override;
 
    private:
     // Fetched candidates waiting for validation - using unique_ptr to avoid
@@ -175,6 +161,8 @@ namespace kagome::parachain {
 
     // Claim queue state manager
     ClaimQueueState claim_queue_state_;
+
+    std::unordered_map<Hash, ActiveLeafState> active_leaves;
   };
 
 }  // namespace kagome::parachain

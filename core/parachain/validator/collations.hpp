@@ -425,3 +425,45 @@ namespace kagome::parachain {
   }
 
 }  // namespace kagome::parachain
+
+// Streaming operators for GoogleTest compatibility
+namespace std {
+  // Generic streaming operator for std::unordered_set<unsigned int>
+  inline std::ostream &operator<<(std::ostream &os,
+                                  const std::unordered_set<unsigned int> &set) {
+    os << "{";
+    bool first = true;
+    for (const auto &item : set) {
+      if (!first) {
+        os << ", ";
+      }
+      os << item;
+      first = false;
+    }
+    return os << "}";
+  }
+}  // namespace std
+
+namespace kagome::parachain {
+
+  inline std::ostream &operator<<(std::ostream &os,
+                                  const ProspectiveParachainsMode &mode) {
+    return os << "ProspectiveParachainsMode{max_candidate_depth="
+              << mode.max_candidate_depth
+              << ", allowed_ancestry_len=" << mode.allowed_ancestry_len << "}";
+  }
+
+  inline std::ostream &operator<<(std::ostream &os, const SecondedList &list) {
+    os << "SecondedList{";
+    bool first = true;
+    for (const auto &para_id : list) {
+      if (!first) {
+        os << ", ";
+      }
+      os << para_id;
+      first = false;
+    }
+    return os << "}";
+  }
+
+}  // namespace kagome::parachain

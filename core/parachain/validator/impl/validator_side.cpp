@@ -1,4 +1,4 @@
-#include "parachain/validator/validator_side.hpp"
+#include "parachain/validator/impl/validator_side.hpp"
 
 #include "network/types/collator_messages_vstaging.hpp"
 #include "parachain/validator/blocked_collation_id.hpp"
@@ -7,19 +7,19 @@
 
 namespace kagome::parachain {
 
-  ValidatorSide::ValidatorSide()
+  ValidatorSideImpl::ValidatorSideImpl()
       : active_leaves{},
         fetched_candidates_{std::make_unique<FetchedCandidatesMap>()},
         blocked_from_seconding_{},
         claim_queue_state_{} {}
 
-  void ValidatorSide::updateActiveLeaves(
+  void ValidatorSideImpl::updateActiveLeaves(
       const std::unordered_map<Hash, ActiveLeafState> &active_leaves,
       const ImplicitView &implicit_view) {
     this->active_leaves = active_leaves;
   }
 
-  bool ValidatorSide::canProcessAdvertisement(
+  bool ValidatorSideImpl::canProcessAdvertisement(
       const RelayHash &relay_parent,
       const ParachainId &para_id,
       const runtime::ClaimQueueSnapshot &claim_queue) {
@@ -30,21 +30,21 @@ namespace kagome::parachain {
     return claim_queue_state_.canClaimAt(relay_parent, para_id);
   }
 
-  void ValidatorSide::registerCollationFetch(const RelayHash &relay_parent,
-                                             const ParachainId &para_id) {
+  void ValidatorSideImpl::registerCollationFetch(const RelayHash &relay_parent,
+                                                 const ParachainId &para_id) {
     // Call ClaimQueueState's method
     claim_queue_state_.registerFetchAttempt(relay_parent, para_id);
   }
 
-  void ValidatorSide::completeCollationFetch(const RelayHash &relay_parent,
-                                             const ParachainId &para_id) {
+  void ValidatorSideImpl::completeCollationFetch(const RelayHash &relay_parent,
+                                                 const ParachainId &para_id) {
     // Call ClaimQueueState's method
     claim_queue_state_.completeFetchAttempt(relay_parent, para_id);
   }
 
   std::optional<std::pair<kagome::crypto::Sr25519PublicKey,
-                          std::optional<ValidatorSide::CandidateHash>>>
-  ValidatorSide::getNextCollationToFetch(
+                          std::optional<ValidatorSideImpl::CandidateHash>>>
+  ValidatorSideImpl::getNextCollationToFetch(
       const RelayHash &relay_parent,
       const std::pair<kagome::crypto::Sr25519PublicKey,
                       std::optional<CandidateHash>> &previous_fetch) {
@@ -108,7 +108,7 @@ namespace kagome::parachain {
     return std::make_pair(next_collator.value(), candidate_hash);
   }
 
-  void ValidatorSide::addFetchedCandidate(
+  void ValidatorSideImpl::addFetchedCandidate(
       const network::FetchedCollation &collation,
       const network::CollationEvent &event) {
     // Add to the fetched candidates map using insert instead of operator[]
@@ -116,20 +116,20 @@ namespace kagome::parachain {
     fetched_candidates_->insert_or_assign(collation, event);
   }
 
-  void ValidatorSide::removeFetchedCandidate(
+  void ValidatorSideImpl::removeFetchedCandidate(
       const network::FetchedCollation &collation) {
     // Remove from the fetched candidates map
     fetched_candidates_->erase(collation);
   }
 
-  void ValidatorSide::blockFromSeconding(
+  void ValidatorSideImpl::blockFromSeconding(
       const BlockedCollationId &id, network::PendingCollationFetch &&fetch) {
     // Add to the blocked collations map
     blocked_from_seconding_[id].push_back(std::move(fetch));
   }
 
   std::vector<network::PendingCollationFetch>
-  ValidatorSide::takeBlockedCollations(const BlockedCollationId &id) {
+  ValidatorSideImpl::takeBlockedCollations(const BlockedCollationId &id) {
     // Get and remove from the blocked collations map
     std::vector<network::PendingCollationFetch> result;
 
@@ -142,8 +142,23 @@ namespace kagome::parachain {
     return result;
   }
 
-  bool ValidatorSide::hasBlockedCollations(const BlockedCollationId &id) const {
+  std::unordered_map<Hash, ActiveLeafState> &ValidatorSideImpl::activeLeaves() {
+    return active_leaves;
+  }
+
+  bool ValidatorSideImpl::hasBlockedCollations(
+      const BlockedCollationId &id) const {
     return blocked_from_seconding_.count(id) > 0;
+  }
+
+  const ValidatorSideImpl::FetchedCandidatesMap &
+  ValidatorSideImpl::fetchedCandidates() const {
+    return *fetched_candidates_;
+  }
+
+  ValidatorSideImpl::FetchedCandidatesMap &
+  ValidatorSideImpl::fetchedCandidates() {
+    return *fetched_candidates_;
   }
 
 }  // namespace kagome::parachain

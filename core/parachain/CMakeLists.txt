@@ -60,7 +60,7 @@ add_library(validator_parachain
     validator/impl/parachain_observer_impl.cpp
     validator/impl/parachain_processor.cpp
     validator/impl/collations.cpp
-    validator/validator_side.cpp
+    validator/impl/validator_side.cpp
     validator/claim_queue_state.cpp
     validator/signer.cpp
     approval/approval_distribution.cpp
