@@ -72,9 +72,9 @@ namespace libp2p::connection {
       stream->readSome(
           *buffer,
           buffer->size(),
-          [weak{weak_from_this()}, out, cb{std::move(cb)}, buffer{buffer}](
+          [self{shared_from_this()}, out, cb{std::move(cb)}, buffer{buffer}](
               outcome::result<size_t> _r) mutable {
-            if (auto self{weak.lock()}) {
+            if (self) {
               if (_r.has_error()) {
                 return self->deferReadCallback(_r.error(), std::move(cb));
               }
