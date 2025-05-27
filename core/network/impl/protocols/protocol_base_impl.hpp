@@ -104,9 +104,17 @@ namespace kagome::network {
     template <typename T>
     void closeStream(std::weak_ptr<T> wp, std::shared_ptr<Stream> stream) {
       BOOST_ASSERT(stream);
+      if (not stream or stream->isClosed()) {
+        return;
+      }
+      auto remote_peer_id_res = stream->remotePeerId();
+      if (not remote_peer_id_res) {
+        return;
+      }
+
       stream->close([wp = std::move(wp),
                      log = logger(),
-                     peer_id = stream->remotePeerId().value()](auto &&result) {
+                     peer_id = remote_peer_id_res.value()](auto &&result) {
         if (auto self = wp.lock()) {
           if (result.has_value()) {
             SL_DEBUG(log,
