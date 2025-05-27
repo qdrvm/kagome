@@ -399,6 +399,11 @@ namespace kagome::network {
                                        response_handler =
                                            std::move(response_handler)](
                                           auto &&block_response_res) mutable {
+      if (stream->isClosed()) {
+        response_handler(ProtocolError::GONE);
+        return;
+      }
+
       auto self = wp.lock();
       if (not self) {
         stream->reset();
