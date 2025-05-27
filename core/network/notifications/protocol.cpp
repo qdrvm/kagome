@@ -42,7 +42,7 @@ namespace kagome::network::notifications {
       : StreamInfo{std::move(info)} {}
 
   StreamInfoClose::~StreamInfoClose() {
-    if (stream) {
+    if (stream && !stream->isClosed()) {
       stream->reset();
     }
   }
