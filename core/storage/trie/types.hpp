@@ -24,7 +24,4 @@ namespace kagome::storage::trie {
 
   constexpr uint8_t kEscapeCompactHeader = 1;
 
-  const Buffer kLastCommittedHashKey =
-      Buffer::fromString("kagome_last_committed_hash");
-
 }  // namespace kagome::storage::trie

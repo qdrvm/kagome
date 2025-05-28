@@ -13,6 +13,7 @@
 #include "runtime/runtime_instances_pool.hpp"
 #include "runtime/wabt/version.hpp"
 #include "storage/predefined_keys.hpp"
+#include "storage/trie/impl/direct_storage.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
@@ -24,17 +25,14 @@ namespace kagome::injector {
       const crypto::Hasher &hasher,
       runtime::RuntimeInstancesPool &module_factory,
       storage::trie::TrieSerializer &trie_serializer,
-      storage::BufferStorage &direct_trie_storage,
+      storage::trie::DirectStorage &direct_trie_storage,
       std::shared_ptr<runtime::RuntimePropertiesCache> runtime_cache) {
-    auto trie_from = [&direct_trie_storage](
-                         BufferView prefix,
-                         const application::GenesisRawData &kv)
+    auto trie_from = [](BufferView prefix,
+                        const application::GenesisRawData &kv)
         -> outcome::result<std::shared_ptr<storage::trie::PolkadotTrieImpl>> {
       auto trie = storage::trie::PolkadotTrieImpl::createEmpty();
       for (const auto &[key, val] : kv) {
         OUTCOME_TRY(trie->put(Buffer{prefix}.put(key), val.view()));
-        OUTCOME_TRY(
-            direct_trie_storage.put(Buffer{prefix}.put(key), val.view()));
       }
       return trie;
     };
@@ -83,8 +81,12 @@ namespace kagome::injector {
 
     OUTCOME_TRY(root_and_batch, trie_serializer.storeTrie(*top_trie, version));
     OUTCOME_TRY(root_and_batch.second->commit());
-    OUTCOME_TRY(direct_trie_storage.put(storage::trie::kLastCommittedHashKey,
-                                        root_and_batch.first));
+
+    if (direct_trie_storage.getDirectStateRoot()
+        == storage::trie::kEmptyRootHash) {
+      OUTCOME_TRY(direct_trie_storage.resetDirectState(root_and_batch.first,
+                                                       *top_trie));
+    }
     return root_and_batch.first;
   }
 }  // namespace kagome::injector

@@ -21,6 +21,8 @@ namespace kagome::storage::trie_pruner {
 
 namespace kagome::storage::trie {
 
+  class DirectStorage;
+
   class TrieStorageImpl : public TrieStorage {
    public:
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createEmpty(
@@ -28,13 +30,13 @@ namespace kagome::storage::trie {
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        std::shared_ptr<BufferStorage> direct_kv);
+        std::shared_ptr<DirectStorage> direct_kv);
 
     static outcome::result<std::unique_ptr<TrieStorageImpl>> createFromStorage(
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        std::shared_ptr<BufferStorage> direct_kv);
+        std::shared_ptr<DirectStorage> direct_kv);
 
     TrieStorageImpl(const TrieStorageImpl &) = delete;
     void operator=(const TrieStorageImpl &) = delete;
@@ -51,7 +53,7 @@ namespace kagome::storage::trie {
         const RootHash &root,
         const OnNodeLoaded &on_node_loaded) const override;
 
-    BufferStorage &DEBUG_getDirectStorage() override {
+    DirectStorage &DEBUG_getDirectStorage() override {
       return *direct_kv_;
     }
 
@@ -60,15 +62,13 @@ namespace kagome::storage::trie {
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-        std::shared_ptr<BufferStorage> direct_kv);
+        std::shared_ptr<DirectStorage> direct_kv);
 
    private:
-    outcome::result<RootHash> getLastCommittedHash() const;
-
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
     std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
-    std::shared_ptr<BufferStorage> direct_kv_;
+    std::shared_ptr<DirectStorage> direct_kv_;
     log::Logger logger_;
   };
 

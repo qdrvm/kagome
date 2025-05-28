@@ -23,42 +23,41 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(trie_ != nullptr);
   }
 
-  TrieBatchBase::TrieBatchBase(std::shared_ptr<Codec> codec,
-                               std::shared_ptr<TrieSerializer> serializer,
-                               std::shared_ptr<PolkadotTrie> trie,
-                               std::shared_ptr<BufferStorage> direct_kv_storage,
-                               Fresh)
+  TrieBatchBase::TrieBatchBase(
+      std::shared_ptr<Codec> codec,
+      std::shared_ptr<TrieSerializer> serializer,
+      std::shared_ptr<PolkadotTrie> trie,
+      std::shared_ptr<DirectStorage> direct_kv_storage,
+      std::shared_ptr<DirectStorageView> direct_storage_view)
       : TrieBatchBase(codec, serializer, trie) {
     BOOST_ASSERT(direct_kv_storage != nullptr);
-    direct_kv_ = {.storage = direct_kv_storage};
+    direct_.emplace(direct_kv_storage, direct_storage_view, StateDiff{});
   }
 
   outcome::result<BufferOrView> TrieBatchBase::get(
       const BufferView &key) const {
-    if (direct_kv_) {
-      if (auto it = direct_kv_->batch.find(key);
-          it != direct_kv_->batch.end()) {
+    if (direct_) {
+      if (auto it = direct_->diff.find(key); it != direct_->diff.end()) {
         if (it->second) {
           return BufferOrView{it->second->view()};
         }
         return DatabaseError::NOT_FOUND;
       }
-      return direct_kv_->storage->get(key);
+      return direct_->view->get(key);
     }
     return trie_->get(key);
   }
 
   outcome::result<std::optional<BufferOrView>> TrieBatchBase::tryGet(
       const BufferView &key) const {
-    if (direct_kv_) {
-      if (auto it = direct_kv_->batch.find(key);
-          it != direct_kv_->batch.end()) {
+    if (direct_) {
+      if (auto it = direct_->diff.find(key); it != direct_->diff.end()) {
         if (it->second) {
           return BufferOrView{it->second->view()};
         }
         return std::nullopt;
       }
-      return direct_kv_->storage->tryGet(key);
+      return direct_->view->tryGet(key);
     }
     return trie_->tryGet(key);
   }
@@ -68,15 +67,14 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<bool> TrieBatchBase::contains(const BufferView &key) const {
-    if (direct_kv_) {
-      if (auto it = direct_kv_->batch.find(key);
-          it != direct_kv_->batch.end()) {
+    if (direct_) {
+      if (auto it = direct_->diff.find(key); it != direct_->diff.end()) {
         if (it->second) {
           return true;
         }
         return false;
       }
-      return direct_kv_->storage->contains(key);
+      return direct_->view->contains(key);
     }
     return trie_->contains(key);
   }

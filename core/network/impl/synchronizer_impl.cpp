@@ -27,12 +27,12 @@
 #include "primitives/common.hpp"
 #include "storage/predefined_keys.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
+#include "storage/trie/impl/direct_storage.hpp"
 #include "storage/trie/polkadot_trie/polkadot_trie_impl.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
-#include "storage/trie/update_direct_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 #include "utils/pool_handler_ready_make.hpp"
 #include "utils/sptr.hpp"
@@ -117,7 +117,7 @@ namespace kagome::network {
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
       common::MainThreadPool &main_thread_pool,
       std::shared_ptr<blockchain::BlockStorage> block_storage,
-      std::shared_ptr<storage::SpacedStorage> db)
+      std::shared_ptr<storage::trie::DirectStorage> direct_storage)
       : log_(log::createLogger("Synchronizer", "synchronizer")),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
@@ -138,9 +138,7 @@ namespace kagome::network {
         block_storage_{std::move(block_storage)},
         max_parallel_downloads_{app_config.maxParallelDownloads()},
         random_gen_{std::random_device{}()},
-        trie_direct_storage_{
-            reinterpret_cast<storage::RocksDb &>(*db).getRocksSpace(
-                storage::Space::kTrieDirectKV)} {
+        trie_direct_storage_{direct_storage} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);
@@ -993,17 +991,15 @@ namespace kagome::network {
                     it != state_sync_flow_->nodes().end()) {
                   auto enc = it->second;
                   return codec.decodeNode(enc);
-                } else {
-                  if (trie_node_db_->contains(node.db_key.asBuffer())) {
-                    throw std::runtime_error{
-                        std::format("Node DB has {}, in memory db doesn't",
-                                    node.db_key.asBuffer().toHex())};
-                  } else {
-                    throw std::runtime_error{std::format(
-                        "Node DB doesn't {}, neither does in memory db",
-                        node.db_key.asBuffer().toHex())};
-                  }
                 }
+                if (trie_node_db_->contains(node.db_key.asBuffer())) {
+                  throw std::runtime_error{
+                      std::format("Node DB has {}, in memory db doesn't",
+                                  node.db_key.asBuffer().toHex())};
+                }
+                throw std::runtime_error{
+                    std::format("Node DB doesn't {}, neither does in memory db",
+                                node.db_key.asBuffer().toHex())};
               }
               return codec.decodeNode(node.db_key.asBuffer());
             },
@@ -1011,8 +1007,10 @@ namespace kagome::network {
               return state_sync_flow_->nodes().at(Buffer{value_hash});
             }});
     SL_DEBUG(log_, "New direct storage root: {}", state_sync_flow_->root());
-    OUTCOME_TRY(storage::trie::updateDirectStorage(
-        state_sync_flow_->root(), *trie, *trie_direct_storage_, log_));
+
+    OUTCOME_TRY(trie_direct_storage_->resetDirectState(state_sync_flow_->root(),
+                                                       *trie));
+
     auto block = state_sync_flow_->blockInfo();
     state_sync_flow_.reset();
     SL_INFO(log_, "State syncing block {} has finished.", block);

@@ -183,7 +183,7 @@ namespace kagome::storage::trie {
                            : parent_cursor_->value();
   }
 
-  outcome::result<void> TopperTrieCursor::seekLowerBound(
+  outcome::result<bool> TopperTrieCursor::seekLowerBound(
       const BufferView &key) {
     OUTCOME_TRY(parent_cursor_->seekLowerBound(key));
     cached_parent_key_ = parent_cursor_->key();

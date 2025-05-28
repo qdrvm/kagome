@@ -24,7 +24,7 @@ namespace kagome::common {
             typename R = std::invoke_result_t<F, const T &>>
   std::optional<R> map_optional(const std::optional<T> &opt, const F &f) {
     if (opt.has_value()) {
-      return std::optional<R>{f(opt.value())};
+      return std::optional<R>{std::invoke(f, opt.value())};
     }
     return std::nullopt;
   }
@@ -37,7 +37,7 @@ namespace kagome::common {
   template <typename T, typename F, typename R = std::invoke_result_t<F, T &&>>
   std::optional<R> map_optional(std::optional<T> &&opt, const F &f) {
     if (opt.has_value()) {
-      return std::optional<R>{f(std::move(opt.value()))};
+      return std::optional<R>{std::invoke(f, std::move(opt.value()))};
     }
     return std::nullopt;
   }
@@ -54,7 +54,7 @@ namespace kagome::common {
             typename R = std::invoke_result_t<F, const T &>>
   CustomOutcome<R, E> map_result(const CustomOutcome<T, E> &res, const F &f) {
     if (res.has_value()) {
-      return CustomOutcome<R, E>{f(res.value())};
+      return CustomOutcome<R, E>{std::invoke(f, res.value())};
     }
     return res.as_failure();
   }
@@ -70,7 +70,7 @@ namespace kagome::common {
             typename R = std::invoke_result_t<F, T &&>>
   outcome::result<R> map_result(outcome::result<T> &&res, const F &f) {
     if (res.has_value()) {
-      return outcome::result<R>{f(std::move(res.value()))};
+      return outcome::result<R>{std::invoke(f, std::move(res.value()))};
     }
     return res.as_failure();
   }
@@ -88,7 +88,7 @@ namespace kagome::common {
   outcome::result<std::optional<R>> map_result_optional(
       const outcome::result<std::optional<T>> &res_opt, const F &f) {
     return map_result(res_opt, [&f](auto &opt) {
-      return map_optional(opt, [&f](auto &v) { return f(v); });
+      return map_optional(opt, [&f](auto &v) { return std::invoke(f, v); });
     });
   }
 
@@ -104,7 +104,7 @@ namespace kagome::common {
       outcome::result<std::optional<T>> &&res_opt, const F &f) {
     return map_result(std::move(res_opt), [&f](std::optional<T> &&opt) {
       return map_optional(std::move(opt),
-                          [&f](T &&v) { return f(std::move(v)); });
+                          [&f](T &&v) { return std::invoke(f, std::move(v)); });
     });
   }
 

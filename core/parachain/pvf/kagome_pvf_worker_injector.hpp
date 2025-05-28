@@ -71,7 +71,7 @@ namespace kagome::parachain {
       return nullptr;
     }
 
-    virtual storage::BufferStorage &DEBUG_getDirectStorage() {
+    virtual storage::trie::DirectStorage &DEBUG_getDirectStorage() {
       std::abort();
     }
   };

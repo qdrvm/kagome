@@ -22,6 +22,9 @@ namespace kagome::storage::face {
                           Iterable<K, V>,
                           Writeable<K, V>,
                           BatchWriteable<K, V> {
+    virtual outcome::result<void> clear() = 0;
+    virtual outcome::result<void> removePrefix(const View<K> &prefix) = 0;
+
     /**
      * Reports RAM state size
      * @return size in bytes

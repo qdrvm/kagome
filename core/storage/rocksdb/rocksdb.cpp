@@ -570,6 +570,31 @@ namespace kagome::storage {
     return status_as_error(status);
   }
 
+  outcome::result<void> RocksDbSpace::removePrefix(const BufferView &prefix) {
+    OUTCOME_TRY(rocks, use());
+    std::unique_ptr<rocksdb::Iterator> iter{
+        rocks->db_->NewIterator(rocksdb::ReadOptions{}, column_)};
+
+    iter->Seek(make_slice(prefix));
+    if (!iter->status().ok()) {
+      return status_as_error(iter->status());
+    }
+    auto start = iter->key();
+    Buffer next{prefix};
+    next[next.size() - 1]++;
+    iter->Seek(make_slice(next));
+    auto end = iter->key();
+    if (!iter->status().ok()) {
+      return status_as_error(iter->status());
+    }
+    auto status =
+        rocks->db_->DeleteRange(rocksdb::WriteOptions{}, column_, start, end);
+    if (!status.ok()) {
+      return status_as_error(status);
+    }
+    return outcome::success();
+  }
+
   outcome::result<void> RocksDbSpace::clear() {
     auto rocks = storage_.lock();
     if (!rocks) {

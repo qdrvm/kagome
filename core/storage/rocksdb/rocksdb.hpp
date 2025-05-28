@@ -157,8 +157,9 @@ namespace kagome::storage {
                               BufferOrView &&value) override;
 
     outcome::result<void> remove(const BufferView &key) override;
+    outcome::result<void> removePrefix(const BufferView &prefix) override;
 
-    outcome::result<void> clear();
+    outcome::result<void> clear() override;
 
     void compact(const Buffer &first, const Buffer &last);
 

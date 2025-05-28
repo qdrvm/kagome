@@ -19,7 +19,7 @@ namespace kagome::storage::trie {
      * Seek the first element with key not less than \arg key
      * @return true if the trie is not empty
      */
-    virtual outcome::result<void> seekLowerBound(
+    virtual outcome::result<bool> seekLowerBound(
         const common::BufferView &key) = 0;
 
     /**

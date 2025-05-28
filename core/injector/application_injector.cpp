@@ -371,6 +371,7 @@ namespace {
         injector.template create<std::shared_ptr<blockchain::JustificationStoragePolicy>>(),
         injector.template create<sptr<storage::trie::TrieStorage>>(),
         injector.template create<sptr<storage::trie_pruner::TriePruner>>(),
+        injector.template create<sptr<storage::trie::DirectStorage>>(),
         injector.template create<common::MainThreadPool &>());
     // clang-format on
 
@@ -743,7 +744,8 @@ namespace {
                       injector.template create<runtime::RuntimeInstancesPool&>(),
                       injector
                           .template create<storage::trie::TrieSerializer &>(),
-                          *storage->getSpace(storage::Space::kTrieDirectKV),
+                          *injector
+                          .template create<sptr<storage::trie::DirectStorage>>(),
                       injector.template create<
                           sptr<runtime::RuntimePropertiesCache>>());
               if (root_res.has_error()) {
@@ -856,9 +858,7 @@ namespace {
                   );
                 }),
             bind_by_lambda<storage::trie::TrieStorage>([](const auto
-                                                              &injector) {
-                        auto storage = injector.template create<sptr<storage::SpacedStorage>>();
-                        
+                                                              &injector) {                        
                         return storage::trie::TrieStorageImpl::createEmpty(
                          injector.template create<
                              sptr<storage::trie::PolkadotTrieFactory>>(),
@@ -867,9 +867,18 @@ namespace {
                              sptr<storage::trie::TrieSerializer>>(),
                          injector.template create<
                              sptr<storage::trie_pruner::TriePruner>>(),
-                             storage->getSpace(storage::Space::kTrieDirectKV))
+                         injector.template create<
+                             sptr<storage::trie::DirectStorage>>())
                   .value();
             }),
+            bind_by_lambda<storage::trie::DirectStorage>([](const auto
+              &injector) {
+                auto storage = injector.template create<sptr<storage::SpacedStorage>>();
+                auto& rocksdb = dynamic_cast<storage::RocksDb&>(*storage);
+                return storage::trie::DirectStorage::create(
+                  rocksdb.getRocksSpace(storage::Space::kTrieDirectKV),
+                  rocksdb.getRocksSpace(storage::Space::kTrieDiff)).value();
+              }),
             di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
             bind_by_lambda<storage::trie::Codec>([](const auto&) {
               return std::make_shared<storage::trie::PolkadotCodec>(crypto::blake2b<32>);

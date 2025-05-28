@@ -98,7 +98,7 @@ namespace kagome::storage::trie {
     return true;
   }
 
-  outcome::result<void> PolkadotTrieCursorImpl::seekLowerBoundInternal(
+  outcome::result<bool> PolkadotTrieCursorImpl::seekLowerBoundInternal(
       const TrieNode &current, BufferView sought_nibbles) {
     BOOST_ASSERT(isValid());
     auto [sought_nibbles_mismatch, current_mismatch] =
@@ -148,7 +148,8 @@ namespace kagome::storage::trie {
                    "We're in a branch and proceed to child {:x}",
                    (int)child_idx);
           if (child_idx > sought_nibbles[mismatch_pos]) {
-            return nextNodeWithValueInSubTree(*child);
+            OUTCOME_TRY(nextNodeWithValueInSubTree(*child));
+            return true;
           }
           return seekLowerBoundInternal(
               *child, sought_nibbles.subspan(mismatch_pos + 1));
@@ -164,16 +165,17 @@ namespace kagome::storage::trie {
     if (longer_or_greater) {
       SL_TRACE(log_, "We're looking for next node with value in outer tree");
       SAFE_CALL(found, nextNodeWithValueInOuterTree())
+      SL_TRACE(log_, "Done at {}", key().value());
       if (!found) {
         state_ = ReachedEndState{};
+        return false;
       }
-      SL_TRACE(log_, "Done at {}", key().value());
-      return outcome::success();
+      return true;
     }
     UNREACHABLE
   }
 
-  outcome::result<void> PolkadotTrieCursorImpl::seekLowerBound(
+  outcome::result<bool> PolkadotTrieCursorImpl::seekLowerBound(
       const common::BufferView &key) {
     if (trie_->getRoot() == nullptr) {
       SL_TRACE(log_, "Seek lower bound for {} -> null root", key);
@@ -182,8 +184,8 @@ namespace kagome::storage::trie {
     }
     state_ = SearchState{*trie_->getRoot()};
     auto nibbles = KeyNibbles::fromByteBuffer(key);
-    SAFE_VOID_CALL(seekLowerBoundInternal(*trie_->getRoot(), nibbles))
-    return outcome::success();
+    SAFE_CALL(found, seekLowerBoundInternal(*trie_->getRoot(), nibbles))
+    return found;
   }
 
   outcome::result<bool> PolkadotTrieCursorImpl::nextNodeWithValueInOuterTree() {

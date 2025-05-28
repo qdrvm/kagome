@@ -30,6 +30,9 @@ namespace kagome::storage::trie {
     outcome::result<void> put(const BufferView &key,
                               BufferOrView &&value) override;
     outcome::result<void> remove(const common::BufferView &key) override;
+    outcome::result<void> removePrefix(
+        const common::BufferView &prefix) override;
+    outcome::result<void> clear() override;
 
    private:
     std::shared_ptr<BufferStorage> storage_;

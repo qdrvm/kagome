@@ -32,7 +32,13 @@ namespace kagome::storage {
   }
 
   outcome::result<bool> MapPrefix::Cursor::seek(const BufferView &key) {
-    OUTCOME_TRY(cursor->seek(map._key(key)));
+    OUTCOME_TRY(cursor->seek(map.prefix_key(key)));
+    return isValid();
+  }
+
+  outcome::result<bool> MapPrefix::Cursor::seekLowerBound(
+      const BufferView &key) {
+    OUTCOME_TRY(cursor->seekLowerBound(map.prefix_key(key)));
     return isValid();
   }
 
@@ -84,11 +90,11 @@ namespace kagome::storage {
 
   outcome::result<void> MapPrefix::Batch::put(const BufferView &key,
                                               BufferOrView &&value) {
-    return batch->put(map._key(key), std::move(value));
+    return batch->put(map.prefix_key(key), std::move(value));
   }
 
   outcome::result<void> MapPrefix::Batch::remove(const BufferView &key) {
-    return batch->remove(map._key(key));
+    return batch->remove(map.prefix_key(key));
   }
 
   outcome::result<void> MapPrefix::Batch::commit() {
@@ -104,30 +110,35 @@ namespace kagome::storage {
         after_prefix{afterPrefix(this->prefix)},
         map{std::move(map)} {}
 
-  Buffer MapPrefix::_key(BufferView key) const {
+  Buffer MapPrefix::prefix_key(BufferView key) const {
     return Buffer{prefix}.put(key);
   }
 
   outcome::result<BufferOrView> MapPrefix::get(const BufferView &key) const {
-    return map->get(_key(key));
+    return map->get(prefix_key(key));
   }
 
   outcome::result<std::optional<BufferOrView>> MapPrefix::tryGet(
       const BufferView &key) const {
-    return map->tryGet(_key(key));
+    return map->tryGet(prefix_key(key));
   }
 
   outcome::result<bool> MapPrefix::contains(const BufferView &key) const {
-    return map->contains(_key(key));
+    return map->contains(prefix_key(key));
   }
 
   outcome::result<void> MapPrefix::put(const BufferView &key,
                                        BufferOrView &&value) {
-    return map->put(_key(key), std::move(value));
+    return map->put(prefix_key(key), std::move(value));
   }
 
   outcome::result<void> MapPrefix::remove(const BufferView &key) {
-    return map->remove(_key(key));
+    return map->remove(prefix_key(key));
+  }
+
+  outcome::result<void> MapPrefix::removePrefix(const BufferView &prefix) {
+    // it makes a prefixed prefix, yes
+    return map->remove(prefix_key(prefix));
   }
 
   std::unique_ptr<BufferBatch> MapPrefix::batch() {
@@ -137,4 +148,9 @@ namespace kagome::storage {
   std::unique_ptr<BufferStorageCursor> MapPrefix::cursor() {
     return std::make_unique<Cursor>(*this, map->cursor());
   }
+
+  outcome::result<void> MapPrefix::clear() {
+    return map->removePrefix(prefix);
+  }
+
 }  // namespace kagome::storage

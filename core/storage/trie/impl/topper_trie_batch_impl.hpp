@@ -76,7 +76,7 @@ namespace kagome::storage::trie {
     std::optional<Buffer> key() const override;
     std::optional<BufferOrView> value() const override;
 
-    outcome::result<void> seekLowerBound(const BufferView &key) override;
+    outcome::result<bool> seekLowerBound(const BufferView &key) override;
     outcome::result<void> seekUpperBound(const BufferView &key) override;
 
    private:

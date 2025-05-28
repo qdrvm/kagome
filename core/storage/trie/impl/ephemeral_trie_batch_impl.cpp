@@ -25,13 +25,13 @@ namespace kagome::storage::trie {
       std::shared_ptr<PolkadotTrie> trie,
       std::shared_ptr<TrieSerializer> serializer,
       TrieSerializer::OnNodeLoaded on_child_node_loaded,
-      std::shared_ptr<BufferStorage> direct_kv_storage,
-      Fresh)
+      std::shared_ptr<DirectStorage> direct_kv_storage,
+      std::shared_ptr<DirectStorageView> direct_storage_view)
       : TrieBatchBase{std::move(codec),
                       std::move(serializer),
                       std::move(trie),
                       direct_kv_storage,
-                      Fresh{}},
+                      direct_storage_view},
         on_child_node_loaded_{std::move(on_child_node_loaded)} {
     // on_child_node_loaded_ can be zero
   }

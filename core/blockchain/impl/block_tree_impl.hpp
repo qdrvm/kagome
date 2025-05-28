@@ -68,6 +68,7 @@ namespace kagome::blockchain {
             justification_storage_policy,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+        std::shared_ptr<storage::trie::DirectStorage> trie_direct_storage,
         common::MainThreadPool &main_thread_pool);
 
     /// Recover block tree state at provided block
@@ -180,6 +181,7 @@ namespace kagome::blockchain {
       std::shared_ptr<BlockStorage> storage_;
       std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
+      std::shared_ptr<storage::trie::DirectStorage> trie_direct_storage_;
       std::unique_ptr<CachedTree> tree_;
       std::shared_ptr<crypto::Hasher> hasher_;
       std::shared_ptr<subscription::ExtrinsicEventKeyRepository>
@@ -208,6 +210,7 @@ namespace kagome::blockchain {
             justification_storage_policy,
         std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+        std::shared_ptr<storage::trie::DirectStorage> trie_direct_storage,
         common::MainThreadPool &main_thread_pool);
 
     outcome::result<void> reorgAndPrune(BlockTreeData &p,
