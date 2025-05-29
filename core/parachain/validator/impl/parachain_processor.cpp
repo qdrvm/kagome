@@ -2844,7 +2844,7 @@ namespace kagome::parachain {
     auto fetched_collation = network::FetchedCollation::from(
         pending_collation_fetch.candidate_receipt, *hasher_);
 
-    if (our_current_state_.validator_side->fetchedCandidates().count(
+    if (our_current_state_.validator_side->fetchedCandidates().contains(
             fetched_collation)) {
       return Error::DUPLICATE;
     }

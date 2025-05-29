@@ -4,7 +4,22 @@
 #include <unordered_map>
 #include <vector>
 
+#include "crypto/sr25519_types.hpp"
+#include "network/types/collator_messages_vstaging.hpp"
+#include "parachain/types.hpp"
+#include "parachain/validator/backing_implicit_view.hpp"
+#include "parachain/validator/blocked_collation_id.hpp"
+#include "parachain/validator/collations.hpp"
 #include "primitives/common.hpp"
+#include "runtime/runtime_api/parachain_host_types.hpp"
+
+// Forward declarations
+namespace kagome::network {
+  struct FetchedCollation;
+  struct CollationEvent;
+  struct PendingCollationFetch;
+}  // namespace kagome::network
+
 namespace kagome::parachain {
 
   // Custom hash function for FetchedCollation

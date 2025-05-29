@@ -148,7 +148,7 @@ namespace kagome::parachain {
 
   bool ValidatorSideImpl::hasBlockedCollations(
       const BlockedCollationId &id) const {
-    return blocked_from_seconding_.count(id) > 0;
+    return blocked_from_seconding_.contains(id);
   }
 
   const ValidatorSideImpl::FetchedCandidatesMap &
