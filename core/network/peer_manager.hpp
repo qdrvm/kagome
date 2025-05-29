@@ -126,11 +126,6 @@ namespace kagome::network {
         const PeerId &peer_id,
         const RelayHash &relay_parent,
         const std::optional<CandidateHash> &candidate_hash) = 0;
-    /**
-     * Get parachain that peer is collating on.
-     */
-    virtual std::optional<ParachainId> getParachainId(
-        const PeerId &peer_id) = 0;
     using InsertAdvertisementResult =
         outcome::result<std::pair<CollatorPublicKey, ParachainId>>;
     /**

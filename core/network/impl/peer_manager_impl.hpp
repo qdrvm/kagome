@@ -127,7 +127,6 @@ namespace kagome::network {
         const PeerId &peer_id,
         const RelayHash &relay_parent,
         const std::optional<CandidateHash> &candidate_hash) override;
-    std::optional<ParachainId> getParachainId(const PeerId &peer_id) override;
     InsertAdvertisementResult insertAdvertisement(
         const PeerId &peer_id,
         const RelayHash &on_relay_parent,

@@ -74,10 +74,6 @@ namespace kagome::network {
                  const RelayHash &,
                  const std::optional<CandidateHash> &),
                 (override));
-    MOCK_METHOD(std::optional<ParachainId>,
-                getParachainId,
-                (const PeerId &),
-                (override));
     MOCK_METHOD(
         InsertAdvertisementResult,
         insertAdvertisement,

@@ -781,17 +781,6 @@ namespace kagome::network {
     return std::nullopt;
   }
 
-  std::optional<ParachainId> PeerManagerImpl::getParachainId(
-      const PeerId &peer_id) {
-    std::unique_lock lock{mutex_};
-    if (auto state = entry(peer_states_, peer_id)) {
-      if (state->collator_state.has_value()) {
-        return state->collator_state->para_id;
-      }
-    }
-    return std::nullopt;
-  }
-
   PeerManager::InsertAdvertisementResult PeerManagerImpl::insertAdvertisement(
       const PeerId &peer_id,
       const RelayHash &on_relay_parent,
