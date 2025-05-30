@@ -42,8 +42,32 @@ namespace kagome::network::notifications {
       : StreamInfo{std::move(info)} {}
 
   StreamInfoClose::~StreamInfoClose() {
+    // Use a static thread-local set to track streams being reset to prevent
+    // double-free
+    static thread_local std::unordered_set<void *> resetting_streams;
+
     if (stream) {
-      stream->reset();
+      void *stream_ptr = stream.get();
+
+      // Check if this stream is already being reset
+      if (resetting_streams.find(stream_ptr) != resetting_streams.end()) {
+        // Stream is already being reset, don't reset again
+        return;
+      }
+
+      // Mark stream as being reset
+      resetting_streams.insert(stream_ptr);
+
+      try {
+        stream->reset();
+      } catch (...) {
+        // Remove from set even if reset throws
+        resetting_streams.erase(stream_ptr);
+        throw;
+      }
+
+      // Remove from set after successful reset
+      resetting_streams.erase(stream_ptr);
     }
   }
 

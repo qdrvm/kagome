@@ -109,9 +109,16 @@ hunter_config(
       SECP256K1_ENABLE_MODULE_RECOVERY=ON
 )
 
+# hunter_config(
+#     libp2p
+#     VERSION 0.1.36
+#     KEEP_PACKAGE_SOURCES
+# )
+
 hunter_config(
     libp2p
-    VERSION 0.1.36
+    URL https://github.com/ErakhtinB/cpp-libp2p/archive/refs/tags/1.tar.gz
+    SHA1 b80438f0bb033db69a375e4eb698a1bfa0e7b8f0
     KEEP_PACKAGE_SOURCES
 )
 
