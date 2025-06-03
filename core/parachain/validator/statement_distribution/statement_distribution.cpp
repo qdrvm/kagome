@@ -494,7 +494,7 @@ namespace kagome::parachain::statement_distribution {
 
     const auto &relay_parent = event.new_head.hash();
     for (const auto &new_context : new_contexts) {
-      /// We check `per_relay_state` befor `per_session_state`, because we keep
+      /// We check `per_relay_state` before `per_session_state`, because we keep
       /// ref in `per_relay_parent` directly
       if (tryGetStateByRelayParent(new_context.relay_parent)) {
         continue;
@@ -503,7 +503,7 @@ namespace kagome::parachain::statement_distribution {
           r.has_error()) {
         SL_WARN(
             logger,
-            "Failed to handle active leaf update. (repay_parent={}, error={})",
+            "Failed to handle active leaf update. (relay_parent={}, error={})",
             new_context.relay_parent,
             r.error());
       }
