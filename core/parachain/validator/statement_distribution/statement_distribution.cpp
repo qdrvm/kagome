@@ -318,15 +318,13 @@ namespace kagome::parachain::statement_distribution {
     }
   }
 
-  outcome::result<void>
-  StatementDistribution::handle_active_leaves_update_inner(
-      const network::ExView &event,
-      std::vector<RelayParentContext> new_contexts) {
+  outcome::result<void> StatementDistribution::handle_active_leaf_update_inner(
+      const network::ExView &event, const RelayParentContext &new_context) {
     BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
 
-    const auto &relay_parent = event.new_head.hash();
+    const auto &new_relay_parent = new_context.relay_parent;
     const auto leaf_mode =
-        prospective_parachains->prospectiveParachainsMode(relay_parent);
+        prospective_parachains->prospectiveParachainsMode(new_relay_parent);
     if (!leaf_mode) {
       return outcome::success();
     }
@@ -334,156 +332,181 @@ namespace kagome::parachain::statement_distribution {
     const auto max_candidate_depth = leaf_mode->max_candidate_depth;
     const auto seconding_limit = max_candidate_depth + 1;
 
+    OUTCOME_TRY(session_index,
+                parachain_host->session_index_for_child(new_relay_parent));
+    OUTCOME_TRY(disabled_validators_,
+                parachain_host->disabled_validators(new_relay_parent));
+    std::unordered_set<ValidatorIndex> disabled_validators{
+        disabled_validators_.begin(), disabled_validators_.end()};
+    if (!disabled_validators.empty()) {
+      SL_TRACE(logger,
+               "Disabled validators detected. (relay parent={})",
+               new_relay_parent);
+    }
+
+    auto per_session_state = per_session->get_or_insert(
+        session_index,
+        [&]() -> outcome::result<
+                  RefCache<SessionIndex, PerSessionState>::RefObj> {
+          OUTCOME_TRY(
+              session_info,
+              parachain_host->session_info(new_relay_parent, session_index));
+          if (!new_context.v_index) {
+            SL_TRACE(logger,
+                     "Not a validator. (new_relay_parent={})",
+                     new_relay_parent);
+            return outcome::failure(Error::NOT_A_VALIDATOR);
+          }
+
+          if (!session_info) {
+            SL_TRACE(logger,
+                     "No session info. (new_relay_parent={})",
+                     new_relay_parent);
+            return outcome::failure(Error::NO_SESSION_INFO);
+          }
+
+          uint32_t minimum_backing_votes = 2;  /// legacy value
+          if (auto r = parachain_host->minimum_backing_votes(new_relay_parent,
+                                                             session_index);
+              r.has_value()) {
+            minimum_backing_votes = r.value();
+          } else {
+            SL_TRACE(logger,
+                     "Querying the backing threshold from the runtime is not "
+                     "supported by the current Runtime API. "
+                     "(new_relay_parent={})",
+                     new_relay_parent);
+          }
+
+          OUTCOME_TRY(block_header,
+                      block_tree->getBlockHeader(new_relay_parent));
+          OUTCOME_TRY(babe_header,
+                      consensus::babe::getBabeBlockHeader(block_header));
+          OUTCOME_TRY(epoch,
+                      slots_util.get()->slotToEpoch(*block_header.parentInfo(),
+                                                    babe_header.slot_number));
+          OUTCOME_TRY(
+              babe_config,
+              babe_config_repo->config(*block_header.parentInfo(), epoch));
+          std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
+              authority_lookup;
+          for (ValidatorIndex v = 0; v < session_info->discovery_keys.size();
+               ++v) {
+            authority_lookup[session_info->discovery_keys[v]] = v;
+          }
+
+          grid::Views grid_view =
+              grid::makeViews(session_info->validator_groups,
+                              grid::shuffle(session_info->discovery_keys.size(),
+                                            babe_config->randomness),
+                              *new_context.v_index);
+
+          return outcome::success(
+              RefCache<SessionIndex, PerSessionState>::RefObj(
+                  session_index,
+                  *session_info,
+                  Groups{session_info->validator_groups, minimum_backing_votes},
+                  std::move(grid_view),
+                  new_context.validator_index,
+                  new_context.v_index,
+                  peer_use_count,
+                  std::move(authority_lookup)));
+        });
+    if (per_session_state.has_error()) {
+      if (per_session_state.error() != Error::NOT_A_VALIDATOR) {
+        SL_WARN(logger,
+                "Create session data failed. (error={})",
+                per_session_state.error());
+        return outcome::success();
+      }
+      if (per_session_state.error() != Error::NO_SESSION_INFO) {
+        return outcome::success();
+      }
+    }
+
+    OUTCOME_TRY(per_session_state);
+    OUTCOME_TRY(availability_cores,
+                parachain_host->availability_cores(new_relay_parent));
+    OUTCOME_TRY(groups, parachain_host->validator_groups(new_relay_parent));
+    const auto &[_, group_rotation_info] = groups;
+
+    OUTCOME_TRY(maybe_claim_queue,
+                parachain_host->claim_queue(new_relay_parent));
+    TransposedClaimQueue transposed_claim_queue;
+    if (maybe_claim_queue) {
+      auto scheduling_lookahead_result =
+          parachain_host->scheduling_lookahead(new_relay_parent);
+      uint32_t scheduling_lookahead =
+          scheduling_lookahead_result.has_value()
+              ? scheduling_lookahead_result.value()
+              : parachain::DEFAULT_SCHEDULING_LOOKAHEAD;
+
+      transposed_claim_queue =
+          transposeClaimQueue(*maybe_claim_queue, scheduling_lookahead);
+    }
+    OUTCOME_TRY(node_features, parachain_host->node_features(new_relay_parent));
+
+    auto local_validator = [&]() -> std::optional<LocalValidatorState> {
+      if (!per_session_state.value()->value().v_index) {
+        return std::nullopt;
+      }
+
+      if (per_session_state.value()->value().local_validator) {
+        return find_active_validator_state(
+            *per_session_state.value()->value().local_validator,
+            per_session_state.value()->value().groups,
+            availability_cores,
+            group_rotation_info,
+            maybe_claim_queue,
+            seconding_limit,
+            max_candidate_depth);
+      }
+      return LocalValidatorState{};
+    }();
+
+    auto groups_per_para = determine_groups_per_para(availability_cores,
+                                                     group_rotation_info,
+                                                     maybe_claim_queue,
+                                                     max_candidate_depth);
+    per_relay_parent.emplace(
+        new_relay_parent,
+        PerRelayParentState{
+            .local_validator = local_validator,
+            .statement_store =
+                StatementStore(per_session_state.value()->value().groups),
+            .seconding_limit = seconding_limit,
+            .session = session_index,
+            .groups_per_para = std::move(groups_per_para),
+            .disabled_validators = std::move(disabled_validators),
+            .v2_receipts =
+                node_features.has(runtime::NodeFeatures::CandidateReceiptV2),
+            .transposed_claim_queue = transposed_claim_queue,
+            .per_session_state = per_session_state.value(),
+        });
+    return outcome::success();
+  }
+
+  outcome::result<void>
+  StatementDistribution::handle_active_leaves_update_inner(
+      const network::ExView &event,
+      std::vector<RelayParentContext> new_contexts) {
+    BOOST_ASSERT(statements_distribution_thread_handler->isInCurrentThread());
+
+    const auto &relay_parent = event.new_head.hash();
     for (const auto &new_context : new_contexts) {
-      const auto &new_relay_parent = new_context.relay_parent;
-
-      /// We check `per_relay_state` befor `per_session_state`, because we keep
+      /// We check `per_relay_state` before `per_session_state`, because we keep
       /// ref in `per_relay_parent` directly
-      if (tryGetStateByRelayParent(new_relay_parent)) {
+      if (tryGetStateByRelayParent(new_context.relay_parent)) {
         continue;
       }
-
-      OUTCOME_TRY(session_index,
-                  parachain_host->session_index_for_child(new_relay_parent));
-      OUTCOME_TRY(disabled_validators_,
-                  parachain_host->disabled_validators(new_relay_parent));
-      std::unordered_set<ValidatorIndex> disabled_validators{
-          disabled_validators_.begin(), disabled_validators_.end()};
-      if (!disabled_validators.empty()) {
-        SL_TRACE(logger,
-                 "Disabled validators detected. (relay parent={})",
-                 new_relay_parent);
+      if (auto r = handle_active_leaf_update_inner(event, new_context);
+          r.has_error()) {
+        SL_WARN(
+            logger,
+            "Failed to handle active leaf update. (relay_parent={}, error={})",
+            new_context.relay_parent,
+            r.error());
       }
-
-      auto per_session_state = per_session->get_or_insert(
-          session_index,
-          [&]() -> outcome::result<
-                    RefCache<SessionIndex, PerSessionState>::RefObj> {
-            OUTCOME_TRY(
-                session_info,
-                parachain_host->session_info(new_relay_parent, session_index));
-            if (!new_context.v_index) {
-              SL_TRACE(logger,
-                       "Not a validator. (new_relay_parent={})",
-                       new_relay_parent);
-              return outcome::failure(Error::NOT_A_VALIDATOR);
-            }
-
-            uint32_t minimum_backing_votes = 2;  /// legacy value
-            if (auto r = parachain_host->minimum_backing_votes(new_relay_parent,
-                                                               session_index);
-                r.has_value()) {
-              minimum_backing_votes = r.value();
-            } else {
-              SL_TRACE(logger,
-                       "Querying the backing threshold from the runtime is not "
-                       "supported by the current Runtime API. "
-                       "(new_relay_parent={})",
-                       new_relay_parent);
-            }
-
-            OUTCOME_TRY(block_header,
-                        block_tree->getBlockHeader(new_relay_parent));
-            OUTCOME_TRY(babe_header,
-                        consensus::babe::getBabeBlockHeader(block_header));
-            OUTCOME_TRY(
-                epoch,
-                slots_util.get()->slotToEpoch(*block_header.parentInfo(),
-                                              babe_header.slot_number));
-            OUTCOME_TRY(
-                babe_config,
-                babe_config_repo->config(*block_header.parentInfo(), epoch));
-            std::unordered_map<primitives::AuthorityDiscoveryId, ValidatorIndex>
-                authority_lookup;
-            for (ValidatorIndex v = 0; v < session_info->discovery_keys.size();
-                 ++v) {
-              authority_lookup[session_info->discovery_keys[v]] = v;
-            }
-
-            grid::Views grid_view = grid::makeViews(
-                session_info->validator_groups,
-                grid::shuffle(session_info->discovery_keys.size(),
-                              babe_config->randomness),
-                *new_context.v_index);
-
-            return outcome::success(
-                RefCache<SessionIndex, PerSessionState>::RefObj(
-                    session_index,
-                    *session_info,
-                    Groups{session_info->validator_groups,
-                           minimum_backing_votes},
-                    std::move(grid_view),
-                    new_context.validator_index,
-                    new_context.v_index,
-                    peer_use_count,
-                    std::move(authority_lookup)));
-          });
-      if (per_session_state.has_error()) {
-        if (per_session_state.error() != Error::NOT_A_VALIDATOR) {
-          SL_WARN(logger,
-                  "Create session data failed. (error={})",
-                  per_session_state.error());
-        }
-        continue;
-      }
-
-      OUTCOME_TRY(availability_cores,
-                  parachain_host->availability_cores(new_relay_parent));
-      OUTCOME_TRY(groups, parachain_host->validator_groups(new_relay_parent));
-      const auto &[_, group_rotation_info] = groups;
-
-      OUTCOME_TRY(maybe_claim_queue, parachain_host->claim_queue(relay_parent));
-      TransposedClaimQueue transposed_claim_queue;
-      if (maybe_claim_queue) {
-        auto scheduling_lookahead_result =
-            parachain_host->scheduling_lookahead(relay_parent);
-        uint32_t scheduling_lookahead =
-            scheduling_lookahead_result.has_value()
-                ? scheduling_lookahead_result.value()
-                : parachain::DEFAULT_SCHEDULING_LOOKAHEAD;
-
-        transposed_claim_queue =
-            transposeClaimQueue(*maybe_claim_queue, scheduling_lookahead);
-      }
-      OUTCOME_TRY(node_features, parachain_host->node_features(relay_parent));
-
-      auto local_validator = [&]() -> std::optional<LocalValidatorState> {
-        if (!per_session_state.value()->value().v_index) {
-          return std::nullopt;
-        }
-
-        if (per_session_state.value()->value().local_validator) {
-          return find_active_validator_state(
-              *per_session_state.value()->value().local_validator,
-              per_session_state.value()->value().groups,
-              availability_cores,
-              group_rotation_info,
-              maybe_claim_queue,
-              seconding_limit,
-              max_candidate_depth);
-        }
-        return LocalValidatorState{};
-      }();
-
-      auto groups_per_para = determine_groups_per_para(availability_cores,
-                                                       group_rotation_info,
-                                                       maybe_claim_queue,
-                                                       max_candidate_depth);
-      per_relay_parent.emplace(
-          new_relay_parent,
-          PerRelayParentState{
-              .local_validator = local_validator,
-              .statement_store =
-                  StatementStore(per_session_state.value()->value().groups),
-              .seconding_limit = seconding_limit,
-              .session = session_index,
-              .groups_per_para = std::move(groups_per_para),
-              .disabled_validators = std::move(disabled_validators),
-              .v2_receipts =
-                  node_features.has(runtime::NodeFeatures::CandidateReceiptV2),
-              .transposed_claim_queue = transposed_claim_queue,
-              .per_session_state = per_session_state.value(),
-          });
     }  // for
 
     SL_TRACE(

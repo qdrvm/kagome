@@ -351,6 +351,8 @@ namespace kagome::parachain::statement_distribution {
     outcome::result<void> handle_active_leaves_update_inner(
         const network::ExView &event,
         std::vector<RelayParentContext> new_contexts);
+    outcome::result<void> handle_active_leaf_update_inner(
+        const network::ExView &event, const RelayParentContext &new_context);
     outcome::result<void> handle_deactive_leaves_update_inner(
         const std::vector<Hash> &lost);
 
