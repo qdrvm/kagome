@@ -73,6 +73,8 @@ docker_exec:
 		$(BUILD_COMMANDS) && \
 		echo \"-- Copying Kagome binary...\" && \
 		cp /opt/kagome/$(DOCKER_BUILD_DIR_NAME)/node/kagome $(IN_DOCKER_HOME)/kagome_binary/kagome && \
+		echo \"-- Verifying Kagome version...\" && \
+		cd $(IN_DOCKER_HOME)/kagome_binary && ./kagome --version || echo \"Warning: Failed to verify Kagome version, continuing anyway...\" && \
 		echo \"-- Building apt package...\" && \
 		cd $(IN_DOCKER_HOME) && ./build_apt_package.sh \
 			$(KAGOME_DEB_PACKAGE_VERSION) \
