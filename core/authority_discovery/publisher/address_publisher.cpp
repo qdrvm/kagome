@@ -8,6 +8,7 @@
 
 #include "authority_discovery/protobuf/authority_discovery.v2.pb.h"
 
+#include "application/app_configuration.hpp"
 #include "authority_discovery/metrics.hpp"
 #include "authority_discovery/timestamp.hpp"
 #include "crypto/sha/sha256.hpp"
@@ -27,7 +28,7 @@ std::vector<uint8_t> pbEncodeVec(const T &v) {
 
 namespace kagome::authority_discovery {
   constexpr std::chrono::seconds kIntervalInitial{2};
-  constexpr std::chrono::hours kIntervalMax{1};
+  constexpr std::chrono::minutes kIntervalMax{5};
 
   // TODO(kamilsa): #2351, remove this variable when resolved
   constexpr bool kAudiDisableTimestamp = true;
@@ -40,6 +41,7 @@ namespace kagome::authority_discovery {
 
   AddressPublisher::AddressPublisher(
       std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
+      const application::AppConfiguration &app_config,
       network::Roles roles,
       std::shared_ptr<application::AppStateManager> app_state_manager,
       std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -52,6 +54,10 @@ namespace kagome::authority_discovery {
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia,
       std::shared_ptr<libp2p::basic::Scheduler> scheduler)
       : authority_discovery_api_(std::move(authority_discovery_api)),
+        peer_info_{
+            .id = host.getId(),
+            .addresses = app_config.publicAddresses(),
+        },
         roles_(roles),
         block_tree_(std::move(block_tree)),
         keys_(std::move(keys)),
@@ -96,6 +102,11 @@ namespace kagome::authority_discovery {
     if (not roles_.isAuthority()) {
       return true;
     }
+    // TODO(turuslan): #1357, filter local addresses
+    if (peer_info_.addresses.empty()) {
+      SL_WARN(log_, "No public addresses");
+      return true;
+    }
     interval_.start([weak_self{weak_from_this()}] {
       auto self = weak_self.lock();
       if (not self) {
@@ -111,13 +122,6 @@ namespace kagome::authority_discovery {
   }
 
   outcome::result<void> AddressPublisher::publishOwnAddress() {
-    const auto peer_info = host_.getPeerInfo();
-    // TODO(turuslan): #1357, filter local addresses
-    if (peer_info.addresses.empty()) {
-      SL_ERROR(log_, "No listening addresses");
-      return outcome::success();
-    }
-
     OUTCOME_TRY(
         authorities,
         authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
@@ -138,7 +142,7 @@ namespace kagome::authority_discovery {
                            sr_crypto_provider_,
                            *libp2p_key_,
                            *libp2p_key_pb_,
-                           peer_info,
+                           peer_info_,
                            *audi_key,
                            now));
     auto r = kademlia_->putValue(std::move(raw.first), std::move(raw.second));
