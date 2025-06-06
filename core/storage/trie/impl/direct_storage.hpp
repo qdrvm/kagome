@@ -9,12 +9,18 @@
 #include <unordered_map>
 
 #include "common/buffer.hpp"
+#include "injector/lazy.hpp"
 #include "log/logger.hpp"
+#include "primitives/event_types.hpp"
 #include "storage/buffer_map_types.hpp"
 #include "storage/trie/types.hpp"
 
 namespace kagome::storage {
   class RocksDbSpace;
+}
+
+namespace kagome::consensus {
+  class Timeline;
 }
 
 namespace kagome::storage::trie {
@@ -52,9 +58,6 @@ namespace kagome::storage::trie {
     }
 
    private:
-    outcome::result<std::reference_wrapper<face::Readable<Buffer, Buffer>>>
-    findLatestSource(BufferView key);
-
     std::shared_ptr<const DirectStorage> storage_;
     RootHash state_root_;
   };
@@ -65,9 +68,11 @@ namespace kagome::storage::trie {
    public:
     friend class DirectStorageView;
 
-    static outcome::result<std::unique_ptr<DirectStorage>> create(
-        std::shared_ptr<RocksDbSpace> direct_db,
-        std::shared_ptr<RocksDbSpace> diff_db);
+    static outcome::result<std::shared_ptr<DirectStorage>> create(
+        std::shared_ptr<BufferStorage> direct_db,
+        std::shared_ptr<BufferStorage> diff_db,
+        primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+        LazySPtr<const consensus::Timeline> timeline);
 
     const RootHash &getDirectStateRoot() const;
 
@@ -87,6 +92,13 @@ namespace kagome::storage::trie {
         const RootHash &state_root) const;
 
    private:
+    explicit DirectStorage(LazySPtr<const consensus::Timeline> timeline);
+
+    void onChainEvent(subscription::SubscriptionSetId id,
+                      void *,
+                      primitives::events::ChainEventType type,
+                      const primitives::events::ChainEventParams &params);
+
     struct ValueDeleted {};
     outcome::result<std::optional<std::variant<ValueDeleted, common::Buffer>>>
     getAt(const RootHash &state, common::BufferView key) const;
@@ -96,8 +108,14 @@ namespace kagome::storage::trie {
     outcome::result<void> applyDiff(const RootHash &new_root);
 
     RootHash state_root_;
-    std::shared_ptr<RocksDbSpace> direct_state_db_;
-    std::shared_ptr<RocksDbSpace> diff_db_;
+    std::shared_ptr<BufferStorage> direct_state_db_;
+    std::shared_ptr<BufferStorage> diff_db_;
+    subscription::SubscriptionSetId chain_sub_id_ {};
+    //subscription::SubscriptionSetId sync_sub_id_;
+    primitives::events::ChainEventSubscriberPtr chain_event_sub_;
+    //primitives::events::SyncStateEventSubscriberPtr sync_event_sub_;
+    LazySPtr<const consensus::Timeline> timeline_;
+
     log::Logger logger_ = log::createLogger("DirectStorage", "storage");
   };
 

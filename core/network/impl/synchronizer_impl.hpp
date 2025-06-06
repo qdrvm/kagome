@@ -71,7 +71,6 @@ namespace kagome::storage {
 namespace kagome::storage::trie {
   class TrieSerializer;
   class TrieStorage;
-  class DirectStorage;
 }  // namespace kagome::storage::trie
 
 namespace kagome::storage::trie_pruner {
@@ -136,8 +135,7 @@ namespace kagome::network {
         std::shared_ptr<Beefy> beefy,
         std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
         common::MainThreadPool &main_thread_pool,
-        std::shared_ptr<blockchain::BlockStorage> block_storage,
-        std::shared_ptr<storage::trie::DirectStorage> direct_storage);
+        std::shared_ptr<blockchain::BlockStorage> block_storage);
 
     /** @see AppStateManager::takeControl */
     bool start();
@@ -281,7 +279,6 @@ namespace kagome::network {
     std::shared_ptr<blockchain::BlockStorage> block_storage_;
     uint32_t max_parallel_downloads_;
     std::mt19937 random_gen_;
-    std::shared_ptr<storage::trie::DirectStorage> trie_direct_storage_;
 
     application::SyncMethod sync_method_;
 

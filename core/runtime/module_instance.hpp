@@ -124,8 +124,6 @@ namespace kagome::runtime {
     virtual outcome::result<void> resetEnvironment() = 0;
 
     outcome::result<void> resetMemory();
-
-    virtual outcome::result<void> stateless();
   };
 
 }  // namespace kagome::runtime

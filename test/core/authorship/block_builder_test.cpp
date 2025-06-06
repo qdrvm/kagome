@@ -56,8 +56,6 @@ class BlockBuilderTest : public ::testing::Test {
     parent_block_ = BlockInfo{block_number_ - 1, expected_header_.parent_hash};
 
     auto instance_mock = std::make_shared<ModuleInstanceMock>();
-    EXPECT_CALL(*instance_mock, stateless())
-        .WillOnce(Return(outcome::success()));
     block_builder_ = std::make_shared<BlockBuilderImpl>(
         expected_header_,
         std::make_unique<RuntimeContext>(

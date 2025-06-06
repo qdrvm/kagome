@@ -55,8 +55,7 @@ class TrieStorageProviderTest : public ::testing::Test {
                       trie_factory,
                       codec,
                       serializer,
-                      state_pruner,
-                      std::make_shared<kagome::storage::BufferStorageMock>())
+                      state_pruner)
                       .value();
 
     storage_provider_ =

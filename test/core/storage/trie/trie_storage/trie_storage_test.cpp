@@ -70,8 +70,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
                        factory,
                        codec,
                        serializer,
-                       state_pruner,
-                       std::make_shared<kagome::storage::BufferStorageMock>())
+                       state_pruner)
                        .value();
 
     auto batch =
@@ -92,8 +91,7 @@ TEST(TriePersistencyTest, CreateDestroyCreate) {
   auto storage = TrieStorageImpl::createFromStorage(
                      codec,
                      serializer,
-                     state_pruner,
-                     std::make_shared<kagome::storage::BufferStorageMock>())
+                     state_pruner)
                      .value();
   auto batch = storage->getPersistentBatchAt(root, std::nullopt).value();
   ASSERT_OUTCOME_SUCCESS(v1, batch->get("123"_buf));

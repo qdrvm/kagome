@@ -67,8 +67,7 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
                factory,
                codec,
                serializer,
-               state_pruner,
-               std::make_shared<kagome::storage::BufferStorageMock>())
+               state_pruner)
                .value();
   }
 
@@ -221,8 +220,7 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
                   factory,
                   codec,
                   serializer,
-                  state_pruner,
-                  std::make_shared<kagome::storage::BufferStorageMock>())
+                  state_pruner)
                   .value();
   auto batch = trie->getPersistentBatchAt(empty_hash, std::nullopt).value();
 

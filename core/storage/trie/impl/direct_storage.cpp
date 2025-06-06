@@ -6,6 +6,8 @@
 
 #include "storage/trie/impl/direct_storage.hpp"
 #include "common/monadic_utils.hpp"
+#include "consensus/timeline/timeline.hpp"
+#include "primitives/block_header.hpp"
 #include "storage/database_error.hpp"
 #include "storage/map_prefix/prefix.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
@@ -133,13 +135,64 @@ namespace kagome::storage::trie {
     }
   }
 
-  outcome::result<std::unique_ptr<DirectStorage>> DirectStorage::create(
-      std::shared_ptr<RocksDbSpace> direct_db,
-      std::shared_ptr<RocksDbSpace> diff_db) {
-    std::unique_ptr<DirectStorage> storage{new DirectStorage{}};
+  outcome::result<std::shared_ptr<DirectStorage>> DirectStorage::create(
+      std::shared_ptr<BufferStorage> direct_db,
+      std::shared_ptr<BufferStorage> diff_db,
+      primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
+      //primitives::events::SyncStateSubscriptionEnginePtr sync_sub_engine,
+      LazySPtr<const consensus::Timeline> timeline) {
+    std::shared_ptr<DirectStorage> storage{new DirectStorage{timeline}};
     storage->direct_state_db_ = direct_db;
     storage->diff_db_ = diff_db;
+    storage->chain_event_sub_ =
+        std::make_shared<primitives::events::ChainEventSubscriber>(
+            std::move(chain_sub_engine));
+    storage->chain_sub_id_ =
+        storage->chain_event_sub_->generateSubscriptionSetId();
+    storage->chain_event_sub_->subscribe(
+        storage->chain_sub_id_,
+        primitives::events::ChainEventType::kDiscardedHeads);
+    storage->chain_event_sub_->subscribe(
+        storage->chain_sub_id_,
+        primitives::events::ChainEventType::kFinalizedHeads);
+    storage->chain_event_sub_->subscribe(
+        storage->chain_sub_id_,
+        primitives::events::ChainEventType::kNewStateSynced);
+    storage->chain_event_sub_->setCallback(
+        [weak = storage->weak_from_this()](
+            subscription::SubscriptionSetId id,
+            auto,
+            primitives::events::ChainEventType type,
+            const primitives::events::ChainEventParams &params) {
+          if (auto self = weak.lock()) {
+            self->onChainEvent(id, nullptr, type, params);
+          }
+        });
+
+    // storage->sync_event_sub_ =
+    //     std::make_shared<primitives::events::SyncStateEventSubscriber>(
+    //         std::move(sync_sub_engine));
+    // storage->sync_sub_id_ =
+    //     storage->sync_event_sub_->generateSubscriptionSetId();
+    // storage->sync_event_sub_->subscribe(
+    //     storage->sync_sub_id_,
+    //     primitives::events::SyncStateEventType::kSyncState);
+    // storage->sync_event_sub_->setCallback(
+    //     [weak = storage->weak_from_this()](
+    //         subscription::SubscriptionSetId id,
+    //         auto,
+    //         primitives::events::SyncStateEventType type,
+    //         const primitives::events::SyncStateEventParams &params) {
+
+    //     });
+
     OUTCOME_TRY(state_root, direct_db->tryGet(kLatestFinalizedStateKey));
+    SL_DEBUG(storage->logger_,
+             "Fetched last finalized state key: {}",
+             common::map_optional(
+                 common::map_optional(state_root, &BufferOrView::view),
+                 &BufferView::toHex)
+                 .value_or("<empty>"));
     BOOST_OUTCOME_TRY(
         storage->state_root_,
         RootHash::fromSpan(common::map_optional(state_root, &BufferOrView::view)
@@ -151,6 +204,50 @@ namespace kagome::storage::trie {
                    &BufferView::toHex)
                    .value_or("<empty>"));
     return storage;
+  }
+
+  DirectStorage::DirectStorage(LazySPtr<const consensus::Timeline> timeline)
+      : timeline_(timeline) {}
+
+  void DirectStorage::onChainEvent(
+      subscription::SubscriptionSetId id,
+      void *,
+      primitives::events::ChainEventType type,
+      const primitives::events::ChainEventParams &params) {
+    BOOST_ASSERT(id == chain_sub_id_);
+    if (type == primitives::events::ChainEventType::kDiscardedHeads) {
+      const primitives::BlockHeader &header =
+          std::get<primitives::events::HeadsEventParams>(params).get();
+      auto res = discardDiff(header.state_root);
+      if (!res) {
+        SL_ERROR(logger_,
+                 "Failed to discard diff for block {}, state root {}: {}",
+                 header.blockInfo(),
+                 header.state_root,
+                 res.error());
+      }
+    } else if (type == primitives::events::ChainEventType::kFinalizedHeads) {
+      const primitives::BlockHeader &header =
+          std::get<primitives::events::HeadsEventParams>(params).get();
+      auto res = updateDirectState(header.state_root);
+      if (!res) {
+        SL_ERROR(logger_,
+                 "Failed to set direct state at block {}, state root {}: {}",
+                 header.blockInfo(),
+                 header.state_root,
+                 res.error());
+      }
+    } else if (type == primitives::events::ChainEventType::kNewStateSynced) {
+      const auto &[root, trie] =
+          std::get<primitives::events::NewStateSyncedParams>(params);
+      auto res = resetDirectState(root, trie);
+      if (!res) {
+        SL_ERROR(logger_,
+                 "Failed to reset direct state after state sync at root {}: {}",
+                 root,
+                 res.error());
+      }
+    }
   }
 
   const RootHash &DirectStorage::getDirectStateRoot() const {
@@ -188,8 +285,9 @@ namespace kagome::storage::trie {
                "Inserted total of {} keys into direct storage with root {}",
                count,
                new_state_root);
-    OUTCOME_TRY(batch->commit());
     OUTCOME_TRY(batch->put(kLatestFinalizedStateKey, new_state_root));
+    OUTCOME_TRY(batch->commit());
+    SL_DEBUG(logger_, "Put kLatestFinalizedStateKey {}", new_state_root);
     state_root_ = new_state_root;
     return outcome::success();
   }
@@ -248,7 +346,6 @@ namespace kagome::storage::trie {
     }
 
     auto diff_batch = diff_db_->batch();
-    OUTCOME_TRY(diff_batch->put(roots.to, Buffer{1}));
     for (auto &[key, val] : diff) {
       Buffer full_key;
       full_key.put(roots.to);
@@ -269,6 +366,11 @@ namespace kagome::storage::trie {
              "Store new diff for state transition from {} to {}",
              roots.from,
              roots.to);
+    if (!timeline_.get()->wasSynchronized()) {
+      OUTCOME_TRY(updateDirectState(roots.to));
+      SL_DEBUG(
+          logger_, "Since node the node is not synchronized, update to this state.");
+    }
     return outcome::success();
   }
 
@@ -295,6 +397,7 @@ namespace kagome::storage::trie {
   outcome::result<std::unique_ptr<DirectStorageView>> DirectStorage::getViewAt(
       const RootHash &state_root) const {
     OUTCOME_TRY(diff_known, diff_db_->contains(state_root));
+
     if (state_root != state_root_ && !diff_known) {
       SL_DEBUG(logger_,
                "Failed to get direct storage view at state {}: no such state "
@@ -344,7 +447,7 @@ namespace kagome::storage::trie {
       return DirectStorageError::APPLY_UNKNOWN_DIFF;
     }
 
-    MapPrefix diff_prefix{new_root, direct_state_db_};
+    MapPrefix diff_prefix{new_root, diff_db_};
 
     auto batch = direct_state_db_->batch();
     size_t num = 0;
@@ -364,9 +467,11 @@ namespace kagome::storage::trie {
         OUTCOME_TRY(batch->put(key, std::move(value_buf)));
       }
       ++num;
+      OUTCOME_TRY(iter->next());
     }
 
     OUTCOME_TRY(batch->put(kLatestFinalizedStateKey, new_root));
+    SL_DEBUG(logger_, "Put kLatestFinalizedStateKey {}", new_root);
 
     OUTCOME_TRY(batch->commit());
     SL_DEBUG(logger_, "Applied diff to state {} with {} writes", new_root, num);

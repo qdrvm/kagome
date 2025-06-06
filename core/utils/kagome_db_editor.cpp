@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "consensus/timeline/timeline.hpp"
 #include "injector/idle_trie_pruner.hpp"
 #include "storage/trie/impl/direct_storage.hpp"
 #include "storage/trie/trie_batches.hpp"
@@ -228,6 +229,19 @@ Example:
        and std::strlen(s) == common::Hash256::size() * 2 + 2;
   }
 
+  class TimelineStub final : public consensus::Timeline {
+   public:
+    consensus::SyncState getCurrentState() const {
+      return consensus::SyncState::SYNCHRONIZED;
+    }
+
+    bool wasSynchronized() const {
+      return true;
+    }
+
+    void checkAndReportEquivocation(const primitives::BlockHeader &) override {}
+  };
+
   int db_editor_main(int argc, const char **argv) {
 #if defined(BACKWARD_HAS_BACKTRACE)
     backward::SignalHandling sh;
@@ -284,7 +298,10 @@ Example:
       std::shared_ptr<storage::trie::DirectStorage> direct_storage =
           storage::trie::DirectStorage::create(
               storage->getRocksSpace(storage::Space::kTrieDirectKV),
-              storage->getRocksSpace(storage::Space::kTrieDiff))
+              storage->getRocksSpace(storage::Space::kTrieDiff),
+              std::make_shared<primitives::events::ChainSubscriptionEngine>(),
+              LazySPtr<const consensus::Timeline>{di::make_injector(
+                  di::bind<consensus::Timeline>.template to<TimelineStub>())})
               .value();
 
       auto injector = di::make_injector(

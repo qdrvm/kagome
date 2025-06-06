@@ -21,7 +21,6 @@
 #include "crypto/blake2/blake2b.h"
 #include "log/profiling_logger.hpp"
 #include "storage/database_error.hpp"
-#include "storage/trie/impl/direct_storage.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 #include "utils/pool_handler.hpp"
 
@@ -127,7 +126,6 @@ namespace kagome::blockchain {
           justification_storage_policy,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<storage::trie::DirectStorage> trie_direct_storage,
       common::MainThreadPool &main_thread_pool) {
     BOOST_ASSERT(storage != nullptr);
 
@@ -274,7 +272,6 @@ namespace kagome::blockchain {
                           std::move(justification_storage_policy),
                           trie_storage,
                           state_pruner,
-                          trie_direct_storage,
                           main_thread_pool));
     // Add non-finalized block to the block tree
     for (auto &item : collected) {
@@ -400,13 +397,11 @@ namespace kagome::blockchain {
           justification_storage_policy,
       std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<storage::trie::DirectStorage> trie_direct_storage,
       common::MainThreadPool &main_thread_pool)
       : block_tree_data_{BlockTreeData{
             .storage_ = std::move(storage),
             .trie_storage_ = std::move(trie_storage),
             .state_pruner_ = std::move(state_pruner),
-            .trie_direct_storage_ = std::move(trie_direct_storage),
             .tree_ = std::make_unique<CachedTree>(finalized),
             .hasher_ = std::move(hasher),
             .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
@@ -426,7 +421,6 @@ namespace kagome::blockchain {
       BOOST_ASSERT(p.justification_storage_policy_ != nullptr);
       BOOST_ASSERT(p.trie_storage_ != nullptr);
       BOOST_ASSERT(p.state_pruner_ != nullptr);
-      BOOST_ASSERT(p.trie_direct_storage_ != nullptr);
 
       // Register metrics
       BOOST_ASSERT(telemetry_ != nullptr);
@@ -794,8 +788,6 @@ namespace kagome::blockchain {
 
         auto changes = p.tree_->finalize(node);
         OUTCOME_TRY(reorgAndPrune(p, changes));
-        OUTCOME_TRY(
-            p.trie_direct_storage_->updateDirectState(header.state_root));
         OUTCOME_TRY(pruneTrie(p, node->info.number));
 
         notifyChainEventsEngine(
@@ -1324,8 +1316,8 @@ namespace kagome::blockchain {
           }
           extrinsics.emplace_back(std::move(ext));
         }
-        OUTCOME_TRY(
-            p.trie_direct_storage_->discardDiff(block_header.state_root));
+        notifyChainEventsEngine(
+            primitives::events::ChainEventType::kDiscardedHeads, block_header);
         p.state_pruner_->schedulePrune(
             block_header.state_root,
             block_header.blockInfo(),

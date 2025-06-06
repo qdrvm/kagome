@@ -371,7 +371,6 @@ namespace {
         injector.template create<std::shared_ptr<blockchain::JustificationStoragePolicy>>(),
         injector.template create<sptr<storage::trie::TrieStorage>>(),
         injector.template create<sptr<storage::trie_pruner::TriePruner>>(),
-        injector.template create<sptr<storage::trie::DirectStorage>>(),
         injector.template create<common::MainThreadPool &>());
     // clang-format on
 
@@ -877,7 +876,9 @@ namespace {
                 auto& rocksdb = dynamic_cast<storage::RocksDb&>(*storage);
                 return storage::trie::DirectStorage::create(
                   rocksdb.getRocksSpace(storage::Space::kTrieDirectKV),
-                  rocksdb.getRocksSpace(storage::Space::kTrieDiff)).value();
+                  rocksdb.getRocksSpace(storage::Space::kTrieDiff),
+                  injector.template create<sptr<primitives::events::ChainSubscriptionEngine>>(),
+                  LazySPtr<const consensus::Timeline>(injector)).value();
               }),
             di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
             bind_by_lambda<storage::trie::Codec>([](const auto&) {

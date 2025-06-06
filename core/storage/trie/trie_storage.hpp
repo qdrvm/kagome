@@ -43,8 +43,6 @@ namespace kagome::storage::trie {
 
     virtual outcome::result<std::unique_ptr<TrieBatch>> getProofReaderBatchAt(
         const RootHash &root, const OnNodeLoaded &on_node_loaded) const = 0;
-
-    virtual DirectStorage &DEBUG_getDirectStorage() = 0;
   };
 
 }  // namespace kagome::storage::trie

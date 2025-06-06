@@ -20,6 +20,7 @@
 #include "primitives/block_id.hpp"
 #include "primitives/extrinsic.hpp"
 #include "primitives/version.hpp"
+#include "storage/trie/types.hpp"
 #include "subscription/subscriber.hpp"
 #include "subscription/subscription_engine.hpp"
 
@@ -31,11 +32,16 @@ namespace kagome::primitives {
   struct BlockHeader;
 }
 
+namespace kagome::storage::trie {
+  class PolkadotTrie;
+}
+
 namespace kagome::primitives::events {
 
   template <typename T>
   using ref_t = std::reference_wrapper<const T>;
 
+  // TODO(Harrm) for review: why Heads? Is it short for Headers? It looks odd.
   enum struct ChainEventType : uint8_t {
     kNewHeads = 1,
     kFinalizedHeads = 2,
@@ -44,6 +50,9 @@ namespace kagome::primitives::events {
     kNewRuntime = 5,
     kDeactivateAfterFinalization = 6,  // TODO(kamilsa): #2369 might not be
                                        // triggered on every leaf deactivated
+    kDiscardedHeads = 7,
+    kNewStateSynced = 8,  // TODO(Harrm) it's arguable that it belongs here but
+                          // it's very convenient for Direct Storage
   };
 
   enum struct PeerEventType : uint8_t {
@@ -64,12 +73,17 @@ namespace kagome::primitives::events {
     std::vector<HeaderInfo> removed;
     primitives::BlockNumber finalized{};
   };
+  struct NewStateSyncedParams {
+    storage::trie::RootHash state_root;
+    const storage::trie::PolkadotTrie &trie;
+  };
 
-  using ChainEventParams = boost::variant<std::nullopt_t,
-                                          HeadsEventParams,
-                                          RuntimeVersionEventParams,
-                                          NewRuntimeEventParams,
-                                          RemoveAfterFinalizationParams>;
+  using ChainEventParams = std::variant<std::nullopt_t,
+                                        HeadsEventParams,
+                                        RuntimeVersionEventParams,
+                                        NewRuntimeEventParams,
+                                        RemoveAfterFinalizationParams,
+                                        NewStateSyncedParams>;
 
   using SyncStateEventParams = consensus::SyncState;
 
@@ -308,11 +322,11 @@ namespace kagome::primitives::events {
   struct ChainSub {
     ChainSub(ChainSubscriptionEnginePtr engine)
         : sub{std::make_shared<primitives::events::ChainEventSubscriber>(
-            std::move(engine))} {}
+              std::move(engine))} {}
 
     void onBlock(ChainEventType type, auto f) {
       subscribe(*sub, type, [f{std::move(f)}](const ChainEventParams &args) {
-        auto &block = boost::get<HeadsEventParams>(args).get();
+        auto &block = std::get<HeadsEventParams>(args).get();
         if constexpr (std::is_invocable_v<decltype(f)>) {
           f();
         } else {
@@ -332,7 +346,7 @@ namespace kagome::primitives::events {
       subscribe(*sub,
                 ChainEventType::kDeactivateAfterFinalization,
                 [f{std::move(f)}](const ChainEventParams &args) {
-                  f(boost::get<RemoveAfterFinalizationParams>(args));
+                  f(std::get<RemoveAfterFinalizationParams>(args));
                 });
     }
 

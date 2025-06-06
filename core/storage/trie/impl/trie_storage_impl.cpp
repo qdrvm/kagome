@@ -6,6 +6,7 @@
 
 #include "storage/trie/impl/trie_storage_impl.hpp"
 
+#include <backward.hpp>
 #include <memory>
 
 #include "outcome/outcome.hpp"
@@ -20,7 +21,7 @@ namespace kagome::storage::trie {
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<DirectStorage> direct_kv) {
+      std::optional<std::shared_ptr<DirectStorage>> direct_kv) {
     // will never be used, so content of the callback doesn't matter
     auto empty_trie = trie_factory->createEmpty();
     // ensure retrieval of empty trie succeeds
@@ -37,7 +38,7 @@ namespace kagome::storage::trie {
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<DirectStorage> direct_kv) {
+      std::optional<std::shared_ptr<DirectStorage>> direct_kv) {
     return std::unique_ptr<TrieStorageImpl>(
         new TrieStorageImpl(std::move(codec),
                             std::move(serializer),
@@ -49,7 +50,7 @@ namespace kagome::storage::trie {
       std::shared_ptr<Codec> codec,
       std::shared_ptr<TrieSerializer> serializer,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
-      std::shared_ptr<DirectStorage> direct_kv)
+      std::optional<std::shared_ptr<DirectStorage>> direct_kv)
       : codec_{std::move(codec)},
         serializer_{std::move(serializer)},
         state_pruner_{std::move(state_pruner)},
@@ -58,7 +59,7 @@ namespace kagome::storage::trie {
     BOOST_ASSERT(codec_ != nullptr);
     BOOST_ASSERT(state_pruner_ != nullptr);
     BOOST_ASSERT(serializer_ != nullptr);
-    BOOST_ASSERT(direct_kv_ != nullptr);
+    BOOST_ASSERT(!direct_kv_ || *direct_kv_ != nullptr);
   }
 
   outcome::result<std::unique_ptr<TrieBatch>>
@@ -68,28 +69,36 @@ namespace kagome::storage::trie {
     SL_DEBUG(logger_,
              "Initialize persistent trie batch with root: {}",
              root.toHex());
-    OUTCOME_TRY(direct_view, direct_kv_->getViewAt(root));
-    return std::make_unique<PersistentTrieBatchImpl>(codec_,
-                                                     serializer_,
-                                                     changes_tracker,
-                                                     std::move(trie),
-                                                     state_pruner_,
-                                                     direct_kv_,
-                                                     std::move(direct_view));
+    if (direct_kv_) {
+      OUTCOME_TRY(direct_view, (*direct_kv_)->getViewAt(root));
+      return std::make_unique<PersistentTrieBatchImpl>(codec_,
+                                                       serializer_,
+                                                       changes_tracker,
+                                                       std::move(trie),
+                                                       state_pruner_,
+                                                       *direct_kv_,
+                                                       std::move(direct_view));
+    }
+    return std::make_unique<PersistentTrieBatchImpl>(
+        codec_, serializer_, changes_tracker, std::move(trie), state_pruner_);
   }
 
   outcome::result<std::unique_ptr<TrieBatch>>
   TrieStorageImpl::getEphemeralBatchAt(const RootHash &root) const {
     SL_DEBUG(logger_, "Initialize ephemeral trie batch with root: {}", root);
     OUTCOME_TRY(trie, serializer_->retrieveTrie(root, nullptr));
-    OUTCOME_TRY(direct_view, direct_kv_->getViewAt(root));
+    if (direct_kv_ && root != kEmptyRootHash) {
+      OUTCOME_TRY(direct_view, (*direct_kv_)->getViewAt(root));
 
-    return std::make_unique<EphemeralTrieBatchImpl>(codec_,
-                                                    std::move(trie),
-                                                    serializer_,
-                                                    nullptr,
-                                                    direct_kv_,
-                                                    std::move(direct_view));
+      return std::make_unique<EphemeralTrieBatchImpl>(codec_,
+                                                      std::move(trie),
+                                                      serializer_,
+                                                      nullptr,
+                                                      *direct_kv_,
+                                                      std::move(direct_view));
+    }
+    return std::make_unique<EphemeralTrieBatchImpl>(
+        codec_, std::move(trie), serializer_, nullptr);
   }
 
   outcome::result<std::unique_ptr<TrieBatch>>

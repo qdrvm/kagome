@@ -27,7 +27,7 @@ namespace kagome::storage {
       : map{map}, cursor{std::move(cursor)} {}
 
   outcome::result<bool> MapPrefix::Cursor::seekFirst() {
-    OUTCOME_TRY(cursor->seek(map.prefix));
+    OUTCOME_TRY(cursor->seekLowerBound(map.prefix));
     return isValid();
   }
 

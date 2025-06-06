@@ -116,8 +116,7 @@ namespace kagome::network {
       std::shared_ptr<Beefy> beefy,
       std::shared_ptr<consensus::grandpa::Environment> grandpa_environment,
       common::MainThreadPool &main_thread_pool,
-      std::shared_ptr<blockchain::BlockStorage> block_storage,
-      std::shared_ptr<storage::trie::DirectStorage> direct_storage)
+      std::shared_ptr<blockchain::BlockStorage> block_storage)
       : log_(log::createLogger("Synchronizer", "synchronizer")),
         block_tree_(std::move(block_tree)),
         block_appender_(std::move(block_appender)),
@@ -137,8 +136,7 @@ namespace kagome::network {
             poolHandlerReadyMake(app_state_manager, main_thread_pool)},
         block_storage_{std::move(block_storage)},
         max_parallel_downloads_{app_config.maxParallelDownloads()},
-        random_gen_{std::random_device{}()},
-        trie_direct_storage_{direct_storage} {
+        random_gen_{std::random_device{}()} {
     BOOST_ASSERT(block_tree_);
     BOOST_ASSERT(block_executor_);
     BOOST_ASSERT(trie_node_db_);
@@ -151,7 +149,6 @@ namespace kagome::network {
     BOOST_ASSERT(chain_sub_engine_);
     BOOST_ASSERT(main_pool_handler_);
     BOOST_ASSERT(block_storage_);
-    BOOST_ASSERT(trie_direct_storage_);
 
     sync_method_ = app_config.syncMethod();
 
@@ -1008,8 +1005,10 @@ namespace kagome::network {
             }});
     SL_DEBUG(log_, "New direct storage root: {}", state_sync_flow_->root());
 
-    OUTCOME_TRY(trie_direct_storage_->resetDirectState(state_sync_flow_->root(),
-                                                       *trie));
+    chain_sub_engine_->notify(
+        primitives::events::ChainEventType::kNewStateSynced,
+        primitives::events::NewStateSyncedParams{
+            .state_root = state_sync_flow_->root(), .trie = *trie});
 
     auto block = state_sync_flow_->blockInfo();
     state_sync_flow_.reset();

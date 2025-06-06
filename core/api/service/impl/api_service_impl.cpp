@@ -576,27 +576,41 @@ namespace kagome::api {
       SessionPtr &session,
       primitives::events::ChainEventType event_type,
       const primitives::events::ChainEventParams &event_params) {
-    std::string_view name;
     switch (event_type) {
-      case primitives::events::ChainEventType::kNewHeads: {
-        name = kRpcEventNewHeads;
-      } break;
-      case primitives::events::ChainEventType::kFinalizedHeads: {
-        name = kRpcEventFinalizedHeads;
-      } break;
-      case primitives::events::ChainEventType::kFinalizedRuntimeVersion: {
-        name = kRpcEventRuntimeVersion;
-      } break;
-      case primitives::events::ChainEventType::kNewRuntime:
-        return;
+      case primitives::events::ChainEventType::kNewHeads:
+        sendEvent(server_,
+                  session,
+                  logger_,
+                  set_id,
+                  kRpcEventNewHeads,
+                  api::makeValue(std::get<primitives::events::HeadsEventParams>(
+                      event_params)));
+        break;
+      case primitives::events::ChainEventType::kFinalizedHeads:
+        sendEvent(server_,
+                  session,
+                  logger_,
+                  set_id,
+                  kRpcEventFinalizedHeads,
+                  api::makeValue(std::get<primitives::events::HeadsEventParams>(
+                      event_params)));
+        break;
+      case primitives::events::ChainEventType::kFinalizedRuntimeVersion:
+        sendEvent(server_,
+                  session,
+                  logger_,
+                  set_id,
+                  kRpcEventRuntimeVersion,
+                  api::makeValue(
+                      std::get<primitives::events::RuntimeVersionEventParams>(
+                          event_params)));
+        break;
       default:
-        BOOST_ASSERT(!"Unknown chain event");
+        SL_WARN(logger_,
+                "Received unexpected chain event {}",
+                static_cast<int>(event_type));
         return;
     }
-
-    BOOST_ASSERT(!name.empty());
-    sendEvent(
-        server_, session, logger_, set_id, name, api::makeValue(event_params));
   }
 
   void ApiServiceImpl::onExtrinsicEvent(

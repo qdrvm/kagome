@@ -38,7 +38,6 @@ namespace kagome::api {
   inline jsonrpc::Value makeValue(const uint64_t &);
   inline jsonrpc::Value makeValue(const std::nullptr_t &);
   inline jsonrpc::Value makeValue(const std::nullopt_t &);
-  inline jsonrpc::Value makeValue(const std::nullopt_t &);
 
   template <typename T>
   inline jsonrpc::Value makeValue(const std::reference_wrapper<T> &v);
@@ -48,6 +47,9 @@ namespace kagome::api {
 
   template <typename... Ts>
   inline jsonrpc::Value makeValue(const boost::variant<Ts...> &v);
+
+  template <typename... Ts>
+  inline jsonrpc::Value makeValue(const std::variant<Ts...> &v);
 
   template <typename T1, typename T2>
   inline jsonrpc::Value makeValue(const std::pair<T1, T2> &val);
@@ -134,6 +136,12 @@ namespace kagome::api {
 
   template <typename... Ts>
   inline jsonrpc::Value makeValue(const boost::variant<Ts...> &v) {
+    return visit_in_place(v,
+                          [](const auto &value) { return makeValue(value); });
+  }
+
+  template <typename... Ts>
+  inline jsonrpc::Value makeValue(const std::variant<Ts...> &v) {
     return visit_in_place(v,
                           [](const auto &value) { return makeValue(value); });
   }

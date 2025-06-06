@@ -111,8 +111,7 @@ class SynchronizerTest
                                                     nullptr,
                                                     grandpa_environment,
                                                     *main_thread_pool,
-                                                    block_storage,
-                                                    spaced_storage);
+                                                    block_storage);
   }
 
   void TearDown() override {

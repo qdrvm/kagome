@@ -13,7 +13,7 @@
 #include "common/monadic_utils.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
+#include "mock/core/storage/trie/polkadot_trie_cursor_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "runtime/ptr_size.hpp"
 #include "scale/encode_append.hpp"
