@@ -249,7 +249,9 @@ jobs:
         platform_config: ${{ fromJSON(needs.setup_matrix.outputs.platforms) }}
         scenario: [
           { name: "0001 PVF preparation & execution time", test: "test-polkadot-functional-0001-parachains-pvf" },
+          { name: "0001 PVF preparation & execution time with KAGOME minority", test: "test-polkadot-functional-0001-parachains-pvf-kagome-minority" },
           { name: "0003 BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute", test: "test-polkadot-functional-0003-beefy-and-mmr" },
+          { name: "0003 BEEFY voting and finality, test MMR proofs. Assumes Rococo sessions of 1 minute with KAGOME minority", test: "test-polkadot-functional-0003-beefy-and-mmr-kagome-minority" },
           { name: "0007 Test if disputes triggered on finalized blocks within scope always end as valid", test: "test-polkadot-functional-0007-dispute-freshly-finalized" },
           { name: "0008 Test if disputes triggered on finalized blocks out of scope never get to be confirmed and concluded", test: "test-polkadot-functional-0008-dispute-old-finalized" },
           { name: "0009 Approval voting coalescing does not lag finality", test: "test-polkadot-functional-0009-approval-voting-coalescing" },
