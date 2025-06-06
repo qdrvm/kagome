@@ -63,12 +63,9 @@ class TrieBatchTest : public test::BaseRocksDB_Test {
                 testing::A<const kagome::storage::trie::PolkadotTrie &>(), _))
         .WillByDefault(Return(outcome::success()));
 
-    trie = TrieStorageImpl::createEmpty(
-               factory,
-               codec,
-               serializer,
-               state_pruner)
-               .value();
+    trie =
+        TrieStorageImpl::createEmpty(factory, codec, serializer, state_pruner)
+            .value();
   }
 
   static const std::vector<std::pair<Buffer, Buffer>> data;
@@ -216,12 +213,9 @@ TEST_F(TrieBatchTest, ConsistentOnFailure) {
       addNewState(testing::A<const kagome::storage::trie::PolkadotTrie &>(), _))
       .WillByDefault(Return(outcome::success()));
 
-  auto trie = TrieStorageImpl::createEmpty(
-                  factory,
-                  codec,
-                  serializer,
-                  state_pruner)
-                  .value();
+  auto trie =
+      TrieStorageImpl::createEmpty(factory, codec, serializer, state_pruner)
+          .value();
   auto batch = trie->getPersistentBatchAt(empty_hash, std::nullopt).value();
 
   ASSERT_OUTCOME_SUCCESS(batch->put("123"_buf, "111"_buf));

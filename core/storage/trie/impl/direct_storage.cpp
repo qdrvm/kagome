@@ -139,7 +139,7 @@ namespace kagome::storage::trie {
       std::shared_ptr<BufferStorage> direct_db,
       std::shared_ptr<BufferStorage> diff_db,
       primitives::events::ChainSubscriptionEnginePtr chain_sub_engine,
-      //primitives::events::SyncStateSubscriptionEnginePtr sync_sub_engine,
+      // primitives::events::SyncStateSubscriptionEnginePtr sync_sub_engine,
       LazySPtr<const consensus::Timeline> timeline) {
     std::shared_ptr<DirectStorage> storage{new DirectStorage{timeline}};
     storage->direct_state_db_ = direct_db;
@@ -369,7 +369,8 @@ namespace kagome::storage::trie {
     if (!timeline_.get()->wasSynchronized()) {
       OUTCOME_TRY(updateDirectState(roots.to));
       SL_DEBUG(
-          logger_, "Since node the node is not synchronized, update to this state.");
+          logger_,
+          "Since node the node is not synchronized, update to this state.");
     }
     return outcome::success();
   }

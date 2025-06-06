@@ -110,10 +110,10 @@ namespace kagome::storage::trie {
     RootHash state_root_;
     std::shared_ptr<BufferStorage> direct_state_db_;
     std::shared_ptr<BufferStorage> diff_db_;
-    subscription::SubscriptionSetId chain_sub_id_ {};
-    //subscription::SubscriptionSetId sync_sub_id_;
+    subscription::SubscriptionSetId chain_sub_id_{};
+    // subscription::SubscriptionSetId sync_sub_id_;
     primitives::events::ChainEventSubscriberPtr chain_event_sub_;
-    //primitives::events::SyncStateEventSubscriberPtr sync_event_sub_;
+    // primitives::events::SyncStateEventSubscriberPtr sync_event_sub_;
     LazySPtr<const consensus::Timeline> timeline_;
 
     log::Logger logger_ = log::createLogger("DirectStorage", "storage");

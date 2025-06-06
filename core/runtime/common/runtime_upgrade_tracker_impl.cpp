@@ -179,8 +179,7 @@ namespace kagome::runtime {
         primitives::events::ChainEventType::kNewRuntime,
         [this](const primitives::events::ChainEventParams &event_params) {
           const auto &block_hash =
-              std::get<primitives::events::NewRuntimeEventParams>(
-                  event_params)
+              std::get<primitives::events::NewRuntimeEventParams>(event_params)
                   .get();
           auto res = push(block_hash);
           if (res.has_value() and res.value().second) {

@@ -57,10 +57,7 @@ std::shared_ptr<TrieStorage> makeEmptyInMemoryTrie() {
       .WillByDefault(Return(outcome::success()));
 
   return kagome::storage::trie::TrieStorageImpl::createEmpty(
-             trie_factory,
-             codec,
-             serializer,
-             state_pruner)
+             trie_factory, codec, serializer, state_pruner)
       .value();
 }
 
@@ -74,11 +71,12 @@ BlockHeader makeBlockHeader(RootHash hash) {
   uint32_t num = 1;
   std::string str_num = std::to_string(num);
   return kagome::primitives::BlockHeader{
-      .number=num,                                         // number
-      .parent_hash=makeHash("block_genesis_hash"),              // parent
-      .state_root=hash,                                        // state root
-      .extrinsics_root=makeHash("block_" + str_num + "_ext_root"),  // extrinsics root
-      .digest={},                                          // digest
+      .number = num,                                  // number
+      .parent_hash = makeHash("block_genesis_hash"),  // parent
+      .state_root = hash,                             // state root
+      .extrinsics_root =
+          makeHash("block_" + str_num + "_ext_root"),  // extrinsics root
+      .digest = {},                                    // digest
   };
 }
 

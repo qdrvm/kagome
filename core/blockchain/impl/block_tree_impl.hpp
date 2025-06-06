@@ -214,12 +214,14 @@ namespace kagome::blockchain {
                                         const ReorgAndPrune &changes);
 
     outcome::result<primitives::BlockHeader> getBlockHeaderNoLock(
-        const BlockTreeData &data, const primitives::BlockHash &block_hash) const;
+        const BlockTreeData &data,
+        const primitives::BlockHash &block_hash) const;
 
     outcome::result<void> pruneTrie(const BlockTreeData &block_tree_data,
                                     primitives::BlockNumber new_finalized);
 
-    primitives::BlockInfo getLastFinalizedNoLock(const BlockTreeData &data) const;
+    primitives::BlockInfo getLastFinalizedNoLock(
+        const BlockTreeData &data) const;
     primitives::BlockInfo bestBlockNoLock(const BlockTreeData &data) const;
 
     bool hasDirectChainNoLock(const BlockTreeData &data,
