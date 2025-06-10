@@ -18,6 +18,7 @@ namespace kagome::storage::trie {
       : TrieBatchBase{std::move(codec), std::move(serializer), std::move(trie)},
         on_child_node_loaded_{std::move(on_child_node_loaded)} {
     // on_child_node_loaded_ can be zero
+    SL_WARN(logger_, "EphemeralTrieBatchImpl created without direct storage");
   }
 
   EphemeralTrieBatchImpl::EphemeralTrieBatchImpl(

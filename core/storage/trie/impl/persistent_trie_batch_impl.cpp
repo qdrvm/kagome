@@ -30,6 +30,7 @@ namespace kagome::storage::trie {
     BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
                  or not changes_.has_value());
     BOOST_ASSERT(state_pruner_ != nullptr);
+    SL_WARN(logger_, "EphemeralTrieBatchImpl created without direct storage");
   }
 
   PersistentTrieBatchImpl::PersistentTrieBatchImpl(

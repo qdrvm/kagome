@@ -79,7 +79,8 @@ namespace kagome::storage::trie {
     outcome::result<void> resetDirectState(const RootHash &new_state_root,
                                            const PolkadotTrie &new_state);
 
-    outcome::result<void> updateDirectState(const RootHash &target_state);
+    outcome::result<void> updateDirectState(const RootHash &target_state,
+                                            bool discardOlderDiffs = false);
 
     struct DiffRoots {
       const RootHash &from;

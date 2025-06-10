@@ -59,8 +59,6 @@ namespace kagome::storage::trie {
   // typically pretty small, if we accumulate a lot of diffs it means that
   // something likely is wrong
 
-  constexpr size_t kExpectedMaxDiffNum = 16;
-
   DirectStorageView::DirectStorageView(
       std::shared_ptr<const DirectStorage> storage, RootHash state_root)
       : storage_{std::move(storage)}, state_root_{state_root} {
@@ -293,7 +291,7 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> DirectStorage::updateDirectState(
-      const RootHash &target_state) {
+      const RootHash &target_state, bool discardOlderDiffs) {
     std::vector<RootHash> diffs;
     RootHash current_state = target_state;
     size_t idx = 0;
@@ -320,8 +318,9 @@ namespace kagome::storage::trie {
 
     for (auto root : diffs | std::views::reverse) {
       OUTCOME_TRY(applyDiff(root));
-      OUTCOME_TRY(discardDiff(root));
-      state_root_ = root;
+      if (discardOlderDiffs) {
+        OUTCOME_TRY(discardDiff(root));
+      }
     }
 
     // TODO(Harrm): maybe cleanup now orphaned diffs, although they should be
@@ -367,7 +366,7 @@ namespace kagome::storage::trie {
              roots.from,
              roots.to);
     if (!timeline_.get()->wasSynchronized()) {
-      OUTCOME_TRY(updateDirectState(roots.to));
+      OUTCOME_TRY(updateDirectState(roots.to, false));
       SL_DEBUG(
           logger_,
           "Since node the node is not synchronized, update to this state.");
@@ -476,6 +475,8 @@ namespace kagome::storage::trie {
 
     OUTCOME_TRY(batch->commit());
     SL_DEBUG(logger_, "Applied diff to state {} with {} writes", new_root, num);
+
+    state_root_ = new_root;
 
     return outcome::success();
   }
