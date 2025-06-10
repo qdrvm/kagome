@@ -13,6 +13,7 @@
 #include <qtils/test/outcome.hpp>
 
 #include "mock/core/blockchain/block_header_repository_mock.hpp"
+#include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/types/state_request.hpp"
 #include "storage/in_memory/in_memory_spaced_storage.hpp"
@@ -70,11 +71,12 @@ BlockHeader makeBlockHeader(RootHash hash) {
   uint32_t num = 1;
   std::string str_num = std::to_string(num);
   return kagome::primitives::BlockHeader{
-      num,                                         // number
-      makeHash("block_genesis_hash"),              // parent
-      hash,                                        // state root
-      makeHash("block_" + str_num + "_ext_root"),  // extrinsics root
-      {},                                          // digest
+      .number = num,                                  // number
+      .parent_hash = makeHash("block_genesis_hash"),  // parent
+      .state_root = hash,                             // state root
+      .extrinsics_root =
+          makeHash("block_" + str_num + "_ext_root"),  // extrinsics root
+      .digest = {},                                    // digest
   };
 }
 

@@ -124,6 +124,7 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<const class JustificationStoragePolicy>
           justification_storage_policy,
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
       common::MainThreadPool &main_thread_pool) {
     BOOST_ASSERT(storage != nullptr);
@@ -269,6 +270,7 @@ namespace kagome::blockchain {
                           std::move(extrinsic_events_engine),
                           std::move(extrinsic_event_key_repo),
                           std::move(justification_storage_policy),
+                          trie_storage,
                           state_pruner,
                           main_thread_pool));
     // Add non-finalized block to the block tree
@@ -393,19 +395,21 @@ namespace kagome::blockchain {
           extrinsic_event_key_repo,
       std::shared_ptr<const JustificationStoragePolicy>
           justification_storage_policy,
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
       common::MainThreadPool &main_thread_pool)
       : block_tree_data_{BlockTreeData{
-          .storage_ = std::move(storage),
-          .state_pruner_ = std::move(state_pruner),
-          .tree_ = std::make_unique<CachedTree>(finalized),
-          .hasher_ = std::move(hasher),
-          .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
-          .justification_storage_policy_ =
-              std::move(justification_storage_policy),
-          .genesis_block_hash_ = {},
-          .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
-      }},
+            .storage_ = std::move(storage),
+            .trie_storage_ = std::move(trie_storage),
+            .state_pruner_ = std::move(state_pruner),
+            .tree_ = std::make_unique<CachedTree>(finalized),
+            .hasher_ = std::move(hasher),
+            .extrinsic_event_key_repo_ = std::move(extrinsic_event_key_repo),
+            .justification_storage_policy_ =
+                std::move(justification_storage_policy),
+            .genesis_block_hash_ = {},
+            .blocks_pruning_ = {app_config.blocksPruning(), finalized.number},
+        }},
         chain_events_engine_{std::move(chain_events_engine)},
         main_pool_handler_{main_thread_pool.handlerStarted()},
         extrinsic_events_engine_{std::move(extrinsic_events_engine)} {
@@ -415,6 +419,7 @@ namespace kagome::blockchain {
       BOOST_ASSERT(p.hasher_ != nullptr);
       BOOST_ASSERT(p.extrinsic_event_key_repo_ != nullptr);
       BOOST_ASSERT(p.justification_storage_policy_ != nullptr);
+      BOOST_ASSERT(p.trie_storage_ != nullptr);
       BOOST_ASSERT(p.state_pruner_ != nullptr);
 
       // Register metrics
@@ -1311,6 +1316,8 @@ namespace kagome::blockchain {
           }
           extrinsics.emplace_back(std::move(ext));
         }
+        notifyChainEventsEngine(
+            primitives::events::ChainEventType::kDiscardedHeads, block_header);
         p.state_pruner_->schedulePrune(
             block_header.state_root,
             block_header.blockInfo(),

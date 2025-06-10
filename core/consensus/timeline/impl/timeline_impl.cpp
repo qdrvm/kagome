@@ -185,9 +185,10 @@ namespace kagome::consensus {
     if (auto res = trie_storage_->getEphemeralBatchAt(state_root);
         not res.has_value()) {
       if (sync_method_ == SyncMethod::Full) {
-        SL_WARN(log_, "Can't get state of best block: {}", res.error());
         SL_CRITICAL(log_,
-                    "Try restart at least once with `--sync Fast' CLI arg");
+                    "Can't get state of best block: {}. Try restart at least "
+                    "once with `--sync Fast' CLI arg",
+                    res.error());
         return false;
       }
       full_sync_available = false;

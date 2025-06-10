@@ -24,17 +24,12 @@ namespace kagome::storage::face {
 
     /**
      * @brief Store value by key
-     * @param key key
-     * @param value value
-     * @return result containing void if put successful, error otherwise
      */
     virtual outcome::result<void> put(const View<K> &key,
                                       OwnedOrView<V> &&value) = 0;
 
     /**
      * @brief Remove value by key
-     * @param key K
-     * @return error code if error happened
      */
     virtual outcome::result<void> remove(const View<K> &key) = 0;
   };

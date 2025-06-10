@@ -51,4 +51,14 @@ namespace kagome::storage::trie {
   outcome::result<void> TrieStorageBackendImpl::remove(const BufferView &key) {
     return storage_->remove(key);
   }
+
+  outcome::result<void> TrieStorageBackendImpl::removePrefix(
+      const common::BufferView &prefix) {
+    return storage_->removePrefix(prefix);
+  }
+
+  outcome::result<void> TrieStorageBackendImpl::clear() {
+    return storage_->clear();
+  }
+
 }  // namespace kagome::storage::trie

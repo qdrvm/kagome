@@ -7,6 +7,7 @@
 #pragma once
 
 #include "common/blob.hpp"
+#include "common/buffer.hpp"
 
 namespace kagome::storage::trie {
 
@@ -22,4 +23,5 @@ namespace kagome::storage::trie {
   }};
 
   constexpr uint8_t kEscapeCompactHeader = 1;
+
 }  // namespace kagome::storage::trie

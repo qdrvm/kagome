@@ -148,6 +148,8 @@ class SynchronizerTest
       std::make_shared<EnvironmentMock>();
   std::shared_ptr<blockchain::BlockStorageMock> block_storage =
       std::make_shared<blockchain::BlockStorageMock>();
+  std::shared_ptr<storage::SpacedStorageMock> spaced_storage =
+      std::make_shared<storage::SpacedStorageMock>();
 
   std::shared_ptr<Watchdog> watchdog =
       std::make_shared<Watchdog>(std::chrono::milliseconds(1));

@@ -15,16 +15,36 @@ namespace kagome::storage {
 
   outcome::result<bool> RocksDBCursor::seekFirst() {
     i_->SeekToFirst();
+    if (!i_->status().ok()) {
+      return status_as_error(i_->status());
+    }
     return isValid();
   }
 
   outcome::result<bool> RocksDBCursor::seek(const BufferView &key) {
     i_->Seek(make_slice(key));
+    if (!i_->status().ok()) {
+      return status_as_error(i_->status());
+    }
+    if (make_slice(key) == i_->key()) {
+      return isValid();
+    }
+    return DatabaseError::NOT_FOUND;
+  }
+
+  outcome::result<bool> RocksDBCursor::seekLowerBound(const BufferView &key) {
+    i_->Seek(make_slice(key));
+    if (!i_->status().ok()) {
+      return status_as_error(i_->status());
+    }
     return isValid();
   }
 
   outcome::result<bool> RocksDBCursor::seekLast() {
     i_->SeekToLast();
+    if (!i_->status().ok()) {
+      return status_as_error(i_->status());
+    }
     return isValid();
   }
 
@@ -34,11 +54,17 @@ namespace kagome::storage {
 
   outcome::result<void> RocksDBCursor::next() {
     i_->Next();
+    if (!i_->status().ok()) {
+      return status_as_error(i_->status());
+    }
     return outcome::success();
   }
 
   outcome::result<void> RocksDBCursor::prev() {
     i_->Prev();
+    if (!i_->status().ok()) {
+      return status_as_error(i_->status());
+    }
     return outcome::success();
   }
 

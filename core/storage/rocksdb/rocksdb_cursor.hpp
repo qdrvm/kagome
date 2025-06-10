@@ -21,6 +21,8 @@ namespace kagome::storage {
 
     outcome::result<bool> seek(const BufferView &key) override;
 
+    outcome::result<bool> seekLowerBound(const BufferView &key) override;
+
     outcome::result<bool> seekLast() override;
 
     bool isValid() const override;

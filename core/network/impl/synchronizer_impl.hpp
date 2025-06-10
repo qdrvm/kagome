@@ -28,7 +28,6 @@
 #include "network/types/blocks_request.hpp"
 #include "network/types/blocks_response.hpp"
 #include "primitives/event_types.hpp"
-#include "storage/spaced_storage.hpp"
 #include "telemetry/service.hpp"
 #include "utils/safe_object.hpp"
 
@@ -63,6 +62,11 @@ namespace kagome::network {
   class Beefy;
   class PeerManager;
 }  // namespace kagome::network
+
+namespace kagome::storage {
+  class SpacedStorage;
+  class RocksDbSpace;
+}  // namespace kagome::storage
 
 namespace kagome::storage::trie {
   class TrieSerializer;

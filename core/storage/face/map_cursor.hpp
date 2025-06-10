@@ -30,6 +30,13 @@ namespace kagome::storage::face {
     virtual outcome::result<bool> seekFirst() = 0;
 
     /**
+     * @brief Find a key equal or greater than given key and seek iterator to
+     * this key.
+     * @return error if any, true if \arg key found, false otherwise
+     */
+    virtual outcome::result<bool> seekLowerBound(const View<K> &key) = 0;
+
+    /**
      * @brief Find given key and seek iterator to this key.
      * @return error if any, true if \arg key found, false otherwise
      */

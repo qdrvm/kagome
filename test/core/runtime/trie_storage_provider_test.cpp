@@ -11,6 +11,7 @@
 #include <qtils/test/outcome.hpp>
 
 #include "common/buffer.hpp"
+#include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "runtime/common/runtime_execution_error.hpp"
 #include "storage/in_memory/in_memory_spaced_storage.hpp"

@@ -45,6 +45,13 @@ namespace kagome::storage::trie {
                 remove,
                 (const BufferView &key),
                 (override));
+
+    MOCK_METHOD(outcome::result<void>,
+                removePrefix,
+                (const BufferView &prefix),
+                (override));
+
+    MOCK_METHOD(outcome::result<void>, clear, (), (override));
   };
 
 }  // namespace kagome::storage::trie

@@ -66,6 +66,7 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
+        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
         common::MainThreadPool &main_thread_pool);
 
@@ -177,6 +178,7 @@ namespace kagome::blockchain {
 
     struct BlockTreeData {
       std::shared_ptr<BlockStorage> storage_;
+      std::shared_ptr<storage::trie::TrieStorage> trie_storage_;
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner_;
       std::unique_ptr<CachedTree> tree_;
       std::shared_ptr<crypto::Hasher> hasher_;
@@ -204,34 +206,37 @@ namespace kagome::blockchain {
             extrinsic_event_key_repo,
         std::shared_ptr<const class JustificationStoragePolicy>
             justification_storage_policy,
+        std::shared_ptr<storage::trie::TrieStorage> trie_storage,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
         common::MainThreadPool &main_thread_pool);
 
-    outcome::result<void> reorgAndPrune(BlockTreeData &p,
+    outcome::result<void> reorgAndPrune(BlockTreeData &data,
                                         const ReorgAndPrune &changes);
 
     outcome::result<primitives::BlockHeader> getBlockHeaderNoLock(
-        const BlockTreeData &p, const primitives::BlockHash &block_hash) const;
+        const BlockTreeData &data,
+        const primitives::BlockHash &block_hash) const;
 
     outcome::result<void> pruneTrie(const BlockTreeData &block_tree_data,
                                     primitives::BlockNumber new_finalized);
 
-    primitives::BlockInfo getLastFinalizedNoLock(const BlockTreeData &p) const;
-    primitives::BlockInfo bestBlockNoLock(const BlockTreeData &p) const;
+    primitives::BlockInfo getLastFinalizedNoLock(
+        const BlockTreeData &data) const;
+    primitives::BlockInfo bestBlockNoLock(const BlockTreeData &data) const;
 
-    bool hasDirectChainNoLock(const BlockTreeData &p,
+    bool hasDirectChainNoLock(const BlockTreeData &data,
                               const primitives::BlockHash &ancestor,
                               const primitives::BlockHash &descendant) const;
     std::vector<primitives::BlockHash> getLeavesNoLock(
-        const BlockTreeData &p) const;
+        const BlockTreeData &data) const;
 
     BlockTree::BlockHashVecRes getDescendingChainToBlockNoLock(
-        const BlockTreeData &p,
+        const BlockTreeData &data,
         const primitives::BlockHash &to_block,
         uint64_t maximum) const;
 
     outcome::result<void> addExistingBlockNoLock(
-        BlockTreeData &p,
+        BlockTreeData &data,
         const primitives::BlockHash &block_hash,
         const primitives::BlockHeader &block_header);
 

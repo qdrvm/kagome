@@ -52,4 +52,5 @@ namespace kagome::storage::changes_trie {
       }
     }
   }
+
 }  // namespace kagome::storage::changes_trie

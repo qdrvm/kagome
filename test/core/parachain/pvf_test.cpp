@@ -147,8 +147,6 @@ class PvfTest : public testing::Test {
         ON_CALL(*instance, callExportFunction(_, "validate_block", _))
             .WillByDefault(Return(Buffer{encode(ValidationResult{}).value()}));
         ON_CALL(*instance, getCodeHash()).WillByDefault(Return(code_hash));
-        EXPECT_CALL(*instance, stateless())
-            .WillRepeatedly(Return(outcome::success()));
         return instance;
       });
       return module;

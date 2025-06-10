@@ -36,6 +36,9 @@ namespace kagome::storage {
         const common::BufferView &key) const override;
 
     outcome::result<void> remove(const common::BufferView &key) override;
+    outcome::result<void> removePrefix(
+        const common::BufferView &prefix) override;
+    outcome::result<void> clear() override;
 
     std::unique_ptr<BufferBatch> batch() override;
 
@@ -44,7 +47,7 @@ namespace kagome::storage {
     std::optional<size_t> byteSizeHint() const override;
 
    private:
-    std::map<std::string, common::Buffer> storage;
+    std::map<common::Buffer, common::Buffer, std::less<>> storage_;
     size_t size_ = 0;
 
     friend class InMemoryCursor;
