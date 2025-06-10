@@ -6,61 +6,65 @@
 
 #pragma once
 
-#include <cstdint>
-#include <string>
+#include "scale/tie.hpp"
 
-#include "scale/kagome_scale.hpp"
-
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 namespace kagome::network {
 
   struct Roles {
-    /// Full node, does not participate in consensus.
-    static constexpr uint8_t Full = 0b0000'0001;
-    /// Light client node.
-    static constexpr uint8_t Light = 0b0000'0010;
-    /// Act as an authority
-    static constexpr uint8_t Authority = 0b0000'0100;
+    SCALE_TIE_ONLY(value);
 
-    Roles() = default;
-    Roles(uint8_t value) : value_(value) {}
+    union {
+      struct {
+        /**
+         * Full node, does not participate in consensus.
+         */
+        uint8_t full : 1;
+
+        /**
+         * Light client node.
+         */
+        uint8_t light : 1;
+
+        /**
+         * Act as an authority
+         */
+        uint8_t authority : 1;
+
+      } flags;
+      uint8_t value;
+    };
+
+    Roles() : value(0) {}
+    Roles(uint8_t v) : value(v) {}
 
     // https://github.com/paritytech/polkadot-sdk/blob/6c3219ebe9231a0305f53c7b33cb558d46058062/substrate/client/network/common/src/role.rs#L101
     bool isFull() const {
-      return (value_ & (Full | Authority)) != 0;
+      return flags.full != 0 or isAuthority();
     }
 
     bool isAuthority() const {
-      return (value_ & Authority) != 0;
+      return flags.authority != 0;
     }
 
     // https://github.com/paritytech/polkadot-sdk/blob/6c3219ebe9231a0305f53c7b33cb558d46058062/substrate/client/network/common/src/role.rs#L111
     bool isLight() const {
       return not isFull();
     }
-
-    uint8_t value() const {
-      return value_;
-    }
-
-    SCALE_CUSTOM_DECOMPOSITION(Roles, value_);
-
-    friend std::string to_string(Roles roles) {
-      switch (roles.value_) {
-        case 0:
-          return "none";
-        case 1:
-          return "full";
-        case 2:
-          return "light";
-        case 4:
-          return "authority";
-        default:
-          return std::to_string(roles.value_);
-      }
-    }
-
-   private:
-    uint8_t value_{0};
   };
 
+  inline std::string to_string(Roles r) {
+    switch (r.value) {
+      case 0:
+        return "none";
+      case 1:
+        return "full";
+      case 2:
+        return "light";
+      case 4:
+        return "authority";
+    }
+    return to_string(r.value);
+  }
 }  // namespace kagome::network
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
