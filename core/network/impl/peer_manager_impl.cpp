@@ -225,6 +225,9 @@ namespace kagome::network {
     // Do first alignment of peers count
     align();
 
+    // Start timer for periodic collecting garbage
+    collectGarbage();
+
     return true;
   }
 
