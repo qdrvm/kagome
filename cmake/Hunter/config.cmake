@@ -90,6 +90,7 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
       VERSION 1.0.14
       CMAKE_ARGS
         WAVM_CXX_FLAGS=${WAVM_CXX_FLAGS}
+        CMAKE_POLICY_VERSION_MINIMUM=3.5        
       KEEP_PACKAGE_SOURCES
   )
 endif ()
@@ -109,8 +110,8 @@ hunter_config(
 
 hunter_config(
     libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/refs/tags/v0.1.34.zip
-    SHA1 ad725b991c6845d0e5d9f42c639ea62fa05593ff
+    URL https://github.com/libp2p/cpp-libp2p/archive/refs/tags/v0.1.37.zip
+    SHA1 0387feba109f0cd9c27e032a866831522a4f3f10
 )
 
 hunter_config(
@@ -139,4 +140,68 @@ hunter_config(
       CMAKE_USE_WIN32_THREADS_INIT=0
       CMAKE_USE_PTHREADS_INIT=1
       THREADS_PREFER_PTHREAD_FLAG=ON
+)
+
+hunter_config(
+    binaryen
+    VERSION 1.38.28-patch.3
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    Protobuf
+    VERSION 3.19.4-p0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    c-ares
+    VERSION 1.14.0-p0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    yaml-cpp
+    VERSION 0.6.2-p0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    RapidJSON
+    VERSION 1.1.0-66eb606-p0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    jsonrpc-lean
+    VERSION 0.0.0-6c093da8
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    Boost.DI
+    VERSION 1.1.0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+    zstd
+    VERSION 1.4.5-d73e2fb-p0
+    CMAKE_ARGS
+      CMAKE_POLICY_VERSION_MINIMUM=3.5
+    KEEP_PACKAGE_SOURCES
 )
