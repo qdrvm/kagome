@@ -46,6 +46,7 @@ namespace kagome::authority_discovery {
    public:
     AddressPublisher(
         std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api,
+        const application::AppConfiguration &app_config,
         network::Roles roles,
         std::shared_ptr<application::AppStateManager> app_state_manager,
         std::shared_ptr<blockchain::BlockTree> block_tree,
@@ -64,6 +65,7 @@ namespace kagome::authority_discovery {
 
    private:
     std::shared_ptr<runtime::AuthorityDiscoveryApi> authority_discovery_api_;
+    PeerInfo peer_info_;
     network::Roles roles_;
     std::shared_ptr<blockchain::BlockTree> block_tree_;
 
