@@ -60,8 +60,10 @@ namespace {
   constexpr auto kExplicitVotes = "kagome_parachain_explicit_votes";
   constexpr auto kNoVotes = "kagome_parachain_no_votes";
   constexpr auto kSessionIndex = "kagome_session_index";
-  constexpr auto parachain_inherent_data_extrinsic_version = 0x04;
-  constexpr auto parachain_inherent_data_call = 0x36;
+  constexpr auto parachain_inherent_data_extrinsic_version_v4 = 0x04;
+  constexpr auto parachain_inherent_data_call_v4 = 0x36;
+  constexpr auto parachain_inherent_data_extrinsic_version_v5 = 0x05;
+  constexpr auto parachain_inherent_data_call_v5 = 0x2d;
   constexpr auto parachain_inherent_data_module = 0x00;
 }  // namespace
 
@@ -2790,7 +2792,9 @@ namespace kagome::parachain {
     }
 
     // Handle cases where validation data is not found
-    std::optional<std::reference_wrapper<runtime::PersistedValidationData>> pvd;
+    std::optional<
+        std::reference_wrapper<const runtime::PersistedValidationData>>
+        pvd;
     if (maybe_pvd) {
       pvd = *maybe_pvd;
     } else if (!maybe_pvd && !maybe_parent_head && maybe_parent_head_hash) {
@@ -3498,24 +3502,41 @@ namespace kagome::parachain {
   ParachainProcessorImpl::extractParachainInherentData(
       const std::vector<primitives::Extrinsic> &block_body) const {
     for (const auto &extrinsic : block_body) {
-      if (extrinsic.data.size() < 3
-          || extrinsic.data[0] != parachain_inherent_data_extrinsic_version
-          || extrinsic.data[1] != parachain_inherent_data_call
-          || extrinsic.data[2] != parachain_inherent_data_module) {
-        continue;
+      const auto &extrinsic_data = extrinsic.data;
+      const auto tryDecodeExtrinsic =
+          [&](uint8_t version, uint8_t call, const char *version_str)
+          -> std::optional<parachain::ParachainInherentData> {
+        if (extrinsic_data.size() < 3 || extrinsic_data[0] != version
+            || extrinsic_data[1] != call
+            || extrinsic_data[2] != parachain_inherent_data_module) {
+          return std::nullopt;
+        }
+
+        std::span<const uint8_t> buffer(&extrinsic_data[3],
+                                        extrinsic_data.size() - 3);
+        const auto decode_res =
+            scale::decode<parachain::ParachainInherentData>(buffer);
+
+        if (decode_res) {
+          return decode_res.value();
+        }
+
+        return std::nullopt;
+      };
+
+      if (auto result =
+              tryDecodeExtrinsic(parachain_inherent_data_extrinsic_version_v4,
+                                 parachain_inherent_data_call_v4,
+                                 "v4")) {
+        return result;
       }
 
-      std::span<const uint8_t> buffer(&extrinsic.data[3],
-                                      extrinsic.data.size() - 3);
-      auto decode_res = scale::decode<parachain::ParachainInherentData>(buffer);
-
-      if (decode_res) {
-        return decode_res.value();
+      if (auto result =
+              tryDecodeExtrinsic(parachain_inherent_data_extrinsic_version_v5,
+                                 parachain_inherent_data_call_v5,
+                                 "v5")) {
+        return result;
       }
-
-      SL_DEBUG(logger_,
-               "Failed to decode ParachainInherentData: {}",
-               decode_res.error());
     }
 
     return std::nullopt;
