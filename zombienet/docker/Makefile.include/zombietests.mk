@@ -1,11 +1,16 @@
 test-polkadot-functional-0001-parachains-pvf:
 	$(call run_test, "kagome/zombienet/polkadot/functional/0001-parachains-pvf.zndsl")
 
+test-polkadot-functional-0001-parachains-pvf-kagome-minority:
+	$(call run_test, "kagome/zombienet/polkadot/functional/0001-parachains-pvf-kagome-minority.zndsl")
+
 test-polkadot-functional-0002-parachains-disputes:
 	$(call run_test, "kagome/zombienet/polkadot/functional/0002-parachains-disputes.zndsl")
 
 test-polkadot-functional-0003-beefy-and-mmr:
 	$(call run_test, "kagome/zombienet/polkadot/functional/0003-beefy-and-mmr.zndsl")
+test-polkadot-functional-0003-beefy-and-mmr-kagome-minority:
+	$(call run_test, "kagome/zombienet/polkadot/functional/0003-beefy-and-mmr-kagome-minority.zndsl")
 
 test-polkadot-functional-0004-parachains-garbage-candidate:
 	$(call run_test, "kagome/zombienet/polkadot/functional/0004-parachains-garbage-candidate.zndsl")
