@@ -9,6 +9,7 @@
 
 #include <qtils/test/outcome.hpp>
 
+#include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"

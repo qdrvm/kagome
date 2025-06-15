@@ -49,6 +49,8 @@ namespace kagome::storage::face {
     }
 
     MOCK_METHOD1_T(remove, outcome::result<void>(const View<K> &));
+    MOCK_METHOD1_T(removePrefix, outcome::result<void>(const View<K> &));
+    MOCK_METHOD(outcome::result<void>, clear, ());
 
     MOCK_CONST_METHOD0_T(size, size_t());
   };

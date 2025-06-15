@@ -31,10 +31,10 @@ namespace kagome::storage::trie {
       return current_ != key_val_.end();
     }
 
-    outcome::result<void> seekLowerBound(
+    outcome::result<bool> seekLowerBound(
         const common::BufferView &key) override {
       current_ = key_val_.lower_bound(key);
-      return outcome::success();
+      return current_ != key_val_.end();
     }
 
     outcome::result<void> seekUpperBound(

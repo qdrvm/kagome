@@ -10,6 +10,7 @@
 #include <limits>
 #include <regex>
 #include <string>
+#include <string_view>
 
 #include <fmt/ranges.h>
 #include <fmt/std.h>
@@ -133,28 +134,38 @@ namespace kagome::application {
       return name;
     }
 
+    using namespace std::literals;
+
+    static constexpr std::
+        array<std::pair<std::string_view, application::SyncMethod>, 6>
+            kSyncMethods{
+                std::pair{"Full"sv, application::SyncMethod::Full},
+                {"Fast"sv, application::SyncMethod::Fast},
+                {"FastWithoutState"sv,
+                 application::SyncMethod::FastWithoutState},
+                {"Warp"sv, application::SyncMethod::Warp},
+                {"Unsafe"sv, application::SyncMethod::Unsafe},
+                {"Auto"sv, application::SyncMethod::Auto},
+            };
+
     std::optional<application::SyncMethod> str_to_sync_method(
         std::string_view str) {
-      using SM = application::SyncMethod;
-      if (str == "Full") {
-        return SM::Full;
-      }
-      if (str == "Fast") {
-        return SM::Fast;
-      }
-      if (str == "FastWithoutState") {
-        return SM::FastWithoutState;
-      }
-      if (str == "Warp") {
-        return SM::Warp;
-      }
-      if (str == "Unsafe") {
-        return SM::Unsafe;
-      }
-      if (str == "Auto") {
-        return SM::Auto;
+      for (auto &[method_name, method] : kSyncMethods) {
+        if (str == method_name) {
+          return method;
+        }
       }
       return std::nullopt;
+    }
+
+    std::array<std::string_view, kSyncMethods.size()> get_sync_methods() {
+      std::array<std::string_view, kSyncMethods.size()> sync_methods;
+      auto it = sync_methods.begin();
+      for (auto &[name, _] : kSyncMethods) {
+        *it = name;
+        ++it;
+      }
+      return sync_methods;
     }
 
     std::optional<AppConfiguration::AllowUnsafeRpc> parseAllowUnsafeRpc(
@@ -868,7 +879,7 @@ namespace kagome::application {
         ("dev", "if node run in development mode")
         ("dev-with-wipe", "if needed to wipe base path (only for dev mode)")
         ("sync", po::value<std::string>()->default_value(def_full_sync),
-          "choose the desired sync method (Full, Fast). Full is used by default.")
+          fmt::format("choose the desired sync method ({}). Full is used by default.", get_sync_methods()).c_str())
         ("wasm-execution", po::value<std::string>()->default_value(def_wasm_execution),
           fmt::format("choose the desired wasm execution method ({})", execution_methods_str).c_str())
         ("wasm-interpreter", po::value<std::string>()->default_value(def_wasm_interpreter),

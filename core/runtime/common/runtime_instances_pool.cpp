@@ -73,10 +73,6 @@ namespace kagome::runtime {
       return instance_->resetEnvironment();
     }
 
-    outcome::result<void> stateless() override {
-      return instance_->stateless();
-    }
-
    private:
     std::weak_ptr<RuntimeInstancesPoolImpl> pool_;
     common::Hash256 hash_;

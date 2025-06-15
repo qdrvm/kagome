@@ -109,14 +109,14 @@ namespace kagome::storage::trie {
   }
 
   outcome::result<void> TopperTrieBatchImpl::writeBack() {
-    if (auto p = parent_.lock()) {
-      return apply(*p);
+    if (auto parent = parent_.lock()) {
+      return apply(*parent);
     }
     return Error::PARENT_EXPIRED;
   }
 
   outcome::result<void> TopperTrieBatchImpl::apply(
-      storage::BufferStorage &map) {
+      face::Writeable<Buffer, Buffer> &map) {
     for (auto &[k, v] : cache_) {
       if (v) {
         OUTCOME_TRY(map.put(k, BufferView{*v}));
@@ -183,7 +183,7 @@ namespace kagome::storage::trie {
                            : parent_cursor_->value();
   }
 
-  outcome::result<void> TopperTrieCursor::seekLowerBound(
+  outcome::result<bool> TopperTrieCursor::seekLowerBound(
       const BufferView &key) {
     OUTCOME_TRY(parent_cursor_->seekLowerBound(key));
     cached_parent_key_ = parent_cursor_->key();

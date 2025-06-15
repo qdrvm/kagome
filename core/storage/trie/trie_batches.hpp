@@ -12,7 +12,9 @@
 
 namespace kagome::storage::trie {
 
-  class TrieBatch : public BufferStorage {
+  class TrieBatch : public face::Readable<Buffer, Buffer>,
+                    public face::Iterable<Buffer, Buffer>,
+                    public face::Writeable<Buffer, Buffer> {
    public:
     std::unique_ptr<Cursor> cursor() final {
       return trieCursor();

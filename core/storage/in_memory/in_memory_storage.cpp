@@ -16,8 +16,8 @@ namespace kagome::storage {
 
   outcome::result<BufferOrView> InMemoryStorage::get(
       const BufferView &key) const {
-    if (storage.find(key.toHex()) != storage.end()) {
-      return BufferView{storage.at(key.toHex())};
+    if (storage_.find(key) != storage_.end()) {
+      return BufferView{storage_.at(key)};
     }
 
     return DatabaseError::NOT_FOUND;
@@ -25,8 +25,8 @@ namespace kagome::storage {
 
   outcome::result<std::optional<BufferOrView>> InMemoryStorage::tryGet(
       const common::BufferView &key) const {
-    if (storage.find(key.toHex()) != storage.end()) {
-      return BufferView{storage.at(key.toHex())};
+    if (storage_.find(key) != storage_.end()) {
+      return BufferView{storage_.at(key)};
     }
 
     return std::nullopt;
@@ -34,27 +34,41 @@ namespace kagome::storage {
 
   outcome::result<void> InMemoryStorage::put(const BufferView &key,
                                              BufferOrView &&value) {
-    auto it = storage.find(key.toHex());
-    if (it != storage.end()) {
+    auto it = storage_.find(key);
+    if (it != storage_.end()) {
       size_t old_value_size = it->second.size();
       BOOST_ASSERT(size_ >= old_value_size);
       size_ -= old_value_size;
     }
     size_ += value.size();
-    storage[key.toHex()] = std::move(value).intoBuffer();
+    storage_[key] = std::move(value).intoBuffer();
     return outcome::success();
   }
 
   outcome::result<bool> InMemoryStorage::contains(const BufferView &key) const {
-    return storage.find(key.toHex()) != storage.end();
+    return storage_.find(key) != storage_.end();
   }
 
   outcome::result<void> InMemoryStorage::remove(const BufferView &key) {
-    auto it = storage.find(key.toHex());
-    if (it != storage.end()) {
+    auto it = storage_.find(key);
+    if (it != storage_.end()) {
       size_ -= it->second.size();
-      storage.erase(it);
+      storage_.erase(it);
     }
+    return outcome::success();
+  }
+
+  outcome::result<void> InMemoryStorage::removePrefix(
+      const common::BufferView &prefix) {
+    auto start = storage_.lower_bound(prefix);
+    auto end = storage_.upper_bound(prefix);
+    storage_.erase(start, end);
+    return outcome::success();
+  }
+
+  outcome::result<void> InMemoryStorage::clear() {
+    storage_.clear();
+    size_ = 0;
     return outcome::success();
   }
 

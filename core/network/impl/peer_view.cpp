@@ -15,20 +15,21 @@ namespace kagome::network {
   /**
    * @returns `View` with all leaves, `View` with `MAX_VIEW_HEAD` leaves
    */
-  inline std::pair<View, View> makeViews(
-      const LazySPtr<blockchain::BlockTree> &block_tree) {
+  std::pair<View, View> makeViews(
+      const LazySPtr<blockchain::BlockTree> &lazy_block_tree) {
     std::pair<View, View> result;
     auto &[view, stripped_view] = result;
     auto &heads_ = stripped_view.heads_;
 
-    auto last_finalized = block_tree.get()->getLastFinalized().number;
+    BOOST_ASSERT(lazy_block_tree.get() != nullptr);
+    auto &block_tree = *lazy_block_tree.get();
+    auto last_finalized = block_tree.getLastFinalized().number;
     view.finalized_number_ = last_finalized;
     stripped_view.finalized_number_ = last_finalized;
 
-    auto heads = block_tree.get()->getLeavesInfo();
+    auto heads = block_tree.getLeavesInfo();
 
-    std::ranges::sort(heads,
-                      [](const auto &l, const auto &r) { return l < r; });
+    std::ranges::sort(heads);
 
     heads_.reserve(std::min(MAX_VIEW_HEADS, heads.size()));
     for (const auto &head :

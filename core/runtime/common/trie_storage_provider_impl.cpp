@@ -156,9 +156,8 @@ namespace kagome::runtime {
   outcome::result<storage::trie::RootHash> TrieStorageProviderImpl::commit(
       const std::optional<BufferView> &child, StateVersion version) {
     // TODO(turuslan): #2067, clone batch or implement delta_trie_root
-    auto child_apply =
-        [&](BufferView child,
-            storage::BufferStorage &map) -> outcome::result<void> {
+    auto child_apply = [&](BufferView child,
+                           auto &map) -> outcome::result<void> {
       for (auto &transaction : transaction_stack_) {
         auto it = transaction.child_batches.find(child);
         if (it == transaction.child_batches.end()) {

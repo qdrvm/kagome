@@ -11,6 +11,7 @@
 #include <qtils/test/outcome.hpp>
 
 #include "filesystem/common.hpp"
+#include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "storage/rocksdb/rocksdb.hpp"
 #include "storage/trie/impl/trie_storage_backend_impl.hpp"

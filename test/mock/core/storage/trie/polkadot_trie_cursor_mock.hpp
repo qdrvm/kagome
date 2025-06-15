@@ -17,7 +17,7 @@ namespace kagome::storage::trie {
 
     MOCK_METHOD(outcome::result<bool>, seek, (const BufferView &), (override));
 
-    MOCK_METHOD(outcome::result<void>,
+    MOCK_METHOD(outcome::result<bool>,
                 seekLowerBound,
                 (const BufferView &),
                 (override));

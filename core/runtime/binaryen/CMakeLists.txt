@@ -11,6 +11,7 @@ target_link_libraries(binaryen_wasm_memory
     logger
     runtime_common
     binaryen::binaryen
+    binaryen::ir
     memory_allocator
     )
 kagome_install(binaryen_wasm_memory)
@@ -27,6 +28,7 @@ add_library(binaryen_runtime_external_interface
     )
 target_link_libraries(binaryen_runtime_external_interface
     binaryen::binaryen
+    binaryen::ir
     binaryen_wasm_memory
     logger
     )
@@ -45,6 +47,7 @@ add_library(binaryen_wasm_module
     )
 target_link_libraries(binaryen_wasm_module
     binaryen::binaryen
+    binaryen::ir
     logger
     binaryen_runtime_external_interface
     trie_storage_provider
@@ -61,6 +64,7 @@ target_link_libraries(binaryen_instance_environment_factory
     core_api_factory
     binaryen_memory_provider
     binaryen::binaryen
+    binaryen::ir
     )
 kagome_install(binaryen_instance_environment_factory)
 

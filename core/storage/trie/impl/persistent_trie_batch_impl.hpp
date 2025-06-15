@@ -25,16 +25,22 @@ namespace kagome::storage::trie {
 
   class PersistentTrieBatchImpl final : public TrieBatchBase {
    public:
-    enum class Error : uint8_t {
-      NO_TRIE = 1,
-    };
-
     PersistentTrieBatchImpl(
         std::shared_ptr<Codec> codec,
         std::shared_ptr<TrieSerializer> serializer,
         TrieChangesTrackerOpt changes,
         std::shared_ptr<PolkadotTrie> trie,
         std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner);
+
+    PersistentTrieBatchImpl(
+        std::shared_ptr<Codec> codec,
+        std::shared_ptr<TrieSerializer> serializer,
+        TrieChangesTrackerOpt changes,
+        std::shared_ptr<PolkadotTrie> trie,
+        std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+        std::shared_ptr<DirectStorage> direct_kv_storage,
+        std::shared_ptr<DirectStorageView> direct_storage_view);
+
     ~PersistentTrieBatchImpl() override = default;
 
     outcome::result<RootHash> commit(StateVersion version) override;
@@ -56,6 +62,3 @@ namespace kagome::storage::trie {
   };
 
 }  // namespace kagome::storage::trie
-
-OUTCOME_HPP_DECLARE_ERROR(kagome::storage::trie,
-                          PersistentTrieBatchImpl::Error);

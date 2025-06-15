@@ -21,7 +21,7 @@
 #include "mock/core/blockchain/block_tree_mock.hpp"
 #include "mock/core/storage/generic_storage_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
-#include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
+#include "mock/core/storage/trie/polkadot_trie_cursor_mock.hpp"
 #include "mock/core/storage/trie/serialization/codec_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_backend_mock.hpp"

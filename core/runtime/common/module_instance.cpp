@@ -68,11 +68,4 @@ namespace kagome::runtime {
     return outcome::success();
   }
 
-  outcome::result<void> ModuleInstance::stateless() {
-    getEnvironment()
-        .storage_provider->setToEphemeralAt(storage::trie::kEmptyRootHash)
-        .value();
-    OUTCOME_TRY(resetMemory());
-    return outcome::success();
-  }
 }  // namespace kagome::runtime

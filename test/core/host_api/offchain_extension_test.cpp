@@ -15,7 +15,7 @@
 #include "mock/core/offchain/offchain_worker_pool_mock.hpp"
 #include "mock/core/runtime/memory_provider_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
-#include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
+#include "mock/core/storage/trie/polkadot_trie_cursor_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "offchain/types.hpp"
 #include "runtime/ptr_size.hpp"

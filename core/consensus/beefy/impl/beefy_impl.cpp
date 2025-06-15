@@ -162,7 +162,7 @@ namespace kagome::network {
       return;
     }
     if (block_number >= next_digest_) {
-      SL_VERBOSE(log_, "ignoring vote for unindexed block {}", block_number);
+      SL_TRACE(log_, "ignoring vote for unindexed block {}", block_number);
       return;
     }
     auto next_session = sessions_.upper_bound(block_number);
