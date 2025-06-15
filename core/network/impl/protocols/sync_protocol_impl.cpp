@@ -384,9 +384,8 @@ namespace kagome::network {
         });
   }
 
-  void SyncProtocolImpl::readResponse(
-      std::shared_ptr<Stream> stream,
-      std::function<void(outcome::result<BlocksResponse>)> &&response_handler) {
+  void SyncProtocolImpl::readResponse(std::shared_ptr<Stream> stream,
+                                      Cb &&response_handler) {
     auto read_writer = std::make_shared<ProtobufMessageReadWriter>(stream);
 
     SL_DEBUG(base_.logger(),
@@ -429,10 +428,9 @@ namespace kagome::network {
     });
   }
 
-  void SyncProtocolImpl::request(
-      const PeerId &peer_id,
-      BlocksRequest block_request,
-      std::function<void(outcome::result<BlocksResponse>)> &&response_handler) {
+  void SyncProtocolImpl::request(const PeerId &peer_id,
+                                 BlocksRequest block_request,
+                                 Cb &&response_handler) {
     [[unlikely]] if (base_.logger()->level() >= log::Level::DEBUG) {
       std::string logmsg = "Requesting blocks: fields=";
 
