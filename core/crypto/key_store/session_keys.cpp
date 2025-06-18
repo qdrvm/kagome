@@ -155,7 +155,7 @@ namespace kagome::crypto {
         auto keypair_opt = store_->sr25519().findKeypair(
             KeyTypes::AUTHORITY_DISCOVERY, pubkey);
         if (keypair_opt) {
-          result.push_back(std::move(keypair_opt.value()));
+          result.push_back(keypair_opt.value());
         }
       }
     }
