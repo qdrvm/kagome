@@ -179,9 +179,19 @@ namespace kagome::authority_discovery {
     }
     metric_amount_addresses_last_published->set(addresses.size());
     ::authority_discovery_v3::AuthorityRecord record;
+    std::string peer_addresses;
     for (const auto &address : addresses) {
       PB_SPAN_ADD(record, addresses, address.getBytesAddress());
+      if (not peer_addresses.empty()) {
+        peer_addresses.append(", ");
+      }
+      peer_addresses.append(address.getStringAddress());
     }
+    auto log = log::createLogger("AddressPublisher", "authority_discovery");
+    SL_DEBUG(log,
+             "Publishing authority discovery record for {} with addresses: {}",
+             audi_key.public_key.toHex(),
+             peer_addresses);
     if (now) {
       Timestamp time{now->count()};
       OUTCOME_TRY(encoded_time, scale::encode(time));
