@@ -79,11 +79,9 @@ namespace kagome::crypto {
         const std::vector<primitives::AuthorityDiscoveryId> &authorities) = 0;
 
     /**
-     * @return current AUDI session key pair from storage without checking
-     * authority list
-     * @note if there are multiple keys in storage, it returns the first one
+     * @return all AUDI session key pairs from storage without checking
      */
-    virtual std::optional<Sr25519Keypair> getAudiKeyPair() = 0;
+    virtual std::vector<Sr25519Keypair> getAudiKeyPairs() = 0;
 
     /**
      * @return current BEEF session key pair
@@ -137,7 +135,7 @@ namespace kagome::crypto {
         const std::vector<primitives::AuthorityDiscoveryId> &authorities)
         override;
 
-    std::optional<Sr25519Keypair> getAudiKeyPair() override;
+    std::vector<Sr25519Keypair> getAudiKeyPairs() override;
 
     KeypairWithIndexOpt<EcdsaKeypair> getBeefKeyPair(
         const std::vector<EcdsaPublicKey> &authorities) override;
