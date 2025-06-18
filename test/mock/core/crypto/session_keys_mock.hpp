@@ -38,8 +38,8 @@ namespace kagome::crypto {
                 (const std::vector<Sr25519PublicKey> &),
                 (override));
 
-    MOCK_METHOD(std::shared_ptr<Sr25519Keypair>,
-                getAudiKeyPair,
+    MOCK_METHOD(std::vector<Sr25519Keypair>,
+                getAudiKeyPairs,
                 (const std::vector<primitives::AuthorityDiscoveryId> &),
                 (override));
 

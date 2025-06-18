@@ -131,26 +131,36 @@ namespace kagome::crypto {
                                  std::equal_to{});
   }
 
-  std::shared_ptr<Sr25519Keypair> SessionKeysImpl::getAudiKeyPair(
+  std::vector<Sr25519Keypair> SessionKeysImpl::getAudiKeyPairs(
       const std::vector<primitives::AuthorityDiscoveryId> &authorities) {
-    if (auto res = find<Sr25519Provider>(audi_key_pair_,
-                                         KeyTypes::AUTHORITY_DISCOVERY,
-                                         store_->sr25519(),
-                                         authorities,
-                                         std::equal_to{})) {
-      return std::move(res->first);
+    if (not roles_.isAuthority()) {
+      return {};
     }
-    return nullptr;
-  }
 
-  SessionKeys::KeypairWithIndexOpt<EcdsaKeypair>
-  SessionKeysImpl::getBeefKeyPair(
-      const std::vector<EcdsaPublicKey> &authorities) {
-    return find<EcdsaProvider>(beef_key_pair_,
-                               KeyTypes::BEEFY,
-                               store_->ecdsa(),
-                               authorities,
-                               std::equal_to{});
+    std::vector<Sr25519Keypair> result;
+    auto keys_res =
+        store_->sr25519().getPublicKeys(KeyTypes::AUTHORITY_DISCOVERY);
+    if (not keys_res) {
+      return result;
+    }
+
+    auto &keys = keys_res.value();
+    for (auto &pubkey : keys) {
+      auto it = std::ranges::find_if(
+          authorities.begin(), authorities.end(), [&](const auto &authority) {
+            return pubkey == authority;
+          });
+
+      if (it != authorities.end()) {
+        auto keypair_opt = store_->sr25519().findKeypair(
+            KeyTypes::AUTHORITY_DISCOVERY, pubkey);
+        if (keypair_opt) {
+          result.push_back(std::move(keypair_opt.value()));
+        }
+      }
+    }
+
+    return result;
   }
 
   std::vector<Sr25519Keypair> SessionKeysImpl::getAudiKeyPairs() {
@@ -170,6 +180,16 @@ namespace kagome::crypto {
     }
 
     return keypairs;
+  }
+
+  SessionKeys::KeypairWithIndexOpt<EcdsaKeypair>
+  SessionKeysImpl::getBeefKeyPair(
+      const std::vector<EcdsaPublicKey> &authorities) {
+    return find<EcdsaProvider>(beef_key_pair_,
+                               KeyTypes::BEEFY,
+                               store_->ecdsa(),
+                               authorities,
+                               std::equal_to{});
   }
 
 }  // namespace kagome::crypto
