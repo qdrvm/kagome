@@ -152,4 +152,21 @@ namespace kagome::crypto {
                                authorities,
                                std::equal_to{});
   }
+
+  std::optional<Sr25519Keypair> SessionKeysImpl::getAudiKeyPair() {
+    auto keys_res = store_->sr25519().getPublicKeys(KeyTypes::AUTHORITY_DISCOVERY);
+    if (not keys_res || keys_res.value().empty()) {
+      return std::nullopt;
+    }
+
+    // Get the first available AUTHORITY_DISCOVERY key
+    auto &pubkey = keys_res.value().front();
+    auto keypair_opt = store_->sr25519().findKeypair(KeyTypes::AUTHORITY_DISCOVERY, pubkey);
+
+    // Return the keypair if found, otherwise nullopt
+    if (keypair_opt) {
+      return keypair_opt.value();
+    }
+    return std::nullopt;
+  }
 }  // namespace kagome::crypto
