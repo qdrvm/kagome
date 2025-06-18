@@ -43,6 +43,11 @@ namespace kagome::crypto {
                 (const std::vector<primitives::AuthorityDiscoveryId> &),
                 (override));
 
+    MOCK_METHOD(std::optional<Sr25519Keypair>,
+                getAudiKeyPair,
+                (),
+                (override));
+
     MOCK_METHOD(KeypairWithIndexOpt<EcdsaKeypair>,
                 getBeefKeyPair,
                 (const std::vector<EcdsaPublicKey> &),
