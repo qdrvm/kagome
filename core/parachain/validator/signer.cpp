@@ -77,11 +77,16 @@ namespace kagome::parachain {
       return std::nullopt;
     }
 
-    auto keys = session_keys_->getAudiKeyPair(session_info->discovery_keys);
-    if (keys != nullptr) {
+    auto keypairs =
+        session_keys_->getAudiKeyPairs(session_info->discovery_keys);
+    if (not keypairs.empty()) {
+      // Find the index of the first keypair that matches any discovery key.
+
       for (ValidatorIndex i = 0; i < session_info->discovery_keys.size(); ++i) {
-        if (keys->public_key == session_info->discovery_keys[i]) {
-          return i;
+        for (const auto &keypair : keypairs) {
+          if (keypair.public_key == session_info->discovery_keys[i]) {
+            return i;
+          }
         }
       }
     }

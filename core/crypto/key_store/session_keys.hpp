@@ -73,10 +73,16 @@ namespace kagome::crypto {
         const std::vector<Sr25519PublicKey> &authorities) = 0;
 
     /**
-     * @return current AUDI session key pair
+     * @return all AUDI session key pairs from storage that exist in authorities
+     * list
      */
-    virtual std::shared_ptr<Sr25519Keypair> getAudiKeyPair(
+    virtual std::vector<Sr25519Keypair> getAudiKeyPairs(
         const std::vector<primitives::AuthorityDiscoveryId> &authorities) = 0;
+
+    /**
+     * @return all AUDI session key pairs from storage without checking
+     */
+    virtual std::vector<Sr25519Keypair> getAudiKeyPairs() = 0;
 
     /**
      * @return current BEEF session key pair
@@ -126,9 +132,11 @@ namespace kagome::crypto {
     KeypairWithIndexOpt<Sr25519Keypair> getParaKeyPair(
         const std::vector<Sr25519PublicKey> &authorities) override;
 
-    std::shared_ptr<Sr25519Keypair> getAudiKeyPair(
+    std::vector<Sr25519Keypair> getAudiKeyPairs(
         const std::vector<primitives::AuthorityDiscoveryId> &authorities)
         override;
+
+    std::vector<Sr25519Keypair> getAudiKeyPairs() override;
 
     KeypairWithIndexOpt<EcdsaKeypair> getBeefKeyPair(
         const std::vector<EcdsaPublicKey> &authorities) override;

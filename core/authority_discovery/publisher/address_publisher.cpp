@@ -27,10 +27,10 @@ std::vector<uint8_t> pbEncodeVec(const T &v) {
 
 namespace kagome::authority_discovery {
   constexpr std::chrono::seconds kIntervalInitial{2};
-  constexpr std::chrono::hours kIntervalMax{1};
+  constexpr std::chrono::minutes kIntervalMax{5};
 
   // TODO(kamilsa): #2351, remove this variable when resolved
-  constexpr bool kAudiDisableTimestamp = true;
+  constexpr bool kAudiDisableTimestamp = false;
 
   static const metrics::GaugeHelper metric_amount_addresses_last_published{
       "kagome_authority_discovery_amount_external_addresses_last_published",
@@ -118,14 +118,18 @@ namespace kagome::authority_discovery {
       return outcome::success();
     }
 
+    // check if we have authority discovery keys in the keystore, that exist in
+    // authorities list
     OUTCOME_TRY(
         authorities,
         authority_discovery_api_->authorities(block_tree_->bestBlock().hash));
 
-    auto audi_key = keys_->getAudiKeyPair(authorities);
-    if (not audi_key) {
-      SL_WARN(log_, "No authority discovery key");
-      return outcome::success();
+    auto audi_keys = keys_->getAudiKeyPairs(authorities);
+    if (audi_keys.empty()) {
+      SL_WARN(log_, "No authority discovery keys found for authorities");
+      // if we have no authority discovery keys, we publish anyway with all keys
+      // from the keystore
+      audi_keys = keys_->getAudiKeyPairs();
     }
 
     std::optional<std::chrono::nanoseconds> now =
@@ -133,17 +137,24 @@ namespace kagome::authority_discovery {
     if (kAudiDisableTimestamp) {
       now.reset();
     }
-    OUTCOME_TRY(raw,
-                audiEncode(ed_crypto_provider_,
-                           sr_crypto_provider_,
-                           *libp2p_key_,
-                           *libp2p_key_pb_,
-                           peer_info,
-                           *audi_key,
-                           now));
-    auto r = kademlia_->putValue(std::move(raw.first), std::move(raw.second));
-    MetricDhtEventReceived::get().putResult(r.has_value());
-    return r;
+    for (const auto &audi_key : audi_keys) {
+      OUTCOME_TRY(raw,
+                  audiEncode(ed_crypto_provider_,
+                             sr_crypto_provider_,
+                             *libp2p_key_,
+                             *libp2p_key_pb_,
+                             peer_info,
+                             audi_key,
+                             now));
+      auto r = kademlia_->putValue(std::move(raw.first), std::move(raw.second));
+      MetricDhtEventReceived::get().putResult(r.has_value());
+      if (not r) {
+        SL_ERROR(log_, "Failed to put value to kademlia: {}", r.error());
+        return r.error();
+      }
+    }
+
+    return outcome::success();
   }
 
   outcome::result<std::pair<Buffer, Buffer>> audiEncode(
@@ -168,9 +179,19 @@ namespace kagome::authority_discovery {
     }
     metric_amount_addresses_last_published->set(addresses.size());
     ::authority_discovery_v3::AuthorityRecord record;
+    std::string peer_addresses;
     for (const auto &address : addresses) {
       PB_SPAN_ADD(record, addresses, address.getBytesAddress());
+      if (not peer_addresses.empty()) {
+        peer_addresses.append(", ");
+      }
+      peer_addresses.append(address.getStringAddress());
     }
+    auto log = log::createLogger("AddressPublisher", "authority_discovery");
+    SL_DEBUG(log,
+             "Publishing authority discovery record for {} with addresses: {}",
+             audi_key.public_key.toHex(),
+             peer_addresses);
     if (now) {
       Timestamp time{now->count()};
       OUTCOME_TRY(encoded_time, scale::encode(time));
