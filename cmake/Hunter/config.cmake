@@ -59,6 +59,45 @@ if ("${WASM_COMPILER}" STREQUAL "WasmEdge")
         SPDLOG_FMT_EXTERNAL=ON
   )
 
+  set(ARCHITECTURE "${CMAKE_SYSTEM_PROCESSOR}")
+
+  if(ARCHITECTURE MATCHES "^(aarch64.*|AARCH64.*|arm.*|ARM.*)")
+      set(ARCHITECTURE AArch64)
+  elseif(ARCHITECTURE MATCHES "^(x86_64.*|AMD64.*|i386.*|i686.*)")
+      set(ARCHITECTURE X86)
+  elseif(ARCHITECTURE MATCHES "^(riscv.*)")
+      set(ARCHITECTURE RISCV)
+  else()
+      message(WARNING "Unknown architecture: ${ARCHITECTURE}, using all architectures to build LLVM")
+      set(ARCHITECTURE AArch64;X86;RISCV)
+  endif()
+
+  if (ASAN)
+    set(LLVM_USE_SANITIZER "LLVM_USE_SANITIZER=Address")
+  elseif(UBSAN)
+    set(LLVM_USE_SANITIZER "LLVM_USE_SANITIZER=Undefined")
+  else()
+    set(LLVM_USE_SANITIZER "")
+  endif()
+
+  hunter_config(
+    LLD
+    VERSION 17.0.6
+    CMAKE_ARGS # inspired by https://github.com/WasmEdge/WasmEdge/blob/5e8556afa5a71f3d3ef9615334ecf1a9d4d0f1e8/utils/docker/Dockerfile.manylinux2014_x86_64#L57
+        LLVM_ENABLE_PROJECTS=lld;clang
+        LLVM_TARGETS_TO_BUILD=${ARCHITECTURE};BPF 
+        ${LLVM_USE_SANITIZER}
+  )
+
+  hunter_config(
+    LLVM
+    VERSION 17.0.6
+    CMAKE_ARGS # inspired by https://github.com/WasmEdge/WasmEdge/blob/5e8556afa5a71f3d3ef9615334ecf1a9d4d0f1e8/utils/docker/Dockerfile.manylinux2014_x86_64#L57
+        LLVM_ENABLE_PROJECTS=lld;clang
+        LLVM_TARGETS_TO_BUILD=${ARCHITECTURE};BPF 
+        ${LLVM_USE_SANITIZER}
+  )
+
   hunter_config(
       WasmEdge
       URL https://github.com/qdrvm/WasmEdge/archive/refs/tags/0.14.1.zip
@@ -77,6 +116,7 @@ if ("${WASM_COMPILER}" STREQUAL "WAVM")
       VERSION 12.0.1-p4
       CMAKE_ARGS
         LLVM_ENABLE_PROJECTS=ir
+        LLVM_TARGETS_TO_BUILD=AArch64;ARM;X86
         KEEP_PACKAGE_SOURCES
   )
 
@@ -120,6 +160,14 @@ hunter_config(
     URL https://github.com/qdrvm/wabt/archive/2e9d30c4a67c1b884a8162bf3f3a5a8585cfdb94.tar.gz
     SHA1 b5759660eb8ad3f074274341641e918f688868bd
     KEEP_PACKAGE_SOURCES
+)
+
+hunter_config(
+  benchmark
+  VERSION 1.9.0
+  CMAKE_ARGS
+    -DHAVE_STD_REGEX=ON 
+    -DRUN_HAVE_STD_REGEX=1
 )
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

@@ -10,7 +10,6 @@ set(FLAGS
     -fsanitize=undefined
     -fno-omit-frame-pointer
     -g
-    -O0
     )
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
   list(APPEND FLAGS -fsanitize-ignorelist="${CMAKE_CURRENT_LIST_DIR}/ubsan_ignore.txt")
