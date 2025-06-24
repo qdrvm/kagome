@@ -282,7 +282,8 @@ namespace {
     options.max_open_files = soft_limit.value() / 2;
 
     const std::unordered_map<std::string, int32_t> column_ttl = {
-        {"avaliability_storage", 25 * 60 * 60}};  // 25 hours
+        {"avaliability_storage", 25 * 60 * 60},  // 25 hours
+        {"grandpa_historical_votes", 2 * 60}};   // 2 minutes
     auto db_res =
         storage::RocksDb::create(app_config.databasePath(chain_spec->id()),
                                  options,

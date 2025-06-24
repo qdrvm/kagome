@@ -68,7 +68,7 @@ namespace kagome::consensus::grandpa {
   constexpr std::chrono::milliseconds kGossipDuration{1000};
 
   inline auto historicalVotesKey(AuthoritySetId set, RoundNumber round) {
-    auto key = storage::kGrandpaHistoricalVotesPrefix;
+    common::Buffer key;
     key.putUint64(set);
     key.putUint64(round);
     return key;
@@ -102,7 +102,7 @@ namespace kagome::consensus::grandpa {
         reputation_repository_(std::move(reputation_repository)),
         timeline_{timeline},
         chain_sub_{std::move(chain_sub_engine)},
-        db_{db.getSpace(storage::Space::kDefault)},
+        db_{db.getSpace(storage::Space::kGrandpaHistoricalVotes)},
         main_pool_handler_{main_thread_pool.handler(*app_state_manager)},
         grandpa_pool_handler_{poolHandlerReadyMake(
             this, app_state_manager, grandpa_thread_pool, logger_)},
