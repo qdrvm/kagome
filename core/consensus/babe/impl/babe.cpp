@@ -8,7 +8,6 @@
 
 #include <latch>
 
-#include <boost/range/adaptor/transformed.hpp>
 #include <libp2p/common/final_action.hpp>
 
 #include "application/app_configuration.hpp"
@@ -25,7 +24,6 @@
 #include "consensus/timeline/backoff.hpp"
 #include "consensus/timeline/impl/slot_leadership_error.hpp"
 #include "consensus/timeline/slots_util.hpp"
-#include "crypto/blake2/blake2b.h"
 #include "crypto/key_store/session_keys.hpp"
 #include "crypto/sr25519_provider.hpp"
 #include "dispute_coordinator/dispute_coordinator.hpp"
@@ -36,11 +34,11 @@
 #include "parachain/availability/bitfield/store.hpp"
 #include "parachain/parachain_inherent_data.hpp"
 #include "parachain/validator/backed_candidates_source.hpp"
+#include "primitives/extrinsic_root.hpp"
 #include "primitives/inherent_data.hpp"
 #include "runtime/runtime_api/babe_api.hpp"
 #include "runtime/runtime_api/offchain_worker_api.hpp"
 #include "storage/changes_trie/impl/storage_changes_tracker_impl.hpp"
-#include "storage/trie/serialization/ordered_trie_hash.hpp"
 #include "telemetry/service.hpp"
 
 namespace {
@@ -630,19 +628,8 @@ namespace kagome::consensus::babe {
     SL_DEBUG(log_, "Block has been built in {} ms", duration_ms);
 
     // Ensure block's extrinsics root matches extrinsics in block's body
-    BOOST_ASSERT_MSG(
-        ([&block]() {
-          using boost::adaptors::transformed;
-          const auto &ext_root_res = storage::trie::calculateOrderedTrieHash(
-              storage::trie::StateVersion::V0,
-              block.body | transformed([](const auto &ext) {
-                return common::Buffer{scale::encode(ext).value()};
-              }),
-              crypto::blake2b);
-          return ext_root_res.has_value()
-             and (ext_root_res.value() == block.header.extrinsics_root);
-        }()),
-        "Extrinsics root does not match extrinsics in the block");
+    BOOST_ASSERT_MSG(checkExtrinsicRoot(block.header, block.body),
+                     "Extrinsics root does not match extrinsics in the block");
 
     // seal the block
     auto seal_res = makeSeal(block);

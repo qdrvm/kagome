@@ -15,16 +15,11 @@ namespace kagome::network {
 
   class SyncProtocolMock : public SyncProtocol, public ProtocolBaseMock {
    public:
-    MOCK_METHOD(void,
-                request,
-                (const PeerId &,
-                 BlocksRequest,
-                 const std::function<void(outcome::result<BlocksResponse>)> &));
+    MOCK_METHOD(void, request, (const PeerId &, BlocksRequest, const Cb &));
 
     void request(const PeerId &peer_id,
                  BlocksRequest block_request,
-                 std::function<void(outcome::result<BlocksResponse>)>
-                     &&response_handler) override {
+                 Cb &&response_handler) override {
       const auto h = std::move(response_handler);
       request(peer_id, std::move(block_request), h);
     }

@@ -135,8 +135,7 @@ namespace kagome::network {
 
     void request(const PeerId &peer_id,
                  BlocksRequest block_request,
-                 std::function<void(outcome::result<BlocksResponse>)>
-                     &&response_handler) override;
+                 Cb &&response_handler) override;
 
     void readRequest(std::shared_ptr<Stream> stream);
 
@@ -147,9 +146,7 @@ namespace kagome::network {
                       const BlocksRequest &block_request,
                       std::function<void(outcome::result<void>)> &&cb);
 
-    void readResponse(std::shared_ptr<Stream> stream,
-                      std::function<void(outcome::result<BlocksResponse>)>
-                          &&response_handler);
+    void readResponse(std::shared_ptr<Stream> stream, Cb &&response_handler);
 
    private:
     inline static const auto kSyncProtocolName = "SyncProtocol"s;

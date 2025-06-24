@@ -39,6 +39,8 @@ namespace kagome::network {
     using Fingerprint = size_t;
 
     inline Fingerprint fingerprint() const;
+
+    bool operator==(const BlocksRequest &) const = default;
   };
 }  // namespace kagome::network
 

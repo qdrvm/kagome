@@ -1327,7 +1327,7 @@ namespace kagome::consensus::grandpa {
     main_pool_handler_->execute(
         [s{synchronizer_}, peer{waiting.peer}, blocks{waiting.blocks}] {
           for (auto &block : blocks) {
-            s->syncByBlockInfo(block, peer, nullptr, false);
+            s->trySyncShortFork(peer, block);
           }
         });
     waiting_blocks_.emplace_back(std::move(waiting));

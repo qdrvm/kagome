@@ -15,10 +15,12 @@
 #include "mock/core/application/app_state_manager_mock.hpp"
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/block_tree_mock.hpp"
+#include "mock/core/clock/clock_mock.hpp"
 #include "mock/core/consensus/grandpa/environment_mock.hpp"
 #include "mock/core/consensus/timeline/block_appender_mock.hpp"
 #include "mock/core/consensus/timeline/block_executor_mock.hpp"
-#include "mock/core/crypto/hasher_mock.hpp"
+#include "mock/core/consensus/timeline/slots_util_mock.hpp"
+#include "mock/core/network/peer_manager_mock.hpp"
 #include "mock/core/network/protocols/sync_protocol_mock.hpp"
 #include "mock/core/network/router_mock.hpp"
 #include "mock/core/runtime/module_factory_mock.hpp"
@@ -30,15 +32,35 @@
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "network/impl/synchronizer_impl.hpp"
 #include "primitives/common.hpp"
+#include "primitives/extrinsic_root.hpp"
 #include "testutil/lazy.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/prepare_loggers.hpp"
+#include "utils/map_entry.hpp"
+
+using kagome::entry;
+using kagome::blockchain::BlockTreeError;
+using kagome::clock::SystemClockMock;
+using kagome::consensus::SlotsUtil;
+using kagome::consensus::SlotsUtilMock;
+using kagome::consensus::babe::BabeBlockHeader;
+using kagome::crypto::HasherImpl;
+using kagome::network::BlockAttribute;
+using kagome::network::BlocksRequest;
+using kagome::network::BlocksResponse;
+using kagome::network::Direction;
+using kagome::network::PeerManagerMock;
+using kagome::network::PeerState;
+using kagome::network::SyncProtocolMock;
+using kagome::primitives::BlockBody;
+using kagome::primitives::kBabeEngineId;
+using kagome::primitives::PreRuntime;
+using kagome::primitives::Seal;
+using libp2p::PeerId;
 
 using namespace kagome;
-using namespace clock;
 using consensus::BlockExecutorMock;
 using consensus::BlockHeaderAppenderMock;
-using namespace consensus::babe;
 using namespace consensus::grandpa;
 using namespace storage;
 using application::AppStateManagerMock;
@@ -76,15 +98,51 @@ class SynchronizerTest
   }
 
   void SetUp() override {
-    ON_CALL(*app_state_manager, atShutdown(_)).WillByDefault(Return());
+    genesis_.updateHash(*hasher);
+    db_blocks_.emplace(genesis_.hash(), genesis_);
+    best_ = genesis_.blockInfo();
+    finalized_ = best_;
+    EXPECT_CALL(*block_tree, bestBlock()).WillRepeatedly([this] {
+      return best_;
+    });
+    EXPECT_CALL(*block_tree, has(_))
+        .WillRepeatedly([this](const BlockHash &hash) {
+          return db_blocks_.contains(hash);
+        });
+    EXPECT_CALL(*block_tree, getBlockHeader(_))
+        .WillRepeatedly(
+            [this](const BlockHash &hash) -> outcome::result<BlockHeader> {
+              if (auto block = entry(db_blocks_, hash)) {
+                return *block;
+              }
+              return BlockTreeError::HEADER_NOT_FOUND;
+            });
+    EXPECT_CALL(*block_tree, getLastFinalized()).WillRepeatedly([this] {
+      return finalized_;
+    });
+
+    EXPECT_CALL(*clock_, now())
+        .WillRepeatedly(Return(SystemClockMock::TimePoint{}));
+    EXPECT_CALL(*slots_util_, timeToSlot(_)).WillRepeatedly(Return(100));
+
+    EXPECT_CALL(*app_state_manager, atLaunch(_)).WillRepeatedly(Return());
+    EXPECT_CALL(*app_state_manager, atShutdown(_)).WillRepeatedly(Return());
 
     EXPECT_CALL(*router, getSyncProtocol())
         .WillRepeatedly(Return(sync_protocol));
+
+    EXPECT_CALL(*peer_manager_, enumeratePeerState(_))
+        .WillRepeatedly([this](PeerManagerMock::PeersCallback cb) {
+          PeerState state;
+          state.best_block.number = peer_best_;
+          cb(peer_id, state);
+        });
 
     EXPECT_CALL(*scheduler, scheduleImpl(_, _, _)).Times(AnyNumber());
 
     EXPECT_CALL(app_config, syncMethod())
         .WillOnce(Return(application::SyncMethod::Full));
+    EXPECT_CALL(app_config, maxParallelDownloads()).WillOnce(Return(1));
 
     auto state_pruner =
         std::make_shared<kagome::storage::trie_pruner::TriePrunerMock>();
@@ -92,30 +150,94 @@ class SynchronizerTest
     main_thread_pool = std::make_shared<MainThreadPool>(
         watchdog, std::make_shared<boost::asio::io_context>());
 
-    auto _timeline = testutil::sptr_to_lazy<Timeline>(timeline);
-    synchronizer =
-        std::make_shared<network::SynchronizerImpl>(app_config,
-                                                    *app_state_manager,
-                                                    block_tree,
-                                                    block_appender,
-                                                    block_executor,
-                                                    trie_node_db,
-                                                    storage,
-                                                    state_pruner,
-                                                    router,
-                                                    nullptr,
-                                                    scheduler,
-                                                    hasher,
-                                                    chain_sub_engine,
-                                                    _timeline,
-                                                    nullptr,
-                                                    grandpa_environment,
-                                                    *main_thread_pool,
-                                                    block_storage);
+    synchronizer = std::make_shared<network::SynchronizerImpl>(
+        app_config,
+        *app_state_manager,
+        block_tree,
+        clock_,
+        testutil::sptr_to_lazy<SlotsUtil>(slots_util_),
+        block_appender,
+        block_executor,
+        trie_node_db,
+        storage,
+        state_pruner,
+        router,
+        peer_manager_,
+        scheduler,
+        hasher,
+        chain_sub_engine,
+        testutil::sptr_to_lazy<Timeline>(timeline),
+        nullptr,
+        grandpa_environment,
+        *main_thread_pool,
+        block_storage);
   }
 
   void TearDown() override {
     watchdog->stop();
+  }
+
+  BlockHeader makeBlock(const BlockHeader &parent) {
+    BlockHeader header;
+    header.number = parent.number + 1;
+    header.parent_hash = parent.hash();
+    header.extrinsics_root = extrinsicRoot(body_);
+    BabeBlockHeader pre{.slot_number = header.number};
+    header.digest.emplace_back(PreRuntime{
+        kBabeEngineId,
+        Buffer{::kagome::scale::encode(pre).value()},
+    });
+    header.digest.emplace_back(Seal{});
+    header.updateHash(*hasher);
+    return header;
+  }
+
+  auto expectRequest(const BlocksRequest &request) {
+    auto cb_out = std::make_shared<std::optional<SyncProtocolMock::Cb>>();
+    EXPECT_CALL(*sync_protocol, request(_, request, _))
+        .WillOnce([cb_out](const PeerId &,
+                           BlocksRequest,
+                           SyncProtocolMock::Cb cb) { *cb_out = cb; });
+    return [this, request, cb_out](std::vector<BlockHeader> blocks) {
+      auto &cb = cb_out->value();
+      if (blocks.empty()) {
+        cb(std::errc::not_supported);
+        return;
+      }
+      BlocksResponse response;
+      for (auto &header : blocks) {
+        auto &block = response.blocks.emplace_back();
+        block.hash = header.hash();
+        if (has(request.fields, BlockAttribute::HEADER)) {
+          block.header = header;
+        }
+        if (has(request.fields, BlockAttribute::BODY)) {
+          block.body = body_;
+        }
+      }
+      cb(response);
+    };
+  }
+  auto expectBodyRequest(const BlockHeader &block) {
+    return expectRequest({
+        .fields = BlockAttribute::HEADER | BlockAttribute::BODY,
+        .from = block.hash(),
+        .direction = Direction::ASCENDING,
+    });
+  }
+  auto expectGapRequest(const BlockHeader &block) {
+    return expectRequest({
+        .fields = BlockAttribute::HEADER | BlockAttribute::JUSTIFICATION,
+        .from = block.hash(),
+        .direction = Direction::DESCENDING,
+    });
+  }
+  auto expectRangeRequest(BlockNumber number) {
+    return expectRequest({
+        .fields = BlockAttribute::HEADER | BlockAttribute::JUSTIFICATION,
+        .from = number,
+        .direction = Direction::ASCENDING,
+    });
   }
 
   application::AppConfigurationMock app_config;
@@ -123,6 +245,9 @@ class SynchronizerTest
       std::make_shared<application::AppStateManagerMock>();
   std::shared_ptr<blockchain::BlockTreeMock> block_tree =
       std::make_shared<blockchain::BlockTreeMock>();
+  std::shared_ptr<SystemClockMock> clock_ = std::make_shared<SystemClockMock>();
+  std::shared_ptr<SlotsUtilMock> slots_util_ =
+      std::make_shared<SlotsUtilMock>();
   std::shared_ptr<BlockHeaderAppenderMock> block_appender =
       std::make_shared<BlockHeaderAppenderMock>();
   std::shared_ptr<BlockExecutorMock> block_executor =
@@ -131,14 +256,15 @@ class SynchronizerTest
       std::make_shared<trie::TrieStorageBackendMock>();
   std::shared_ptr<trie::TrieStorageMock> storage =
       std::make_shared<trie::TrieStorageMock>();
-  std::shared_ptr<network::SyncProtocolMock> sync_protocol =
-      std::make_shared<network::SyncProtocolMock>();
+  std::shared_ptr<SyncProtocolMock> sync_protocol =
+      std::make_shared<SyncProtocolMock>();
   std::shared_ptr<network::RouterMock> router =
       std::make_shared<network::RouterMock>();
+  std::shared_ptr<PeerManagerMock> peer_manager_ =
+      std::make_shared<PeerManagerMock>();
   std::shared_ptr<libp2p::basic::SchedulerMock> scheduler =
       std::make_shared<libp2p::basic::SchedulerMock>();
-  std::shared_ptr<crypto::HasherMock> hasher =
-      std::make_shared<crypto::HasherMock>();
+  std::shared_ptr<HasherImpl> hasher = std::make_shared<HasherImpl>();
   primitives::events::ChainSubscriptionEnginePtr chain_sub_engine =
       std::make_shared<primitives::events::ChainSubscriptionEngine>();
   std::shared_ptr<Timeline> timeline;
@@ -162,6 +288,13 @@ class SynchronizerTest
       primitives::BlockNumber common,
       primitives::BlockNumber local_best,
       primitives::BlockNumber remote_best);
+
+  BlockHeader genesis_;
+  BlockBody body_;
+  BlockInfo best_;
+  BlockInfo finalized_;
+  std::unordered_map<BlockHash, BlockHeader> db_blocks_;
+  BlockNumber peer_best_ = 0;
 };
 
 // Imitates call getBlockHeader based on generated local blockchain
@@ -299,60 +432,44 @@ SynchronizerTest::generateChains(BlockNumber finalized,
   return result;
 }
 
-TEST_P(SynchronizerTest, findCommonBlock) {
-  /// @given variants existing blockchain - local and remote
-  auto &&[finalized, common, local_best, remote_best] = GetParam();
+TEST_F(SynchronizerTest, Attached) {
+  auto block_1 = makeBlock(genesis_);
 
-  auto &&[local, remote] =
-      generateChains(finalized, common, local_best, remote_best);
+  auto reply_body = expectBodyRequest(block_1);
+  synchronizer->onBlockAnnounce(block_1, peer_id);
 
-  // Mocked callback
-  SyncResultHandlerMock mock;
-
-  /// @then callback will be called once with expected data
-  auto is_expected = [&local = local, &common = common](const auto &res) {
-    return res.has_value() and res.value() == local[common];
-  };
-  EXPECT_CALL(mock, call(Truly(is_expected))).Times(1);
-
-  // Wrapper for mocked callback
-  auto cb = [&](auto res) {
-    if (res.has_value()) {
-      auto &bi = res.value();
-      std::cout << "Success: " << bi.hash.data() << std::endl;
-    } else {
-      std::cout << "Fail: " << res.error() << std::endl;
-    }
-    std::cout << std::endl;
-    mock(res);
-  };
-
-  /// @when find of the best common block
-  auto lower = finalized;
-  auto hint = std::min(local_best, remote_best);
-  auto upper = std::min(local_best, remote_best) + 1;
-  synchronizer->findCommonBlock(peer_id, lower, upper, hint, std::move(cb));
+  EXPECT_CALL(*block_executor, applyBlock(_, _, _));
+  reply_body({block_1});
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    SynchronizerTest_Success,
-    SynchronizerTest,
-    Values(  // clang-format off
+TEST_F(SynchronizerTest, Detached) {
+  auto block_1 = makeBlock(genesis_);
+  auto block_2 = makeBlock(block_1);
+  auto block_3 = makeBlock(block_2);
 
-// common block is not finalized
-std::make_tuple(3, 5, 5, 5),   // equal chains, common is best for both
-std::make_tuple(3, 5, 10, 10), // equal size of chains, common isn't best
-std::make_tuple(3, 5, 10, 15), // remote chain longer, common isn't best
-std::make_tuple(3, 5, 5, 15),  // remote chain longer, common is best for local
-std::make_tuple(3, 5, 15, 10), // local chain longer, common is not best
-std::make_tuple(3, 5, 10, 5),  // local chain longer, common is best for remote
+  auto reply_gap_2 = expectGapRequest(block_2);
+  synchronizer->onBlockAnnounce(block_3, peer_id);
 
-// common block is finalized
-std::make_tuple(5, 5, 5, 5),   // equal chains, common is best for both
-std::make_tuple(5, 5, 10, 10), // equal size of chains, common isn't best
-std::make_tuple(5, 5, 10, 15), // remote chain longer, common isn't best
-std::make_tuple(5, 5, 5, 15),  // remote chain longer, common is best for local
-std::make_tuple(5, 5, 15, 10), // local chain longer, common is not best
-std::make_tuple(5, 5, 10, 5)   // local chain longer, common is best for remote
+  auto reply_gap_1 = expectGapRequest(block_1);
+  reply_gap_2({block_2});
 
-    ));  // clang-format on
+  expectBodyRequest(block_1);
+  reply_gap_1({block_1});
+}
+
+TEST_F(SynchronizerTest, Range) {
+  auto block_1 = makeBlock(genesis_);
+  auto block_2 = makeBlock(block_1);
+
+  auto reply_range_0 = expectRangeRequest(0);
+  peer_best_ = block_2.number;
+  synchronizer->addPeerKnownBlockInfo(block_2.blockInfo(), peer_id);
+
+  auto reply_body = expectBodyRequest(block_1);
+  reply_range_0({genesis_, block_1});
+
+  auto reply_range_1 = expectRangeRequest(1);
+  reply_body({});
+
+  reply_range_1({block_1, block_2});
+}
