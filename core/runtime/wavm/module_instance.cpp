@@ -115,7 +115,7 @@ namespace kagome::runtime::wavm {
           &,  // not used, but has to have been created before the call
       std::string_view name,
       common::BufferView encoded_args) const {
-    auto memory = env_.memory_provider->getCurrentMemory().value();
+    OUTCOME_TRY(memory, env_.memory_provider->getCurrentMemory());
 
     PtrSize args_span{memory.get().storeBuffer(encoded_args)};
 

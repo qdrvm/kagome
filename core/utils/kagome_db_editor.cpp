@@ -4,7 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "consensus/timeline/timeline.hpp"
 #include "injector/idle_trie_pruner.hpp"
+#include "storage/trie/impl/direct_storage.hpp"
 #include "storage/trie/trie_batches.hpp"
 #include "storage/trie/trie_storage_backend.hpp"
 #if defined(BACKWARD_HAS_BACKTRACE)
@@ -83,13 +85,24 @@ namespace kagome {
                               BufferOrView &&value) override {
       abort();
     }
+
     outcome::result<void> remove(const common::BufferView &key) override {
+      abort();
+    }
+
+    outcome::result<void> removePrefix(
+        const common::BufferView &prefix) override {
+      abort();
+    }
+
+    outcome::result<void> clear() override {
       abort();
     }
 
     void track(BufferView key) const {
       keys.emplace(common::Hash256::fromSpan(key).value());
     }
+
     bool tracked(BufferView key) const {
       return keys.contains(common::Hash256::fromSpan(key).value());
     }
@@ -216,6 +229,19 @@ Example:
        and std::strlen(s) == common::Hash256::size() * 2 + 2;
   }
 
+  class TimelineStub final : public consensus::Timeline {
+   public:
+    consensus::SyncState getCurrentState() const {
+      return consensus::SyncState::SYNCHRONIZED;
+    }
+
+    bool wasSynchronized() const {
+      return true;
+    }
+
+    void checkAndReportEquivocation(const primitives::BlockHeader &) override {}
+  };
+
   int db_editor_main(int argc, const char **argv) {
 #if defined(BACKWARD_HAS_BACKTRACE)
     backward::SignalHandling sh;
@@ -259,7 +285,7 @@ Example:
       try {
         storage =
             storage::RocksDb::create(args[DB_PATH], rocksdb::Options()).value();
-        storage->dropColumn(storage::Space::kBlockBody);
+        storage->dropColumn(storage::Space::kBlockBody).value();
         buffer_storage = storage->getSpace(storage::Space::kDefault);
       } catch (std::system_error &e) {
         log->error("{}", e.what());
@@ -269,6 +295,14 @@ Example:
 
       auto trie_node_tracker = std::make_shared<TrieTracker>(
           std::make_shared<TrieStorageBackendImpl>(storage));
+      std::shared_ptr<storage::trie::DirectStorage> direct_storage =
+          storage::trie::DirectStorage::create(
+              storage->getRocksSpace(storage::Space::kTrieDirectKV),
+              storage->getRocksSpace(storage::Space::kTrieDiff),
+              std::make_shared<primitives::events::ChainSubscriptionEngine>(),
+              LazySPtr<const consensus::Timeline>{di::make_injector(
+                  di::bind<consensus::Timeline>.template to<TimelineStub>())})
+              .value();
 
       auto injector = di::make_injector(
           di::bind<TrieSerializer>.to([](const auto &injector) {
@@ -278,6 +312,7 @@ Example:
                 injector.template create<sptr<TrieStorageBackend>>());
           }),
           di::bind<TrieStorageBackend>.to(trie_node_tracker),
+          di::bind<storage::trie::DirectStorage>.to(direct_storage),
           di::bind<storage::trie_pruner::TriePruner>.to(
               std::make_shared<storage::trie_pruner::IdleTriePruner>()),
           di::bind<Codec>.to([](const auto &injector) {
@@ -388,7 +423,8 @@ Example:
               injector.template create<sptr<Codec>>(),
               injector.template create<sptr<TrieSerializer>>(),
               injector
-                  .template create<sptr<storage::trie_pruner::TriePruner>>())
+                  .template create<sptr<storage::trie_pruner::TriePruner>>(),
+              injector.template create<sptr<storage::trie::DirectStorage>>())
               .value();
 
       if (COMPACT == cmd) {

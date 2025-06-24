@@ -11,14 +11,15 @@
 namespace kagome::storage {
   /**
    * Map wrapper to use keys under prefix.
-   * Cursor removes key prefix and can seeks first/last.
+   * Cursor removes key prefix and can seek first/last.
    */
-  struct MapPrefix : BufferStorage {
+  struct MapPrefix final : BufferStorage {
     struct Cursor : BufferStorageCursor {
       Cursor(MapPrefix &map, std::unique_ptr<BufferStorageCursor> cursor);
 
       outcome::result<bool> seekFirst() override;
       outcome::result<bool> seek(const BufferView &key) override;
+      outcome::result<bool> seekLowerBound(const BufferView &key) override;
       outcome::result<bool> seekLast() override;
       bool isValid() const override;
       outcome::result<void> next() override;
@@ -46,7 +47,7 @@ namespace kagome::storage {
     };
 
     MapPrefix(BufferView prefix, std::shared_ptr<BufferStorage> map);
-    Buffer _key(BufferView key) const;
+    Buffer prefix_key(BufferView key) const;
 
     outcome::result<bool> contains(const BufferView &key) const override;
     outcome::result<BufferOrView> get(const BufferView &key) const override;
@@ -55,8 +56,10 @@ namespace kagome::storage {
     outcome::result<void> put(const BufferView &key,
                               BufferOrView &&value) override;
     outcome::result<void> remove(const BufferView &key) override;
+    outcome::result<void> removePrefix(const BufferView &prefix) override;
     std::unique_ptr<BufferBatch> batch() override;
     std::unique_ptr<BufferStorageCursor> cursor() override;
+    outcome::result<void> clear() override;
 
     Buffer prefix;
     std::optional<Buffer> after_prefix;

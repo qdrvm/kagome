@@ -44,7 +44,5 @@ namespace kagome::runtime {
                 (const, override));
 
     MOCK_METHOD(outcome::result<void>, resetEnvironment, (), (override));
-
-    MOCK_METHOD(outcome::result<void>, stateless, (), (override));
   };
 }  // namespace kagome::runtime

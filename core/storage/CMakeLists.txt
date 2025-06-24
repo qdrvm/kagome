@@ -23,6 +23,7 @@ add_library(storage
     trie/impl/trie_storage_backend_impl.cpp
     trie/impl/persistent_trie_batch_impl.cpp
     trie/impl/topper_trie_batch_impl.cpp
+    trie/impl/direct_storage.cpp
     trie/polkadot_trie/trie_node.cpp
     trie/polkadot_trie/polkadot_trie_impl.cpp
     trie/polkadot_trie/polkadot_trie_factory_impl.cpp

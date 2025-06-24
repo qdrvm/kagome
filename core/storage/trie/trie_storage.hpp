@@ -13,6 +13,8 @@
 
 namespace kagome::storage::trie {
 
+  class DirectStorage;
+
   /**
    * Grants access to the storage in two ways:
    *  - persistent batch that will

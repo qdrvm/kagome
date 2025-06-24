@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include <outcome/outcome.hpp>
 
 #include "storage/face/owned_or_view.hpp"

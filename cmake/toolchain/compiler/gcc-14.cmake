@@ -1,0 +1,34 @@
+if(DEFINED POLLY_COMPILER_GCC_13_CMAKE_)
+  return()
+else()
+  set(POLLY_COMPILER_GCC_13_CMAKE_ 1)
+endif()
+
+find_program(CMAKE_C_COMPILER gcc-14)
+find_program(CMAKE_CXX_COMPILER g++-14)
+
+if(NOT CMAKE_C_COMPILER)
+  message(FATAL_ERROR "gcc-14 not found")
+endif()
+
+if(NOT CMAKE_CXX_COMPILER)
+message(FATAL_ERROR "g++-14 not found")
+endif()
+
+set(
+    CMAKE_C_COMPILER
+    "${CMAKE_C_COMPILER}"
+    CACHE
+    STRING
+    "C compiler"
+    FORCE
+)
+
+set(
+    CMAKE_CXX_COMPILER
+    "${CMAKE_CXX_COMPILER}"
+    CACHE
+    STRING
+    "C++ compiler"
+    FORCE
+)

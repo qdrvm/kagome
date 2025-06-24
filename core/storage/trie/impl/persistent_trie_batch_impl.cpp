@@ -16,17 +16,6 @@
 #include "storage/trie/serialization/trie_serializer.hpp"
 #include "storage/trie_pruner/trie_pruner.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(kagome::storage::trie,
-                            PersistentTrieBatchImpl::Error,
-                            e) {
-  using E = kagome::storage::trie::PersistentTrieBatchImpl::Error;
-  switch (e) {
-    case E::NO_TRIE:
-      return "Trie was not created or already was destructed.";
-  }
-  return "Unknown error";
-}
-
 namespace kagome::storage::trie {
 
   PersistentTrieBatchImpl::PersistentTrieBatchImpl(
@@ -36,6 +25,27 @@ namespace kagome::storage::trie {
       std::shared_ptr<PolkadotTrie> trie,
       std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner)
       : TrieBatchBase{std::move(codec), std::move(serializer), std::move(trie)},
+        changes_{std::move(changes)},
+        state_pruner_{std::move(state_pruner)} {
+    BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
+                 or not changes_.has_value());
+    BOOST_ASSERT(state_pruner_ != nullptr);
+    SL_WARN(logger_, "EphemeralTrieBatchImpl created without direct storage");
+  }
+
+  PersistentTrieBatchImpl::PersistentTrieBatchImpl(
+      std::shared_ptr<Codec> codec,
+      std::shared_ptr<TrieSerializer> serializer,
+      TrieChangesTrackerOpt changes,
+      std::shared_ptr<PolkadotTrie> trie,
+      std::shared_ptr<storage::trie_pruner::TriePruner> state_pruner,
+      std::shared_ptr<DirectStorage> direct_kv_storage,
+      std::shared_ptr<DirectStorageView> direct_storage_view)
+      : TrieBatchBase{std::move(codec),
+                      std::move(serializer),
+                      std::move(trie),
+                      direct_kv_storage,
+                      direct_storage_view},
         changes_{std::move(changes)},
         state_pruner_{std::move(state_pruner)} {
     BOOST_ASSERT((changes_.has_value() && changes_.value() != nullptr)
@@ -54,6 +64,12 @@ namespace kagome::storage::trie {
     // batch must not be committed before pruner addNewState or pruner breaks
     // probably should enforce this more strictly in the API
     OUTCOME_TRY(batch->commit());
+    if (direct_) {
+      OUTCOME_TRY(direct_->storage->storeDiff(
+          {.from = direct_->view->getStateRoot(), .to = root},
+          std::exchange(direct_->diff, StateDiff{})));
+      SL_DEBUG(logger_, "New diff for state: {}", root);
+    }
     SL_TRACE_FUNC_CALL(logger_, root);
     return root;
   }
@@ -63,9 +79,16 @@ namespace kagome::storage::trie {
                                        std::optional<uint64_t> limit) {
     SL_TRACE_VOID_FUNC_CALL(logger_, prefix);
     return trie_->clearPrefix(
-        prefix, limit, [&](const auto &key, auto &&) -> outcome::result<void> {
+        prefix,
+        limit,
+        [&](const auto &key,
+            std::optional<common::Buffer> &&value) -> outcome::result<void> {
           if (changes_.has_value()) {
             changes_.value()->onRemove(key);
+          }
+          if (direct_) {
+            direct_->diff[key] =
+                std::forward<std::optional<common::Buffer>>(value);
           }
           return outcome::success();
         });
@@ -73,14 +96,16 @@ namespace kagome::storage::trie {
 
   outcome::result<void> PersistentTrieBatchImpl::put(const BufferView &key,
                                                      BufferOrView &&value) {
-    OUTCOME_TRY(contains, trie_->contains(key));
-    bool is_new_entry = not contains;
+    OUTCOME_TRY(is_key_already_contained, trie_->contains(key));
     auto value_copy = value.mut();
     auto res = trie_->put(key, std::move(value));
     if (res and changes_.has_value()) {
       SL_TRACE_VOID_FUNC_CALL(logger_, key, value_copy);
 
-      changes_.value()->onPut(key, value_copy, is_new_entry);
+      changes_.value()->onPut(key, value_copy, !is_key_already_contained);
+    }
+    if (res and direct_) {
+      direct_->diff[key] = value_copy;
     }
     return res;
   }
@@ -90,6 +115,9 @@ namespace kagome::storage::trie {
     if (changes_.has_value()) {
       SL_TRACE_VOID_FUNC_CALL(logger_, key);
       changes_.value()->onRemove(key);
+    }
+    if (direct_) {
+      direct_->diff[key].reset();
     }
     return outcome::success();
   }

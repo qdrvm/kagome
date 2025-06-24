@@ -12,6 +12,7 @@
 #include <boost/range/adaptors.hpp>
 
 #include "log/logger.hpp"
+#include "storage/trie/impl/direct_storage.hpp"
 #include "storage/trie/serialization/trie_serializer.hpp"
 
 namespace kagome::storage::trie {
@@ -23,6 +24,12 @@ namespace kagome::storage::trie {
     TrieBatchBase(std::shared_ptr<Codec> codec,
                   std::shared_ptr<TrieSerializer> serializer,
                   std::shared_ptr<PolkadotTrie> trie);
+
+    TrieBatchBase(std::shared_ptr<Codec> codec,
+                  std::shared_ptr<TrieSerializer> serializer,
+                  std::shared_ptr<PolkadotTrie> trie,
+                  std::shared_ptr<DirectStorage> direct_kv_storage,
+                  std::shared_ptr<DirectStorageView> direct_storage_view);
 
     TrieBatchBase(const TrieBatchBase &) = delete;
     TrieBatchBase(TrieBatchBase &&) noexcept = default;
@@ -52,6 +59,16 @@ namespace kagome::storage::trie {
     std::shared_ptr<Codec> codec_;
     std::shared_ptr<TrieSerializer> serializer_;
     std::shared_ptr<PolkadotTrie> trie_;
+
+    struct DirectStorageStuff {
+      // direct storage manages overall logic
+      std::shared_ptr<DirectStorage> storage;
+      // view belongs to a particular state
+      std::shared_ptr<DirectStorageView> view;
+      // diff accumulates current changes
+      StateDiff diff;
+    };
+    std::optional<DirectStorageStuff> direct_;
 
    private:
     std::unordered_map<common::Buffer, std::shared_ptr<TrieBatchBase>>

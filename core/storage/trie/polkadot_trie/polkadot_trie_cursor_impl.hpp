@@ -47,7 +47,7 @@ namespace kagome::storage::trie {
     /**
      * Seek the first element with key not less than \arg key
      */
-    [[nodiscard]] outcome::result<void> seekLowerBound(
+    [[nodiscard]] outcome::result<bool> seekLowerBound(
         const common::BufferView &key) override;
 
     /**
@@ -67,7 +67,7 @@ namespace kagome::storage::trie {
     [[nodiscard]] std::optional<BufferOrView> value() const override;
 
    private:
-    outcome::result<void> seekLowerBoundInternal(const TrieNode &current,
+    outcome::result<bool> seekLowerBoundInternal(const TrieNode &current,
                                                  BufferView left_nibbles);
     outcome::result<bool> nextNodeWithValueInOuterTree();
     outcome::result<void> nextNodeWithValueInSubTree(

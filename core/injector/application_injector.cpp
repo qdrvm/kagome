@@ -369,6 +369,7 @@ namespace {
         injector.template create<primitives::events::ExtrinsicSubscriptionEnginePtr>(),
         injector.template create<std::shared_ptr<subscription::ExtrinsicEventKeyRepository>>(),
         injector.template create<std::shared_ptr<blockchain::JustificationStoragePolicy>>(),
+        injector.template create<sptr<storage::trie::TrieStorage>>(),
         injector.template create<sptr<storage::trie_pruner::TriePruner>>(),
         injector.template create<common::MainThreadPool &>());
     // clang-format on
@@ -731,6 +732,8 @@ namespace {
               return get_rocks_db(config, chain_spec);
             }),
             bind_by_lambda<blockchain::BlockStorage>([](const auto &injector) {
+              const auto &storage =
+              injector.template create<sptr<storage::SpacedStorage>>();
               auto root_res =
                   injector::calculate_genesis_state(
                       injector
@@ -740,6 +743,8 @@ namespace {
                       injector.template create<runtime::RuntimeInstancesPool&>(),
                       injector
                           .template create<storage::trie::TrieSerializer &>(),
+                          *injector
+                          .template create<sptr<storage::trie::DirectStorage>>(),
                       injector.template create<
                           sptr<runtime::RuntimePropertiesCache>>());
               if (root_res.has_error()) {
@@ -747,8 +752,6 @@ namespace {
               }
               const auto &hasher =
                   injector.template create<sptr<crypto::Hasher>>();
-              const auto &storage =
-                  injector.template create<sptr<storage::SpacedStorage>>();
               return blockchain::BlockStorageImpl::create(root_res.value(), storage, hasher)
                   .value();
             }),
@@ -854,17 +857,29 @@ namespace {
                   );
                 }),
             bind_by_lambda<storage::trie::TrieStorage>([](const auto
-                                                              &injector) {
-              return storage::trie::TrieStorageImpl::createEmpty(
+                                                              &injector) {                        
+                        return storage::trie::TrieStorageImpl::createEmpty(
                          injector.template create<
                              sptr<storage::trie::PolkadotTrieFactory>>(),
                          injector.template create<sptr<storage::trie::Codec>>(),
                          injector.template create<
                              sptr<storage::trie::TrieSerializer>>(),
                          injector.template create<
-                             sptr<storage::trie_pruner::TriePruner>>())
+                             sptr<storage::trie_pruner::TriePruner>>(),
+                         injector.template create<
+                             sptr<storage::trie::DirectStorage>>())
                   .value();
             }),
+            bind_by_lambda<storage::trie::DirectStorage>([](const auto
+              &injector) {
+                auto storage = injector.template create<sptr<storage::SpacedStorage>>();
+                auto& rocksdb = dynamic_cast<storage::RocksDb&>(*storage);
+                return storage::trie::DirectStorage::create(
+                  rocksdb.getRocksSpace(storage::Space::kTrieDirectKV),
+                  rocksdb.getRocksSpace(storage::Space::kTrieDiff),
+                  injector.template create<sptr<primitives::events::ChainSubscriptionEngine>>(),
+                  LazySPtr<const consensus::Timeline>(injector)).value();
+              }),
             di::bind<storage::trie::PolkadotTrieFactory>.template to<storage::trie::PolkadotTrieFactoryImpl>(),
             bind_by_lambda<storage::trie::Codec>([](const auto&) {
               return std::make_shared<storage::trie::PolkadotCodec>(crypto::blake2b<32>);

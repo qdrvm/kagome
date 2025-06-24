@@ -22,6 +22,7 @@
 #include "mock/core/blockchain/block_storage_mock.hpp"
 #include "mock/core/blockchain/justification_storage_policy.hpp"
 #include "mock/core/consensus/babe/babe_config_repository_mock.hpp"
+#include "mock/core/storage/trie/trie_storage_mock.hpp"
 #include "mock/core/storage/trie_pruner/trie_pruner_mock.hpp"
 #include "mock/core/transaction_pool/transaction_pool_mock.hpp"
 #include "network/impl/extrinsic_observer_impl.hpp"
@@ -57,6 +58,7 @@ using primitives::Consensus;
 using primitives::Digest;
 using primitives::Justification;
 using primitives::PreRuntime;
+using storage::trie::TrieStorageMock;
 using storage::trie_pruner::TriePrunerMock;
 using transaction_pool::TransactionPoolMock;
 using BabeSeal = consensus::babe::Seal;
@@ -170,6 +172,7 @@ struct BlockTreeTest : public testing::Test {
                                         ext_events_engine,
                                         extrinsic_event_key_repo,
                                         justification_storage_policy_,
+                                        trie_storage_,
                                         state_pruner_,
                                         *main_thread_pool_)
                       .value();
@@ -274,6 +277,9 @@ struct BlockTreeTest : public testing::Test {
   std::shared_ptr<JustificationStoragePolicyMock>
       justification_storage_policy_ =
           std::make_shared<StrictMock<JustificationStoragePolicyMock>>();
+
+  std::shared_ptr<TrieStorageMock> trie_storage_ =
+      std::make_shared<TrieStorageMock>();
 
   std::shared_ptr<TriePrunerMock> state_pruner_ =
       std::make_shared<TriePrunerMock>();

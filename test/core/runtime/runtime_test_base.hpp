@@ -33,7 +33,7 @@
 #include "mock/core/runtime/runtime_properties_cache_mock.hpp"
 #include "mock/core/runtime/trie_storage_provider_mock.hpp"
 #include "mock/core/storage/spaced_storage_mock.hpp"
-#include "mock/core/storage/trie/polkadot_trie_cursor_mock.h"
+#include "mock/core/storage/trie/polkadot_trie_cursor_mock.hpp"
 #include "mock/core/storage/trie/serialization/trie_serializer_mock.hpp"
 #include "mock/core/storage/trie/trie_batches_mock.hpp"
 #include "mock/core/storage/trie/trie_storage_mock.hpp"

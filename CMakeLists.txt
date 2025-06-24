@@ -42,7 +42,10 @@ set(WASMEDGE_ID 3fbf6c6a39a5fd065e8964a979d5edcddf877cca)
 
 include("cmake/Hunter/init.cmake")
 
-add_compile_options(-gdwarf-4)
+if (${CMAKE_BUILD_TYPE} MATCHES "^(Debug|RelWithDebInfo)$")
+  add_compile_options(-gdwarf-4 -fno-omit-frame-pointer)
+endif()
+
 project(kagome
     VERSION 0.9.3
     LANGUAGES C CXX

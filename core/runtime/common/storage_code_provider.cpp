@@ -43,6 +43,7 @@ namespace kagome::runtime {
           return std::make_shared<common::Buffer>(std::move(code));
         }
       }
+      SL_DEBUG(logger_, "Reading code from storage at {}", state);
       OUTCOME_TRY(batch, storage_->getEphemeralBatchAt(state));
       OUTCOME_TRY(code, batch->get(storage::kRuntimeCodeKey));
       cached_code_ = std::make_shared<common::Buffer>(std::move(code));

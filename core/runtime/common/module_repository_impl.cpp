@@ -74,7 +74,7 @@ namespace kagome::runtime {
 
     KAGOME_PROFILE_START(module_retrieval)
     Item item;
-    OUTCOME_TRY(SAFE_UNIQUE(cache_)->outcome::result<void> {
+    auto res = SAFE_UNIQUE(cache_)->outcome::result<void> {
       if (auto r = cache_.get(state)) {
         item = r->get();
       } else {
@@ -82,6 +82,9 @@ namespace kagome::runtime {
         if (not code_res) {
           code_res = code_provider_->getCodeAt(storage_state);
         }
+        BOOST_ASSERT_MSG(
+            code_res.has_value(),
+            "A :code entry should always be present in the storage");
         auto &code_zstd = *code_res.value();
         item.hash = hasher_->blake2b_256(code_zstd);
         OUTCOME_TRY(code, uncompressCodeIfNeeded(code_zstd));
@@ -96,7 +99,8 @@ namespace kagome::runtime {
         cache_.put(state, item);
       }
       return outcome::success();
-    });
+    };
+    OUTCOME_TRY(res);
     return item;
   }
 }  // namespace kagome::runtime
