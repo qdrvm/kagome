@@ -1,0 +1,5 @@
+RUST_VERSION=1.81.0
+RUSTUP_HOME=~/.rustup
+CARGO_HOME=~/.cargo
+
+PATH="${CARGO_HOME}/bin:${PATH}"

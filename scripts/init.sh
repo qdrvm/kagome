@@ -4,15 +4,27 @@ current_dir=$(dirname $(readlink -f "$0"))
 parent_dir=$(dirname "$current_dir")
 cd $parent_dir
 
-set -a; source $current_dir/.env; set +a #include .env vars 
+#include .env vars and optionally .rust_env vars
+set -a
+if [ -z "$FLAKE_INITIATED" ]; then
+    source $current_dir/.rust_env
+fi
+source $current_dir/.env
+set +a
 
-apt update
-apt install --no-install-recommends -y \
-      build-essential git gcc ca-certificates python-is-python3 python3-pip \
-      python3-venv curl libgmp-dev libncurses6 libncurses-dev libnsl-dev libseccomp-dev
+# if not using nix, install the following packages
+if [ -z "$FLAKE_INITIATED" ]; then
+    sudo apt update
+    sudo apt install --no-install-recommends -y \
+        build-essential git gcc ca-certificates python-is-python3 python3-pip \
+        python3-venv curl libgmp-dev libncurses6 libncurses-dev libnsl-dev libseccomp-dev
+fi
 
 python3 -m venv "$parent_dir/venv"
-
 echo "Python environment created successfully in $parent_dir/venv"
 
-$parent_dir/venv/bin/pip install --no-cache-dir cmake==${CMAKE_VERSION} gitpython requests
+if [ -z "$FLAKE_INITIATED" ]; then
+    $parent_dir/venv/bin/pip install --no-cache-dir cmake==${CMAKE_VERSION} gitpython requests
+else
+    $parent_dir/venv/bin/pip install --no-cache-dir gitpython requests
+fi

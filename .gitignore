@@ -20,6 +20,7 @@ CMakeLists.txt.user
 .scannerwork/
 peers.list
 cmake-build*
+venv
 
 .gtm
 /.gtm/
@@ -35,3 +36,9 @@ examples/**/db
 /examples/rococo/syncing/
 
 CMakeUserPresets.json
+
+# Nix setup specific
+.rustup
+.cargo
+.direnv
+.envrc
