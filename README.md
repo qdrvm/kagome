@@ -350,4 +350,3 @@ You can find more information about the components by checking [reference docume
 * [Web3 Builders: Soramitsu | C++ Implementation of Polkadot Host](https://www.youtube.com/watch?v=We3kiGzg60w) Polkadot's Web3 builders online presentation
 * [Building alternative clients](https://youtu.be/TnENz6I9l8A?si=yF4oo2zQ6LdPW13N) Polkadot Decoded 2023 presentation
 * [Polkadot Host architecture in 2024](https://www.youtube.com/watch?v=Lv2KQ2EDyM8&pp=ygUKc3ViMCBrYW1pbA%3D%3D) Sub0 Asia 2024 presentation
-* [Building Kagome: Polkadot's Journey Towards Client Diversity](https://youtu.be/tkem7nYd5Y0?feature=shared) AwesomeDOT Podcast
